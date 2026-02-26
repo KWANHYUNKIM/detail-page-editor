@@ -1,0 +1,1194 @@
+import { create } from 'zustand';
+import { v4 as uuid } from 'uuid';
+import {
+  CanvasElement,
+  EditorMode,
+  ImageElement,
+  TextElement,
+  ShapeElement,
+  FrameElement,
+  PresetKey,
+  Page,
+  Layer,
+  Project,
+  ShapeType,
+  ToolType,
+  FillValue,
+} from '@/types/editor';
+import { CANVAS_PRESETS, DEFAULT_BACKGROUND_COLOR } from '@/constants/presets';
+import { DEFAULT_FONT, DEFAULT_FONT_SIZE, DEFAULT_TEXT_COLOR } from '@/constants/fonts';
+
+// ━━━ Helpers ━━━
+
+/** Derive flat layerOrder from layers (bottom → top, each layer's elements in order) */
+function deriveLayerOrder(layers: Layer[]): string[] {
+  return layers.flatMap((l) => l.elementIds);
+}
+
+/** Create a default layer */
+function createDefaultLayer(name = '레이어 1'): Layer {
+  return {
+    id: uuid(),
+    name,
+    visible: true,
+    locked: false,
+    opacity: 1,
+    elementIds: [],
+  };
+}
+
+/** Create a default page with one layer */
+function createDefaultPage(name = '페이지 1'): Page {
+  const layer = createDefaultLayer();
+  return { id: uuid(), name, elements: [], layers: [layer], layerOrder: [] };
+}
+
+/** Migrate a page that doesn't have layers (backward compat) */
+function migratePageLayers(page: Page): Page {
+  if (page.layers && page.layers.length > 0) return page;
+  const layer: Layer = {
+    id: uuid(),
+    name: '레이어 1',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    elementIds: [...(page.layerOrder ?? [])],
+  };
+  return { ...page, layers: [layer], layerOrder: page.layerOrder ?? [] };
+}
+
+/** Find which layer contains an element */
+function findElementLayerIndex(layers: Layer[], elementId: string): number {
+  return layers.findIndex((l) => l.elementIds.includes(elementId));
+}
+
+/** Add element to a specific layer and recompute layerOrder */
+function addElementToLayer(page: Page, layerId: string, elementId: string): Page {
+  const layers = page.layers.map((l) =>
+    l.id === layerId ? { ...l, elementIds: [...l.elementIds, elementId] } : l
+  );
+  return { ...page, layers, layerOrder: deriveLayerOrder(layers) };
+}
+
+/** Remove element IDs from all layers and recompute layerOrder */
+function removeElementsFromLayers(page: Page, ids: Set<string>): Page {
+  const layers = page.layers.map((l) => ({
+    ...l,
+    elementIds: l.elementIds.filter((eid) => !ids.has(eid)),
+  }));
+  return { ...page, layers, layerOrder: deriveLayerOrder(layers) };
+}
+
+// ━━━ State Interface ━━━
+
+interface EditorState {
+  project: Project | null;
+  currentPageIndex: number;
+  selectedElementIds: string[];
+  zoom: number;
+  mode: EditorMode;
+  clipboardElements: CanvasElement[];
+  aiEnabled: boolean;
+  activeTool: ToolType;
+  activeLayerId: string | null;
+  editingFrameId: string | null;
+
+  initProject: (name: string, preset: PresetKey, mode?: EditorMode, templateData?: { elements: CanvasElement[]; backgroundColor?: string }) => void;
+  loadProject: (project: Project) => void;
+  setMode: (mode: EditorMode) => void;
+  setZoom: (zoom: number) => void;
+  selectElements: (ids: string[]) => void;
+  clearSelection: () => void;
+  setActiveTool: (tool: ToolType) => void;
+  setEditingFrameId: (id: string | null) => void;
+
+  addImageElement: (src: string, name?: string) => string;
+  addTextElement: (content?: string) => string;
+  addShapeElement: (shape: ShapeType) => string;
+  updateElement: (id: string, updates: Partial<CanvasElement>) => void;
+  removeElements: (ids: string[]) => void;
+  duplicateElements: (ids: string[]) => void;
+  copyElements: () => void;
+  cutElements: () => void;
+  pasteElements: () => void;
+
+  // Frame / grouping
+  addFrameElement: (x?: number, y?: number) => string;
+  addSectionElement: (y?: number) => string;
+  groupElements: (ids: string[]) => string | null;
+  ungroupElements: (frameId: string) => void;
+  moveToFrame: (elementIds: string[], frameId: string) => void;
+  moveOutOfFrame: (elementIds: string[]) => void;
+  getChildElements: (frameId: string) => CanvasElement[];
+  getFlatRenderOrder: () => string[];
+
+  // Element z-ordering within layer
+  moveLayerUp: (id: string) => void;
+  moveLayerDown: (id: string) => void;
+  moveLayerToTop: (id: string) => void;
+  moveLayerToBottom: (id: string) => void;
+
+  toggleElementEditable: (id: string) => void;
+  setElementPlaceholder: (id: string, placeholder: string) => void;
+
+  setCanvasBackground: (color: FillValue) => void;
+  setCanvasSize: (width: number, height: number) => void;
+
+  // Page management
+  addPage: (name?: string) => void;
+  deletePage: (pageId: string) => void;
+  renamePage: (pageId: string, name: string) => void;
+  setCurrentPageIndex: (index: number) => void;
+
+  // Layer management
+  addLayer: (name?: string) => string;
+  removeLayer: (layerId: string) => void;
+  renameLayer: (layerId: string, name: string) => void;
+  toggleLayerVisibility: (layerId: string) => void;
+  toggleLayerLock: (layerId: string) => void;
+  setLayerOpacity: (layerId: string, opacity: number) => void;
+  moveLayerGroupUp: (layerId: string) => void;
+  moveLayerGroupDown: (layerId: string) => void;
+  moveElementToLayer: (elementId: string, targetLayerId: string) => void;
+  setActiveLayerId: (layerId: string) => void;
+  getActiveLayer: () => Layer | null;
+
+  getCurrentPage: () => Page | null;
+  getElement: (id: string) => CanvasElement | undefined;
+  getSelectedElements: () => CanvasElement[];
+}
+
+// ━━━ Store ━━━
+
+export const useEditorStore = create<EditorState>((set, get) => ({
+  project: null,
+  currentPageIndex: 0,
+  selectedElementIds: [],
+  zoom: 1,
+  mode: 'creator',
+  clipboardElements: [],
+  aiEnabled: false,
+  activeTool: 'move',
+  activeLayerId: null,
+  editingFrameId: null,
+
+  initProject: (name, preset, mode = 'creator', templateData) => {
+    const presetConfig = CANVAS_PRESETS.find((p) => p.key === preset) ?? CANVAS_PRESETS[0];
+
+    let page: Page;
+    if (templateData?.elements && templateData.elements.length > 0) {
+      const idMap = new Map<string, string>();
+      const newElements = templateData.elements.map((el) => {
+        const newId = uuid();
+        idMap.set(el.id, newId);
+        return { ...el, id: newId } as CanvasElement;
+      });
+      const elementIds = templateData.elements.map((el) => idMap.get(el.id)!);
+      const layer = createDefaultLayer();
+      layer.elementIds = elementIds;
+      page = {
+        id: uuid(),
+        name: '페이지 1',
+        elements: newElements,
+        layers: [layer],
+        layerOrder: elementIds,
+      };
+    } else {
+      page = createDefaultPage();
+    }
+
+    const project: Project = {
+      id: uuid(),
+      name,
+      mode,
+      isTemplate: false,
+      preset,
+      canvas: {
+        width: presetConfig.width,
+        height: (() => {
+          if (templateData?.elements && templateData.elements.length > 0) {
+            const maxY = Math.max(...templateData.elements.map((el) => el.y + el.height));
+            return Math.max(presetConfig.height, maxY + 100);
+          }
+          return presetConfig.height;
+        })(),
+        backgroundColor: templateData?.backgroundColor ?? DEFAULT_BACKGROUND_COLOR,
+      },
+      pages: [page],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    set({
+      project,
+      currentPageIndex: 0,
+      selectedElementIds: [],
+      mode,
+      activeLayerId: page.layers[0]?.id ?? null,
+    });
+  },
+
+  loadProject: (project) => {
+    // Migrate pages that don't have layers
+    const migratedPages = project.pages.map(migratePageLayers);
+    const migratedProject = { ...project, pages: migratedPages };
+    const firstPage = migratedPages[0];
+    set({
+      project: migratedProject,
+      currentPageIndex: 0,
+      selectedElementIds: [],
+      mode: project.mode,
+      activeLayerId: firstPage?.layers[0]?.id ?? null,
+    });
+  },
+
+  setMode: (mode) => {
+    set({ mode });
+    if (get().project) {
+      set((s) => ({
+        project: s.project ? { ...s.project, mode } : null,
+      }));
+    }
+  },
+
+  setZoom: (zoom) => set({ zoom: Math.max(0.1, Math.min(5, zoom)) }),
+
+  selectElements: (ids) => set({ selectedElementIds: ids }),
+  clearSelection: () => set({ selectedElementIds: [] }),
+  setActiveTool: (tool) => set({ activeTool: tool }),
+  setEditingFrameId: (id) => set({ editingFrameId: id }),
+
+  // ━━━ Element Add Methods (add to active layer) ━━━
+
+  addImageElement: (src, name) => {
+    const id = uuid();
+    const element: ImageElement = {
+      id,
+      type: 'image',
+      x: 100,
+      y: 100,
+      width: 300,
+      height: 300,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      editable: false,
+      src,
+      originalName: name,
+      scaleMode: 'fill',
+      crop: null,
+      filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0, temperature: 0, tint: 0, highlights: 0, shadows: 0 },
+      filterPreset: null,
+    };
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+      page.elements = [...page.elements, element];
+      const targetLayerId = s.activeLayerId ?? page.layers[page.layers.length - 1]?.id;
+      if (targetLayerId) {
+        page = addElementToLayer(page, targetLayerId, id);
+      }
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+    return id;
+  },
+
+  addTextElement: (content = '텍스트를 입력하세요') => {
+    const id = uuid();
+    const element: TextElement = {
+      id,
+      type: 'text',
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 40,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      editable: false,
+      content,
+      fontFamily: DEFAULT_FONT,
+      fontSize: DEFAULT_FONT_SIZE,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      color: DEFAULT_TEXT_COLOR,
+      textAlign: 'left',
+      lineHeight: 1.4,
+      letterSpacing: 0,
+      textDecoration: 'none',
+      textShadow: {
+        enabled: false,
+        color: 'rgba(0,0,0,0.5)',
+        offsetX: 2,
+        offsetY: 2,
+        blur: 4,
+      },
+      textStroke: {
+        enabled: false,
+        color: '#000000',
+        width: 1,
+      },
+      textBackground: '',
+    };
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+      page.elements = [...page.elements, element];
+      const targetLayerId = s.activeLayerId ?? page.layers[page.layers.length - 1]?.id;
+      if (targetLayerId) {
+        page = addElementToLayer(page, targetLayerId, id);
+      }
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+    return id;
+  },
+
+  addShapeElement: (shape) => {
+    const id = uuid();
+    const element: ShapeElement = {
+      id,
+      type: 'shape',
+      x: 100,
+      y: 100,
+      width: shape === 'line' ? 200 : 150,
+      height: shape === 'line' ? 4 : 150,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      editable: false,
+      shape,
+      fill: shape === 'line' ? 'transparent' : '#e2e8f0',
+      stroke: '#94a3b8',
+      strokeWidth: shape === 'line' ? 2 : 0,
+      borderRadius: shape === 'circle' ? 9999 : 0,
+    };
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+      page.elements = [...page.elements, element];
+      const targetLayerId = s.activeLayerId ?? page.layers[page.layers.length - 1]?.id;
+      if (targetLayerId) {
+        page = addElementToLayer(page, targetLayerId, id);
+      }
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+    return id;
+  },
+
+  updateElement: (id, updates) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      page.elements = page.elements.map((el) =>
+        el.id === id ? ({ ...el, ...updates } as CanvasElement) : el
+      );
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  removeElements: (ids) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+
+      // Collect all IDs to remove (including children of frames)
+      const allIds = new Set<string>(ids);
+      const collectChildren = (parentIds: string[]) => {
+        for (const pid of parentIds) {
+          const el = page.elements.find((e) => e.id === pid);
+          if (el && el.type === 'frame') {
+            const frame = el as FrameElement;
+            for (const childId of frame.childOrder) {
+              allIds.add(childId);
+            }
+            collectChildren(frame.childOrder);
+          }
+        }
+      };
+      collectChildren(ids);
+
+      // Also remove IDs from any parent frame's childOrder
+      const updatedElements = page.elements
+        .filter((el) => !allIds.has(el.id))
+        .map((el) => {
+          if (el.type === 'frame') {
+            const frame = el as FrameElement;
+            const newChildOrder = frame.childOrder.filter((cid) => !allIds.has(cid));
+            if (newChildOrder.length !== frame.childOrder.length) {
+              return { ...frame, childOrder: newChildOrder } as CanvasElement;
+            }
+          }
+          return el;
+        });
+
+      page.elements = updatedElements;
+      page = removeElementsFromLayers(page, allIds);
+      pages[s.currentPageIndex] = page;
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        selectedElementIds: [],
+      };
+    });
+  },
+
+  duplicateElements: (ids) => {
+    const state = get();
+    if (!state.project) return;
+    const page = state.project.pages[state.currentPageIndex];
+    const toDuplicate = page.elements.filter((el) => ids.includes(el.id));
+    const newIds: string[] = [];
+    toDuplicate.forEach((el) => {
+      const newId = uuid();
+      newIds.push(newId);
+      const clone = { ...el, id: newId, x: el.x + 20, y: el.y + 20 };
+      // Find which layer the original is in and add clone there
+      const layerIdx = findElementLayerIndex(page.layers, el.id);
+      const targetLayerId = layerIdx >= 0 ? page.layers[layerIdx].id : (state.activeLayerId ?? page.layers[page.layers.length - 1]?.id);
+      set((s) => {
+        if (!s.project) return s;
+        const pages = [...s.project.pages];
+        let pg = { ...pages[s.currentPageIndex] };
+        pg.elements = [...pg.elements, clone as CanvasElement];
+        if (targetLayerId) {
+          pg = addElementToLayer(pg, targetLayerId, newId);
+        }
+        pages[s.currentPageIndex] = pg;
+        return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+      });
+    });
+    set({ selectedElementIds: newIds });
+  },
+
+  copyElements: () => {
+    const selected = get().getSelectedElements();
+    if (selected.length > 0) {
+      set({ clipboardElements: JSON.parse(JSON.stringify(selected)) });
+    }
+  },
+
+  cutElements: () => {
+    const selected = get().getSelectedElements();
+    if (selected.length > 0) {
+      set({ clipboardElements: JSON.parse(JSON.stringify(selected)) });
+      get().removeElements(selected.map((el) => el.id));
+    }
+  },
+
+  pasteElements: () => {
+    const state = get();
+    if (!state.project || state.clipboardElements.length === 0) return;
+
+    const newElements: CanvasElement[] = state.clipboardElements.map((el) => {
+      const newId = uuid();
+      return { ...JSON.parse(JSON.stringify(el)), id: newId, x: el.x + 20, y: el.y + 20 } as CanvasElement;
+    });
+    const newIds = newElements.map((el) => el.id);
+
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let pg = { ...pages[s.currentPageIndex] };
+
+      pg.elements = [...pg.elements, ...newElements];
+
+      const targetLayerId = s.activeLayerId ?? pg.layers[pg.layers.length - 1]?.id;
+      if (targetLayerId) {
+        for (const nid of newIds) {
+          pg = addElementToLayer(pg, targetLayerId, nid);
+        }
+      }
+
+      pages[s.currentPageIndex] = pg;
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        selectedElementIds: newIds,
+      };
+    });
+  },
+
+  // ━━━ Element z-ordering within layer ━━━
+
+  moveLayerUp: (id) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layerIdx = findElementLayerIndex(page.layers, id);
+      if (layerIdx < 0) return s;
+      const layers = page.layers.map((l, i) => {
+        if (i !== layerIdx) return l;
+        const order = [...l.elementIds];
+        const idx = order.indexOf(id);
+        if (idx < order.length - 1) {
+          [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
+        }
+        return { ...l, elementIds: order };
+      });
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages } };
+    });
+  },
+
+  moveLayerDown: (id) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layerIdx = findElementLayerIndex(page.layers, id);
+      if (layerIdx < 0) return s;
+      const layers = page.layers.map((l, i) => {
+        if (i !== layerIdx) return l;
+        const order = [...l.elementIds];
+        const idx = order.indexOf(id);
+        if (idx > 0) {
+          [order[idx], order[idx - 1]] = [order[idx - 1], order[idx]];
+        }
+        return { ...l, elementIds: order };
+      });
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages } };
+    });
+  },
+
+  moveLayerToTop: (id) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layerIdx = findElementLayerIndex(page.layers, id);
+      if (layerIdx < 0) return s;
+      const layers = page.layers.map((l, i) => {
+        if (i !== layerIdx) return l;
+        return { ...l, elementIds: [...l.elementIds.filter((eid) => eid !== id), id] };
+      });
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages } };
+    });
+  },
+
+  moveLayerToBottom: (id) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layerIdx = findElementLayerIndex(page.layers, id);
+      if (layerIdx < 0) return s;
+      const layers = page.layers.map((l, i) => {
+        if (i !== layerIdx) return l;
+        return { ...l, elementIds: [id, ...l.elementIds.filter((eid) => eid !== id)] };
+      });
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages } };
+    });
+  },
+
+  toggleElementEditable: (id) => {
+    const el = get().getElement(id);
+    if (el) {
+      get().updateElement(id, { editable: !el.editable });
+    }
+  },
+
+  setElementPlaceholder: (id, placeholder) => {
+    get().updateElement(id, { placeholder });
+  },
+
+  setCanvasBackground: (color) => {
+    set((s) => {
+      if (!s.project) return s;
+      return {
+        project: {
+          ...s.project,
+          canvas: { ...s.project.canvas, backgroundColor: color },
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+  },
+
+  setCanvasSize: (width, height) => {
+    set((s) => {
+      if (!s.project) return s;
+      return {
+        project: {
+          ...s.project,
+          canvas: { ...s.project.canvas, width, height },
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    });
+  },
+
+  // ━━━ Page management ━━━
+
+  addPage: (name) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pageName = name ?? `페이지 ${s.project.pages.length + 1}`;
+      const newPage = createDefaultPage(pageName);
+      const pages = [...s.project.pages, newPage];
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        currentPageIndex: pages.length - 1,
+        selectedElementIds: [],
+        activeLayerId: newPage.layers[0]?.id ?? null,
+      };
+    });
+  },
+
+  deletePage: (pageId) => {
+    set((s) => {
+      if (!s.project || s.project.pages.length <= 1) return s;
+      const pages = s.project.pages.filter((p) => p.id !== pageId);
+      const newIndex = Math.min(s.currentPageIndex, pages.length - 1);
+      const newPage = pages[newIndex];
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        currentPageIndex: newIndex,
+        selectedElementIds: [],
+        activeLayerId: newPage?.layers[0]?.id ?? null,
+      };
+    });
+  },
+
+  renamePage: (pageId, name) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = s.project.pages.map((p) =>
+        p.id === pageId ? { ...p, name } : p
+      );
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  setCurrentPageIndex: (index) => {
+    set((s) => {
+      if (!s.project || index < 0 || index >= s.project.pages.length) return s;
+      const page = s.project.pages[index];
+      return {
+        currentPageIndex: index,
+        selectedElementIds: [],
+        activeLayerId: page?.layers[0]?.id ?? null,
+      };
+    });
+  },
+
+  // ━━━ Layer management ━━━
+
+  addLayer: (name) => {
+    const id = uuid();
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layerName = name ?? `레이어 ${page.layers.length + 1}`;
+      const newLayer: Layer = {
+        id,
+        name: layerName,
+        visible: true,
+        locked: false,
+        opacity: 1,
+        elementIds: [],
+      };
+      page.layers = [...page.layers, newLayer];
+      // layerOrder doesn't change since new layer has no elements
+      pages[s.currentPageIndex] = page;
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        activeLayerId: id,
+      };
+    });
+    return id;
+  },
+
+  removeLayer: (layerId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+
+      // Cannot remove the last layer
+      if (page.layers.length <= 1) return s;
+
+      const removedLayer = page.layers.find((l) => l.id === layerId);
+      if (!removedLayer) return s;
+
+      // Move orphaned elements to the adjacent layer
+      const removedIdx = page.layers.indexOf(removedLayer);
+      const targetIdx = removedIdx > 0 ? removedIdx - 1 : 1;
+      const targetLayer = page.layers[targetIdx];
+
+      page.layers = page.layers
+        .map((l) => {
+          if (l.id === targetLayer.id) {
+            return { ...l, elementIds: [...l.elementIds, ...removedLayer.elementIds] };
+          }
+          return l;
+        })
+        .filter((l) => l.id !== layerId);
+
+      page.layerOrder = deriveLayerOrder(page.layers);
+      pages[s.currentPageIndex] = page;
+
+      const newActiveId = s.activeLayerId === layerId ? targetLayer.id : s.activeLayerId;
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        activeLayerId: newActiveId,
+      };
+    });
+  },
+
+  renameLayer: (layerId, name) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      page.layers = page.layers.map((l) =>
+        l.id === layerId ? { ...l, name } : l
+      );
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  toggleLayerVisibility: (layerId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      page.layers = page.layers.map((l) =>
+        l.id === layerId ? { ...l, visible: !l.visible } : l
+      );
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  toggleLayerLock: (layerId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      page.layers = page.layers.map((l) =>
+        l.id === layerId ? { ...l, locked: !l.locked } : l
+      );
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  setLayerOpacity: (layerId, opacity) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      page.layers = page.layers.map((l) =>
+        l.id === layerId ? { ...l, opacity: Math.max(0, Math.min(1, opacity)) } : l
+      );
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  moveLayerGroupUp: (layerId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layers = [...page.layers];
+      const idx = layers.findIndex((l) => l.id === layerId);
+      if (idx < layers.length - 1) {
+        [layers[idx], layers[idx + 1]] = [layers[idx + 1], layers[idx]];
+      }
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  moveLayerGroupDown: (layerId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const layers = [...page.layers];
+      const idx = layers.findIndex((l) => l.id === layerId);
+      if (idx > 0) {
+        [layers[idx], layers[idx - 1]] = [layers[idx - 1], layers[idx]];
+      }
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  moveElementToLayer: (elementId, targetLayerId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+
+      // Remove from current layer, add to target
+      const layers = page.layers.map((l) => {
+        const filtered = l.elementIds.filter((eid) => eid !== elementId);
+        if (l.id === targetLayerId) {
+          return { ...l, elementIds: [...filtered, elementId] };
+        }
+        return { ...l, elementIds: filtered };
+      });
+
+      page.layers = layers;
+      page.layerOrder = deriveLayerOrder(layers);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  setActiveLayerId: (layerId) => {
+    set({ activeLayerId: layerId });
+  },
+
+  getActiveLayer: () => {
+    const { project, currentPageIndex, activeLayerId } = get();
+    if (!project) return null;
+    const page = project.pages[currentPageIndex];
+    if (!page) return null;
+    if (activeLayerId) {
+      return page.layers.find((l) => l.id === activeLayerId) ?? page.layers[page.layers.length - 1] ?? null;
+    }
+    return page.layers[page.layers.length - 1] ?? null;
+  },
+
+  getCurrentPage: () => {
+    const { project, currentPageIndex } = get();
+    return project?.pages[currentPageIndex] ?? null;
+  },
+
+  getElement: (id) => {
+    const page = get().getCurrentPage();
+    return page?.elements.find((el) => el.id === id);
+  },
+
+  getSelectedElements: () => {
+    const page = get().getCurrentPage();
+    const { selectedElementIds } = get();
+    if (!page) return [];
+    return page.elements.filter((el) => selectedElementIds.includes(el.id));
+  },
+
+  // ━━━ Frame / Grouping ━━━
+
+  addFrameElement: (x = 100, y = 100) => {
+    const id = uuid();
+    const element: FrameElement = {
+      id,
+      type: 'frame',
+      x,
+      y,
+      width: 300,
+      height: 200,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      editable: false,
+      fill: 'rgba(255,255,255,0)',
+      stroke: '#94a3b8',
+      strokeWidth: 1,
+      borderRadius: 0,
+      clipContent: true,
+      childOrder: [],
+    };
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+      page.elements = [...page.elements, element];
+      const targetLayerId = s.activeLayerId ?? page.layers[page.layers.length - 1]?.id;
+      if (targetLayerId) {
+        page = addElementToLayer(page, targetLayerId, id);
+      }
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+    return id;
+  },
+
+  addSectionElement: (y = 0) => {
+    const id = uuid();
+    const state = get();
+    const canvasWidth = state.project?.canvas.width ?? 800;
+    const element: FrameElement = {
+      id,
+      type: 'frame',
+      x: 0,
+      y,
+      width: canvasWidth,
+      height: 400,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      editable: false,
+      fill: '#ffffff',
+      stroke: 'transparent',
+      strokeWidth: 0,
+      borderRadius: 0,
+      clipContent: true,
+      childOrder: [],
+      isSection: true,
+    };
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+      page.elements = [...page.elements, element];
+      const targetLayerId = s.activeLayerId ?? page.layers[page.layers.length - 1]?.id;
+      if (targetLayerId) {
+        page = addElementToLayer(page, targetLayerId, id);
+      }
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+    return id;
+  },
+
+  groupElements: (ids) => {
+    const state = get();
+    if (!state.project || ids.length < 2) return null;
+    const page = state.project.pages[state.currentPageIndex];
+
+    const toGroup = page.elements.filter((el) => ids.includes(el.id));
+    if (toGroup.length < 2) return null;
+
+    const minX = Math.min(...toGroup.map((e) => e.x));
+    const minY = Math.min(...toGroup.map((e) => e.y));
+    const maxX = Math.max(...toGroup.map((e) => e.x + e.width));
+    const maxY = Math.max(...toGroup.map((e) => e.y + e.height));
+    const pad = 10;
+
+    const frameId = uuid();
+    const frame: FrameElement = {
+      id: frameId,
+      type: 'frame',
+      x: minX - pad,
+      y: minY - pad,
+      width: maxX - minX + pad * 2,
+      height: maxY - minY + pad * 2,
+      rotation: 0,
+      opacity: 1,
+      locked: false,
+      visible: true,
+      editable: false,
+      fill: 'rgba(255,255,255,0)',
+      stroke: '#94a3b8',
+      strokeWidth: 1,
+      borderRadius: 0,
+      clipContent: true,
+      childOrder: ids.filter((id) => page.layerOrder.includes(id)),
+    };
+
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let pg = { ...pages[s.currentPageIndex] };
+
+      // Set parentId on children
+      pg.elements = [
+        ...pg.elements.map((el) =>
+          ids.includes(el.id) ? ({ ...el, parentId: frameId } as CanvasElement) : el
+        ),
+        frame,
+      ];
+
+      // Remove children from layers, add frame to active layer
+      const idsSet = new Set(ids);
+      pg = removeElementsFromLayers(pg, idsSet);
+
+      const targetLayerId = s.activeLayerId ?? pg.layers[pg.layers.length - 1]?.id;
+      if (targetLayerId) {
+        pg = addElementToLayer(pg, targetLayerId, frameId);
+      }
+
+      pages[s.currentPageIndex] = pg;
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        selectedElementIds: [frameId],
+      };
+    });
+    return frameId;
+  },
+
+  ungroupElements: (frameId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+      const frame = page.elements.find((el) => el.id === frameId);
+      if (!frame || frame.type !== 'frame') return s;
+      const f = frame as FrameElement;
+
+      // Find which layer the frame was in
+      const frameLayerIdx = findElementLayerIndex(page.layers, frameId);
+      const targetLayerId = frameLayerIdx >= 0 ? page.layers[frameLayerIdx].id : page.layers[0]?.id;
+
+      // Remove parentId from children
+      page.elements = page.elements
+        .filter((el) => el.id !== frameId)
+        .map((el) =>
+          el.parentId === frameId ? ({ ...el, parentId: undefined } as CanvasElement) : el
+        );
+
+      // Remove frame from layers, add children to the frame's layer
+      const frameIdSet = new Set([frameId]);
+      page = removeElementsFromLayers(page, frameIdSet);
+
+      if (targetLayerId) {
+        const layers = page.layers.map((l) => {
+          if (l.id === targetLayerId) {
+            return { ...l, elementIds: [...l.elementIds, ...f.childOrder] };
+          }
+          return l;
+        });
+        page.layers = layers;
+        page.layerOrder = deriveLayerOrder(layers);
+      }
+
+      pages[s.currentPageIndex] = page;
+      return {
+        project: { ...s.project, pages, updatedAt: new Date().toISOString() },
+        selectedElementIds: [...f.childOrder],
+      };
+    });
+  },
+
+  moveToFrame: (elementIds, frameId) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+
+      page.elements = page.elements.map((el) => {
+        if (elementIds.includes(el.id)) {
+          return { ...el, parentId: frameId } as CanvasElement;
+        }
+        if (el.id === frameId && el.type === 'frame') {
+          const f = el as FrameElement;
+          return { ...f, childOrder: [...f.childOrder, ...elementIds] } as CanvasElement;
+        }
+        return el;
+      });
+
+      // Remove from layers (they're now nested in a frame)
+      const idsSet = new Set(elementIds);
+      page = removeElementsFromLayers(page, idsSet);
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  moveOutOfFrame: (elementIds) => {
+    set((s) => {
+      if (!s.project) return s;
+      const pages = [...s.project.pages];
+      let page = { ...pages[s.currentPageIndex] };
+
+      // Find parent frames to determine which layer to add elements to
+      const parentFrameIds = new Set<string>();
+      page.elements.forEach((el) => {
+        if (elementIds.includes(el.id) && el.parentId) {
+          parentFrameIds.add(el.parentId);
+        }
+      });
+
+      // Find the layer of the first parent frame
+      let targetLayerId = page.layers[page.layers.length - 1]?.id;
+      for (const pfId of parentFrameIds) {
+        const layerIdx = findElementLayerIndex(page.layers, pfId);
+        if (layerIdx >= 0) {
+          targetLayerId = page.layers[layerIdx].id;
+          break;
+        }
+      }
+
+      // Remove from parent frames' childOrder and clear parentId
+      page.elements = page.elements.map((el) => {
+        if (elementIds.includes(el.id)) {
+          return { ...el, parentId: undefined } as CanvasElement;
+        }
+        if (el.type === 'frame') {
+          const f = el as FrameElement;
+          const newChildOrder = f.childOrder.filter((cid) => !elementIds.includes(cid));
+          if (newChildOrder.length !== f.childOrder.length) {
+            return { ...f, childOrder: newChildOrder } as CanvasElement;
+          }
+        }
+        return el;
+      });
+
+      // Add back to the appropriate layer
+      if (targetLayerId) {
+        const layers = page.layers.map((l) => {
+          if (l.id === targetLayerId) {
+            return { ...l, elementIds: [...l.elementIds, ...elementIds] };
+          }
+          return l;
+        });
+        page.layers = layers;
+        page.layerOrder = deriveLayerOrder(layers);
+      }
+
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  getChildElements: (frameId) => {
+    const page = get().getCurrentPage();
+    if (!page) return [];
+    const frame = page.elements.find((el) => el.id === frameId);
+    if (!frame || frame.type !== 'frame') return [];
+    const f = frame as FrameElement;
+    return f.childOrder
+      .map((cid) => page.elements.find((el) => el.id === cid))
+      .filter((el): el is CanvasElement => !!el);
+  },
+
+  getFlatRenderOrder: () => {
+    const page = get().getCurrentPage();
+    if (!page) return [];
+    const result: string[] = [];
+    const addWithChildren = (ids: string[]) => {
+      for (const id of ids) {
+        result.push(id);
+        const el = page.elements.find((e) => e.id === id);
+        if (el && el.type === 'frame') {
+          addWithChildren((el as FrameElement).childOrder);
+        }
+      }
+    };
+    addWithChildren(page.layerOrder);
+    return result;
+  },
+}));

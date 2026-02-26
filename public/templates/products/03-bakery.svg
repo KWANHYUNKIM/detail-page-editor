@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="20" fill="#fff5ec"/>
+  <ellipse cx="200" cy="180" rx="100" ry="60" fill="#c2703e" opacity="0.7"/>
+  <ellipse cx="200" cy="175" rx="90" ry="50" fill="#deb887"/>
+  <line x1="170" y1="170" x2="230" y2="170" stroke="#8b6914" stroke-width="2" opacity="0.5"/>
+  <line x1="175" y1="180" x2="225" y2="180" stroke="#8b6914" stroke-width="2" opacity="0.5"/>
+  <ellipse cx="140" cy="260" rx="50" ry="35" fill="#d4a574" opacity="0.6"/>
+  <ellipse cx="260" cy="260" rx="50" ry="35" fill="#c2703e" opacity="0.6"/>
+  <text x="200" y="340" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#5a3e28">수제 베이커리</text>
+</svg>

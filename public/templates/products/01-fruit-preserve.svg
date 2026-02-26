@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="20" fill="#fff3e0"/>
+  <circle cx="200" cy="170" r="100" fill="#f6d365" opacity="0.6"/>
+  <circle cx="170" cy="150" r="35" fill="#ff9800"/>
+  <circle cx="230" cy="150" r="28" fill="#e65100"/>
+  <circle cx="200" cy="200" r="30" fill="#ffb74d"/>
+  <rect x="160" y="260" width="80" height="100" rx="8" fill="#795548" opacity="0.7"/>
+  <rect x="170" y="250" width="60" height="15" rx="4" fill="#4e342e"/>
+  <text x="200" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#5c3a0a">과일 수제청</text>
+</svg>

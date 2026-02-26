@@ -1,65 +1,496 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEditorStore } from '@/stores/editorStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { CANVAS_PRESETS } from '@/constants/presets';
+import { BUILT_IN_TEMPLATES, TEMPLATE_CATEGORIES } from '@/constants/templates';
+import type { PresetKey, TemplateCategory, BuiltInTemplate } from '@/types/editor';
+import Modal from '@/components/ui/Modal';
+import {
+  HiMagnifyingGlass,
+  HiPlus,
+  HiFolder,
+  HiPlusCircle,
+  HiSparkles,
+  HiArrowRight,
+  HiChevronRight,
+} from 'react-icons/hi2';
+
+const CATEGORY_VISUALS: Record<
+  Exclude<TemplateCategory, 'all'>,
+  { gradient: string; icon: string }
+> = {
+  fashion: { gradient: 'from-gray-900 to-gray-600', icon: '👗' },
+  beauty: { gradient: 'from-pink-400 to-rose-300', icon: '💄' },
+  food: { gradient: 'from-orange-400 to-amber-300', icon: '🍽️' },
+  electronics: { gradient: 'from-blue-600 to-cyan-400', icon: '🎧' },
+  interior: { gradient: 'from-amber-600 to-yellow-400', icon: '🪑' },
+  health: { gradient: 'from-green-500 to-emerald-300', icon: '🌿' },
+  kids: { gradient: 'from-purple-400 to-pink-300', icon: '🧸' },
+  promotion: { gradient: 'from-red-500 to-orange-400', icon: '🔥' },
+};
+
+export default function HomePage() {
+  const router = useRouter();
+  const templateRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('all');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey>('detail-page');
+
+  const initProject = useEditorStore((s) => s.initProject);
+  const saveProject = useProjectStore((s) => s.saveProject);
+
+  const filteredTemplates = useMemo(() => {
+    let result = BUILT_IN_TEMPLATES;
+
+    if (activeCategory !== 'all') {
+      result = result.filter((t) => t.category.includes(activeCategory));
+    }
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [activeCategory, search]);
+
+  const handleUseTemplate = (template: BuiltInTemplate) => {
+    initProject(template.name, template.preset, 'creator', {
+      elements: template.elements,
+      backgroundColor: template.backgroundColor,
+    });
+    const project = useEditorStore.getState().project;
+    if (project) {
+      saveProject(project);
+      router.push(`/editor/${project.id}`);
+    }
+  };
+
+  const handleCreateBlank = () => {
+    setCreateOpen(true);
+  };
+
+  const handleCreate = () => {
+    if (!newName.trim()) return;
+    initProject(newName.trim(), selectedPreset);
+    const project = useEditorStore.getState().project;
+    if (project) {
+      saveProject(project);
+      router.push(`/editor/${project.id}`);
+    }
+    setCreateOpen(false);
+    setNewName('');
+  };
+
+  const scrollToTemplates = (cat: TemplateCategory) => {
+    setActiveCategory(cat);
+    templateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-[#fafafa]">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/60">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 text-xl font-bold text-gray-900 hover:text-gray-700 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1e1e2e] to-[#7c3aed] flex items-center justify-center">
+              <HiSparkles className="w-4 h-4 text-white" />
+            </div>
+            상세페이지 에디터
+          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/projects')}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <HiFolder className="w-4 h-4" />
+              내 프로젝트
+            </button>
+            <button
+              onClick={handleCreateBlank}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#1e1e2e] text-white rounded-xl text-sm font-semibold hover:bg-[#2d2d44] transition-all hover:shadow-lg hover:shadow-[#1e1e2e]/20"
+            >
+              <HiPlusCircle className="w-4 h-4" />
+              새로 만들기
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Hero Section ── */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#0f0f1e] via-[#1a1a3e] to-[#2d1b69]">
+        {/* Decorative orbs */}
+        <div className="absolute top-10 left-[10%] w-72 h-72 rounded-full bg-purple-500/20 blur-3xl animate-float-slow" />
+        <div className="absolute bottom-10 right-[15%] w-96 h-96 rounded-full bg-indigo-400/15 blur-3xl animate-float-medium" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-violet-600/10 blur-3xl animate-pulse-glow" />
+        <div className="absolute top-20 right-[25%] w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500/30 to-orange-400/30 blur-xl animate-float-fast" />
+        <div className="absolute bottom-32 left-[20%] w-16 h-16 rounded-full bg-gradient-to-br from-cyan-400/30 to-blue-500/30 blur-xl animate-float-medium" />
+
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+
+        <div className="relative z-10 max-w-4xl mx-auto px-6 pt-20 pb-24 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-8">
+            <HiSparkles className="w-4 h-4 text-purple-300" />
+            <span className="text-sm font-medium text-purple-200">
+              전문 디자이너가 만든 템플릿
+            </span>
+          </div>
+
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
+            상세 페이지
+            <br />
+            <span className="bg-gradient-to-r from-purple-300 via-pink-300 to-orange-300 bg-clip-text text-transparent">
+              무료 템플릿
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="mt-5 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            전문 디자이너가 제작한 템플릿으로 상세 페이지를 손쉽게 만들어 보세요.
+            <br className="hidden md:block" />
+            누구나 손쉽게 쓸 수 있는 편집툴로 빠르게 완성.
           </p>
+
+          {/* Search bar */}
+          <div className="mt-10 relative max-w-xl mx-auto">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-orange-500/30 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative flex items-center">
+                <HiMagnifyingGlass className="absolute left-5 w-5 h-5 text-gray-400 z-10" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="상세페이지 템플릿 검색..."
+                  className="w-full pl-13 pr-5 py-4 rounded-2xl bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 shadow-xl shadow-black/20 transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
+            <button
+              onClick={handleCreateBlank}
+              className="flex items-center gap-2 px-7 py-3.5 bg-white text-[#1e1e2e] rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-0.5"
+            >
+              <HiPlusCircle className="w-5 h-5" />
+              새로 만들기
+            </button>
+            <button
+              onClick={() => scrollToTemplates('all')}
+              className="flex items-center gap-2 px-7 py-3.5 bg-white/10 text-white rounded-xl text-sm font-semibold backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all hover:-translate-y-0.5"
+            >
+              템플릿 둘러보기
+              <HiArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Quick stats */}
+          <div className="mt-12 flex items-center justify-center gap-8 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              <span>{BUILT_IN_TEMPLATES.length}개 무료 템플릿</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-400" />
+              <span>{TEMPLATE_CATEGORIES.length - 1}개 카테고리</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      </section>
+
+      {/* ── Free Templates Section ── */}
+      <section ref={templateRef} className="scroll-mt-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 pt-16 pb-20">
+          {/* Section header */}
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                무료 템플릿
+              </h2>
+              <p className="mt-2 text-gray-500">
+                {filteredTemplates.length}개의 무료 템플릿
+              </p>
+            </div>
+          </div>
+
+          {/* Category pills */}
+          <div className="mb-8 -mx-6 px-6">
+            <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2">
+              {TEMPLATE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveCategory(cat.key)}
+                  className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    activeCategory === cat.key
+                      ? 'bg-[#1e1e2e] text-white shadow-md shadow-gray-900/10'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Template grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+            {/* Blank template card */}
+            <div>
+              <button
+                onClick={handleCreateBlank}
+                className="aspect-[3/4] w-full rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#7c3aed] bg-gray-50 hover:bg-purple-50/50 flex flex-col items-center justify-center gap-3 transition-all duration-300 group cursor-pointer"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gray-200 group-hover:bg-gradient-to-br group-hover:from-[#1e1e2e] group-hover:to-[#7c3aed] flex items-center justify-center transition-all duration-300">
+                  <HiPlus className="w-7 h-7 text-gray-500 group-hover:text-white transition-colors duration-300" />
+                </div>
+                <span className="text-sm font-medium text-gray-500 group-hover:text-gray-800 transition-colors">
+                  빈 상세페이지 만들기
+                </span>
+              </button>
+            </div>
+
+            {/* Template cards */}
+            {filteredTemplates.map((template) => (
+              <div key={template.id} className="group/card">
+                <div
+                  className="aspect-[3/4] w-full rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-gray-900/15"
+                  onClick={() => handleUseTemplate(template)}
+                >
+                  {template.thumbnailImage ? (
+                    <img
+                      src={template.thumbnailImage}
+                      alt={template.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: template.thumbnail.background }}
+                      />
+                      <div className="absolute inset-0 p-5 flex flex-col">
+                        <div
+                          className="h-1 w-2/3 rounded-full mt-3 opacity-40"
+                          style={{ backgroundColor: template.thumbnail.accent }}
+                        />
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className="text-center">
+                            {template.thumbnail.previewText && (
+                              <span
+                                className="text-lg md:text-xl font-bold opacity-80 tracking-wide"
+                                style={{ color: template.thumbnail.accent }}
+                              >
+                                {template.thumbnail.previewText}
+                              </span>
+                            )}
+                            <div
+                              className="w-16 h-16 rounded-full mx-auto mt-3 opacity-20"
+                              style={{ backgroundColor: template.thumbnail.accent }}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 mb-3">
+                          <div className="h-1 w-full rounded-full opacity-25" style={{ backgroundColor: template.thumbnail.accent }} />
+                          <div className="h-1 w-4/5 rounded-full opacity-20" style={{ backgroundColor: template.thumbnail.accent }} />
+                          <div className="h-1 w-3/5 rounded-full opacity-15" style={{ backgroundColor: template.thumbnail.accent }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/50 transition-all duration-300 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2 opacity-0 group-hover/card:opacity-100 translate-y-2 group-hover/card:translate-y-0 transition-all duration-300">
+                      <span className="text-white text-sm font-semibold px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl border border-white/30">
+                        이 템플릿 사용하기
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-sm font-medium text-gray-700 truncate group-hover/card:text-gray-900 transition-colors">
+                  {template.name}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  {template.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Empty state */}
+          {filteredTemplates.length === 0 && (
+            <div className="text-center py-24">
+              <div className="w-20 h-20 rounded-full bg-gray-100 mx-auto flex items-center justify-center mb-5">
+                <HiMagnifyingGlass className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-lg font-medium">
+                검색 결과가 없습니다
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                다른 키워드로 검색하거나 카테고리를 변경해보세요
+              </p>
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setActiveCategory('all');
+                }}
+                className="mt-6 px-5 py-2.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                전체 템플릿 보기
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Category Browse Section ── */}
+      <section className="bg-[#fafafa] border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 py-20">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              카테고리별 둘러보기
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {TEMPLATE_CATEGORIES.filter((c) => c.key !== 'all').map((cat) => {
+              const visual = CATEGORY_VISUALS[cat.key as Exclude<TemplateCategory, 'all'>];
+              const count = BUILT_IN_TEMPLATES.filter((t) =>
+                t.category.includes(cat.key)
+              ).length;
+
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => scrollToTemplates(cat.key)}
+                  className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-xl hover:shadow-gray-900/10 hover:-translate-y-1"
+                >
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${visual.gradient} opacity-90 group-hover:opacity-100 transition-opacity`}
+                  />
+                  <div className="relative z-10">
+                    <span className="text-3xl">{visual.icon}</span>
+                    <h3 className="mt-3 text-lg font-bold text-white">
+                      {cat.label}
+                    </h3>
+                    <p className="mt-1 text-sm text-white/70">
+                      {count}개 템플릿
+                    </p>
+                    <HiChevronRight className="mt-3 w-5 h-5 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="bg-[#1e1e2e] text-gray-400">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 text-white font-bold text-lg">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <HiSparkles className="w-3.5 h-3.5 text-white" />
+                </div>
+                상세페이지 에디터
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                전문적인 상세 페이지를 손쉽게 만들어 보세요
+              </p>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              <button className="hover:text-white transition-colors">이용약관</button>
+              <button className="hover:text-white transition-colors">개인정보처리방침</button>
+              <button className="hover:text-white transition-colors">고객센터</button>
+            </div>
+          </div>
+          <div className="mt-8 pt-8 border-t border-gray-800 text-sm text-gray-600">
+            © 2025 상세페이지 에디터. All rights reserved.
+          </div>
+        </div>
+      </footer>
+
+      {/* ── Create Modal ── */}
+      <Modal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="새 프로젝트"
+      >
+        <div className="flex flex-col gap-4 min-w-[440px]">
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              프로젝트 이름
+            </label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="프로젝트 이름을 입력하세요"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+              }}
+              autoFocus
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              프리셋 선택
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {CANVAS_PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  className={`flex flex-col items-start p-3 rounded-lg border text-left transition-colors ${
+                    selectedPreset === preset.key
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedPreset(preset.key)}
+                >
+                  <span className="text-sm font-medium">{preset.label}</span>
+                  <span className="text-xs text-gray-400 mt-0.5">
+                    {preset.width} × {preset.height} · {preset.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="w-full py-2.5 rounded-lg bg-[#1e1e2e] text-white font-medium hover:bg-[#2d2d44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleCreate}
+            disabled={!newName.trim()}
           >
-            Documentation
-          </a>
+            만들기
+          </button>
         </div>
-      </main>
+      </Modal>
     </div>
   );
 }

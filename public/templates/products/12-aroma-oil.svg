@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="20" fill="#edf5e4"/>
+  <rect x="175" y="100" width="50" height="180" rx="8" fill="#56ab2f" opacity="0.7"/>
+  <rect x="180" y="110" width="40" height="160" rx="6" fill="#a8e063" opacity="0.5"/>
+  <rect x="185" y="80" width="30" height="25" rx="3" fill="#2d5016"/>
+  <circle cx="200" cy="190" r="8" fill="#ffffff" opacity="0.3"/>
+  <circle cx="140" cy="250" r="20" fill="#56ab2f" opacity="0.2"/>
+  <circle cx="260" cy="240" r="15" fill="#a8e063" opacity="0.2"/>
+  <text x="200" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#2d4a1f">아로마 오일</text>
+</svg>

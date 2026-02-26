@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="20" fill="#f5f5ed"/>
+  <rect x="80" y="120" width="240" height="180" rx="4" fill="#1e1e2e" opacity="0.1"/>
+  <rect x="90" y="130" width="220" height="160" rx="2" fill="#ffd700" opacity="0.2"/>
+  <rect x="100" y="140" width="200" height="140" fill="#f5f5ed" stroke="#1e1e2e" stroke-width="1" opacity="0.3"/>
+  <line x1="100" y1="180" x2="300" y2="180" stroke="#1e1e2e" stroke-width="0.5" opacity="0.2"/>
+  <line x1="100" y1="220" x2="300" y2="220" stroke="#1e1e2e" stroke-width="0.5" opacity="0.2"/>
+  <line x1="100" y1="260" x2="300" y2="260" stroke="#1e1e2e" stroke-width="0.5" opacity="0.2"/>
+  <text x="200" y="350" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#1e1e2e">핸드메이드 러그</text>
+</svg>

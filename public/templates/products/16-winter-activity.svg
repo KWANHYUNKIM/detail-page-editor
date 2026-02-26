@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" rx="20" fill="#fff0ea"/>
+  <polygon points="200,100 260,220 140,220" fill="#ff512f" opacity="0.6"/>
+  <polygon points="200,130 240,210 160,210" fill="#ffffff" opacity="0.4"/>
+  <rect x="190" y="220" width="20" height="60" rx="2" fill="#333"/>
+  <circle cx="150" cy="300" r="25" fill="#f09819" opacity="0.4"/>
+  <circle cx="250" cy="290" r="20" fill="#ff512f" opacity="0.3"/>
+  <text x="200" y="370" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#333333">겨울 액티비티</text>
+</svg>
