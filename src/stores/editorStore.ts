@@ -1266,30 +1266,45 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   alignElements: (ids, direction) => {
     set((s) => {
-      if (!s.project || ids.length < 2) return s;
+      if (!s.project || ids.length === 0) return s;
       const pages = [...s.project.pages];
       const page = { ...pages[s.currentPageIndex] };
       const targets = page.elements.filter((el) => ids.includes(el.id));
-      if (targets.length < 2) return s;
-
-      // Compute bounding box of all targets
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const el of targets) {
-        minX = Math.min(minX, el.x);
-        minY = Math.min(minY, el.y);
-        maxX = Math.max(maxX, el.x + el.width);
-        maxY = Math.max(maxY, el.y + el.height);
-      }
+      if (targets.length === 0) return s;
 
       const updates = new Map<string, Partial<CanvasElement>>();
-      for (const el of targets) {
+
+      if (targets.length === 1) {
+        // Single element: align to canvas
+        const canvasW = s.project.canvas.width;
+        const canvasH = s.project.canvas.height;
+        const el = targets[0];
         switch (direction) {
-          case 'left':   updates.set(el.id, { x: minX }); break;
-          case 'right':  updates.set(el.id, { x: maxX - el.width }); break;
-          case 'centerH': updates.set(el.id, { x: (minX + maxX) / 2 - el.width / 2 }); break;
-          case 'top':    updates.set(el.id, { y: minY }); break;
-          case 'bottom': updates.set(el.id, { y: maxY - el.height }); break;
-          case 'centerV': updates.set(el.id, { y: (minY + maxY) / 2 - el.height / 2 }); break;
+          case 'left':    updates.set(el.id, { x: 0 }); break;
+          case 'right':   updates.set(el.id, { x: canvasW - el.width }); break;
+          case 'centerH':  updates.set(el.id, { x: canvasW / 2 - el.width / 2 }); break;
+          case 'top':     updates.set(el.id, { y: 0 }); break;
+          case 'bottom':  updates.set(el.id, { y: canvasH - el.height }); break;
+          case 'centerV':  updates.set(el.id, { y: canvasH / 2 - el.height / 2 }); break;
+        }
+      } else {
+        // Multiple elements: align to bounding box of selection
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const el of targets) {
+          minX = Math.min(minX, el.x);
+          minY = Math.min(minY, el.y);
+          maxX = Math.max(maxX, el.x + el.width);
+          maxY = Math.max(maxY, el.y + el.height);
+        }
+        for (const el of targets) {
+          switch (direction) {
+            case 'left':    updates.set(el.id, { x: minX }); break;
+            case 'right':   updates.set(el.id, { x: maxX - el.width }); break;
+            case 'centerH':  updates.set(el.id, { x: (minX + maxX) / 2 - el.width / 2 }); break;
+            case 'top':     updates.set(el.id, { y: minY }); break;
+            case 'bottom':  updates.set(el.id, { y: maxY - el.height }); break;
+            case 'centerV':  updates.set(el.id, { y: (minY + maxY) / 2 - el.height / 2 }); break;
+          }
         }
       }
 

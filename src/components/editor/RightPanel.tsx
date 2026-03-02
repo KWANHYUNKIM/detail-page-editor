@@ -393,6 +393,37 @@ export default function RightPanel() {
       <div className="p-4 border-b border-gray-100">
         <h3 className="text-sm font-semibold mb-3">속성</h3>
 
+        {/* Alignment (align to canvas for single element) */}
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1.5">정렬</label>
+          <div className="grid grid-cols-6 gap-1">
+            <button type="button" title="왼쪽 정렬" onClick={() => alignElements([el.id], 'left')}
+              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1v12M4 3h7v3H4zM4 8h5v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="가로 가운데" onClick={() => alignElements([el.id], 'centerH')}
+              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M3 3h8v3H3zM4 8h6v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="오른쪽 정렬" onClick={() => alignElements([el.id], 'right')}
+              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M13 1v12M3 3h7v3H3zM5 8h5v3H5z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="위쪽 정렬" onClick={() => alignElements([el.id], 'top')}
+              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1h12M3 4v7h3V4zM8 4v5h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="세로 가운데" onClick={() => alignElements([el.id], 'centerV')}
+              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M3 3v8h3V3zM8 4v6h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="아래쪽 정렬" onClick={() => alignElements([el.id], 'bottom')}
+              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 13h12M3 3v7h3V3zM8 5v5h3V5z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+          </div>
+        </div>
+
         {canEdit('position') && (
           <div className="grid grid-cols-2 gap-2 mb-3">
             <NumberInput label="X" value={el.x} onChange={(v) => handleUpdate({ x: v })} />
