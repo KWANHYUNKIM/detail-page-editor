@@ -92,6 +92,8 @@ interface EditorState {
   activeTool: ToolType;
   activeLayerId: string | null;
   editingFrameId: string | null;
+  /** 현재 포커스된 섹션 ID (null이면 전체 보기) */
+  focusedSectionId: string | null;
 
   initProject: (name: string, preset: PresetKey, mode?: EditorMode, templateData?: { elements: CanvasElement[]; backgroundColor?: string }) => void;
   loadProject: (project: Project) => void;
@@ -101,6 +103,7 @@ interface EditorState {
   clearSelection: () => void;
   setActiveTool: (tool: ToolType) => void;
   setEditingFrameId: (id: string | null) => void;
+  setFocusedSectionId: (id: string | null) => void;
 
   addImageElement: (src: string, name?: string) => string;
   addTextElement: (content?: string) => string;
@@ -127,6 +130,11 @@ interface EditorState {
   moveLayerDown: (id: string) => void;
   moveLayerToTop: (id: string) => void;
   moveLayerToBottom: (id: string) => void;
+
+  // Alignment & distribution
+  alignElements: (ids: string[], direction: 'left' | 'right' | 'centerH' | 'top' | 'bottom' | 'centerV') => void;
+  distributeElements: (ids: string[], axis: 'horizontal' | 'vertical') => void;
+  nudgeElements: (ids: string[], dx: number, dy: number) => void;
 
   toggleElementEditable: (id: string) => void;
   setElementPlaceholder: (id: string, placeholder: string) => void;
@@ -171,7 +179,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeTool: 'move',
   activeLayerId: null,
   editingFrameId: null,
-
+  focusedSectionId: null,
   initProject: (name, preset, mode = 'creator', templateData) => {
     const presetConfig = CANVAS_PRESETS.find((p) => p.key === preset) ?? CANVAS_PRESETS[0];
 
@@ -256,6 +264,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   clearSelection: () => set({ selectedElementIds: [] }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setEditingFrameId: (id) => set({ editingFrameId: id }),
+  setFocusedSectionId: (id) => set({ focusedSectionId: id }),
 
   // ━━━ Element Add Methods (add to active layer) ━━━
 
@@ -982,6 +991,41 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const toGroup = page.elements.filter((el) => ids.includes(el.id));
     if (toGroup.length < 2) return null;
 
+    // Determine parent context: check if all children share the same parent frame
+    const parentIdSet = new Set(
+      toGroup.map((e) => e.parentId).filter((pid): pid is string => !!pid)
+    );
+    const childrenWithoutParent = toGroup.filter((e) => !e.parentId);
+    // Only use shared parent when ALL grouped elements come from the same parent
+    const sharedParentId =
+      parentIdSet.size === 1 && childrenWithoutParent.length === 0
+        ? [...parentIdSet][0]
+        : undefined;
+
+    // Preserve z-order based on source context
+    let orderedIds: string[];
+    if (sharedParentId) {
+      const parentFrame = page.elements.find((e) => e.id === sharedParentId) as FrameElement | undefined;
+      if (parentFrame) {
+        const idSet = new Set(ids);
+        orderedIds = parentFrame.childOrder.filter((cid) => idSet.has(cid));
+      } else {
+        orderedIds = [...ids];
+      }
+    } else {
+      // Fallback: preserve order from flat render order
+      const flatOrder = get().getFlatRenderOrder();
+      const idSet = new Set(ids);
+      orderedIds = flatOrder.filter((fid) => idSet.has(fid));
+      // Append any ids not found in flatOrder
+      if (orderedIds.length < ids.length) {
+        const found = new Set(orderedIds);
+        for (const id of ids) {
+          if (!found.has(id)) orderedIds.push(id);
+        }
+      }
+    }
+
     const minX = Math.min(...toGroup.map((e) => e.x));
     const minY = Math.min(...toGroup.map((e) => e.y));
     const maxX = Math.max(...toGroup.map((e) => e.x + e.width));
@@ -1005,8 +1049,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       stroke: '#94a3b8',
       strokeWidth: 1,
       borderRadius: 0,
-      clipContent: true,
-      childOrder: ids.filter((id) => page.layerOrder.includes(id)),
+      clipContent: false,
+      childOrder: orderedIds,
+      ...(sharedParentId ? { parentId: sharedParentId } : {}),
     };
 
     set((s) => {
@@ -1014,21 +1059,47 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const pages = [...s.project.pages];
       let pg = { ...pages[s.currentPageIndex] };
 
-      // Set parentId on children
+      const idsSet = new Set(ids);
+
       pg.elements = [
-        ...pg.elements.map((el) =>
-          ids.includes(el.id) ? ({ ...el, parentId: frameId } as CanvasElement) : el
-        ),
+        ...pg.elements.map((el) => {
+          // Set parentId on grouped children → point to new group frame
+          if (idsSet.has(el.id)) {
+            return { ...el, parentId: frameId } as CanvasElement;
+          }
+          // Remove grouped children from any parent frame's childOrder
+          if (el.type === 'frame') {
+            const f = el as FrameElement;
+            const hadChildren = f.childOrder.some((cid) => idsSet.has(cid));
+            if (hadChildren) {
+              let newChildOrder = f.childOrder.filter((cid) => !idsSet.has(cid));
+              // If this is the shared parent, insert group frame at the first grouped child's position
+              if (sharedParentId === el.id) {
+                const firstRemovedIdx = f.childOrder.findIndex((cid) => idsSet.has(cid));
+                const insertIdx = Math.min(firstRemovedIdx, newChildOrder.length);
+                newChildOrder = [
+                  ...newChildOrder.slice(0, insertIdx),
+                  frameId,
+                  ...newChildOrder.slice(insertIdx),
+                ];
+              }
+              return { ...f, childOrder: newChildOrder } as CanvasElement;
+            }
+          }
+          return el;
+        }),
         frame,
       ];
 
-      // Remove children from layers, add frame to active layer
-      const idsSet = new Set(ids);
+      // Remove children from layers (handles elements that were at layer level)
       pg = removeElementsFromLayers(pg, idsSet);
 
-      const targetLayerId = s.activeLayerId ?? pg.layers[pg.layers.length - 1]?.id;
-      if (targetLayerId) {
-        pg = addElementToLayer(pg, targetLayerId, frameId);
+      // Add frame to active layer only if NOT nested inside another frame
+      if (!sharedParentId) {
+        const targetLayerId = s.activeLayerId ?? pg.layers[pg.layers.length - 1]?.id;
+        if (targetLayerId) {
+          pg = addElementToLayer(pg, targetLayerId, frameId);
+        }
       }
 
       pages[s.currentPageIndex] = pg;
@@ -1048,31 +1119,56 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const frame = page.elements.find((el) => el.id === frameId);
       if (!frame || frame.type !== 'frame') return s;
       const f = frame as FrameElement;
+      const frameParentId = f.parentId;
 
-      // Find which layer the frame was in
-      const frameLayerIdx = findElementLayerIndex(page.layers, frameId);
-      const targetLayerId = frameLayerIdx >= 0 ? page.layers[frameLayerIdx].id : page.layers[0]?.id;
+      if (frameParentId) {
+        // ── Nested group: return children to the parent frame ──
+        const childIdSet = new Set(f.childOrder);
+        page.elements = page.elements
+          .filter((el) => el.id !== frameId)
+          .map((el) => {
+            // Children → restore parentId to the parent frame
+            if (childIdSet.has(el.id)) {
+              return { ...el, parentId: frameParentId } as CanvasElement;
+            }
+            // Parent frame → replace group frame with its children in childOrder
+            if (el.id === frameParentId && el.type === 'frame') {
+              const parentFrame = el as FrameElement;
+              const idx = parentFrame.childOrder.indexOf(frameId);
+              const newChildOrder = [...parentFrame.childOrder];
+              if (idx >= 0) {
+                newChildOrder.splice(idx, 1, ...f.childOrder);
+              } else {
+                newChildOrder.push(...f.childOrder);
+              }
+              return { ...parentFrame, childOrder: newChildOrder } as CanvasElement;
+            }
+            return el;
+          });
+      } else {
+        // ── Top-level group: return children to the layer ──
+        const frameLayerIdx = findElementLayerIndex(page.layers, frameId);
+        const targetLayerId = frameLayerIdx >= 0 ? page.layers[frameLayerIdx].id : page.layers[0]?.id;
 
-      // Remove parentId from children
-      page.elements = page.elements
-        .filter((el) => el.id !== frameId)
-        .map((el) =>
-          el.parentId === frameId ? ({ ...el, parentId: undefined } as CanvasElement) : el
-        );
+        page.elements = page.elements
+          .filter((el) => el.id !== frameId)
+          .map((el) =>
+            el.parentId === frameId ? ({ ...el, parentId: undefined } as CanvasElement) : el
+          );
 
-      // Remove frame from layers, add children to the frame's layer
-      const frameIdSet = new Set([frameId]);
-      page = removeElementsFromLayers(page, frameIdSet);
+        const frameIdSet = new Set([frameId]);
+        page = removeElementsFromLayers(page, frameIdSet);
 
-      if (targetLayerId) {
-        const layers = page.layers.map((l) => {
-          if (l.id === targetLayerId) {
-            return { ...l, elementIds: [...l.elementIds, ...f.childOrder] };
-          }
-          return l;
-        });
-        page.layers = layers;
-        page.layerOrder = deriveLayerOrder(layers);
+        if (targetLayerId) {
+          const layers = page.layers.map((l) => {
+            if (l.id === targetLayerId) {
+              return { ...l, elementIds: [...l.elementIds, ...f.childOrder] };
+            }
+            return l;
+          });
+          page.layers = layers;
+          page.layerOrder = deriveLayerOrder(layers);
+        }
       }
 
       pages[s.currentPageIndex] = page;
@@ -1159,6 +1255,110 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         page.layerOrder = deriveLayerOrder(layers);
       }
 
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  // ━━━ Alignment, Distribution & Nudge ━━━
+
+  alignElements: (ids, direction) => {
+    set((s) => {
+      if (!s.project || ids.length < 2) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const targets = page.elements.filter((el) => ids.includes(el.id));
+      if (targets.length < 2) return s;
+
+      // Compute bounding box of all targets
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const el of targets) {
+        minX = Math.min(minX, el.x);
+        minY = Math.min(minY, el.y);
+        maxX = Math.max(maxX, el.x + el.width);
+        maxY = Math.max(maxY, el.y + el.height);
+      }
+
+      const updates = new Map<string, Partial<CanvasElement>>();
+      for (const el of targets) {
+        switch (direction) {
+          case 'left':   updates.set(el.id, { x: minX }); break;
+          case 'right':  updates.set(el.id, { x: maxX - el.width }); break;
+          case 'centerH': updates.set(el.id, { x: (minX + maxX) / 2 - el.width / 2 }); break;
+          case 'top':    updates.set(el.id, { y: minY }); break;
+          case 'bottom': updates.set(el.id, { y: maxY - el.height }); break;
+          case 'centerV': updates.set(el.id, { y: (minY + maxY) / 2 - el.height / 2 }); break;
+        }
+      }
+
+      page.elements = page.elements.map((el) => {
+        const u = updates.get(el.id);
+        return u ? { ...el, ...u } as CanvasElement : el;
+      });
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  distributeElements: (ids, axis) => {
+    set((s) => {
+      if (!s.project || ids.length < 3) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const targets = page.elements.filter((el) => ids.includes(el.id));
+      if (targets.length < 3) return s;
+
+      if (axis === 'horizontal') {
+        const sorted = [...targets].sort((a, b) => a.x - b.x);
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+        const totalWidth = sorted.reduce((sum, el) => sum + el.width, 0);
+        const totalSpace = (last.x + last.width) - first.x - totalWidth;
+        const gap = totalSpace / (sorted.length - 1);
+        let currentX = first.x + first.width + gap;
+        const updates = new Map<string, number>();
+        for (let i = 1; i < sorted.length - 1; i++) {
+          updates.set(sorted[i].id, currentX);
+          currentX += sorted[i].width + gap;
+        }
+        page.elements = page.elements.map((el) => {
+          const newX = updates.get(el.id);
+          return newX !== undefined ? { ...el, x: newX } as CanvasElement : el;
+        });
+      } else {
+        const sorted = [...targets].sort((a, b) => a.y - b.y);
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+        const totalHeight = sorted.reduce((sum, el) => sum + el.height, 0);
+        const totalSpace = (last.y + last.height) - first.y - totalHeight;
+        const gap = totalSpace / (sorted.length - 1);
+        let currentY = first.y + first.height + gap;
+        const updates = new Map<string, number>();
+        for (let i = 1; i < sorted.length - 1; i++) {
+          updates.set(sorted[i].id, currentY);
+          currentY += sorted[i].height + gap;
+        }
+        page.elements = page.elements.map((el) => {
+          const newY = updates.get(el.id);
+          return newY !== undefined ? { ...el, y: newY } as CanvasElement : el;
+        });
+      }
+
+      pages[s.currentPageIndex] = page;
+      return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+    });
+  },
+
+  nudgeElements: (ids, dx, dy) => {
+    set((s) => {
+      if (!s.project || ids.length === 0) return s;
+      const pages = [...s.project.pages];
+      const page = { ...pages[s.currentPageIndex] };
+      const idSet = new Set(ids);
+      page.elements = page.elements.map((el) => {
+        if (!idSet.has(el.id)) return el;
+        return { ...el, x: el.x + dx, y: el.y + dy } as CanvasElement;
+      });
       pages[s.currentPageIndex] = page;
       return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
     });

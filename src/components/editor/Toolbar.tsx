@@ -15,6 +15,8 @@ import {
   HiEye,
   HiCheck,
   HiCloud,
+  HiXMark,
+  HiViewfinderCircle,
 } from 'react-icons/hi2';
 
 interface ToolbarProps {
@@ -31,6 +33,9 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const currentPageIndex = useEditorStore((s) => s.currentPageIndex);
   const canUndo = useHistoryStore((s) => s.canUndo);
+  const focusedSectionId = useEditorStore((s) => s.focusedSectionId);
+  const setFocusedSectionId = useEditorStore((s) => s.setFocusedSectionId);
+  const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
   const canRedo = useHistoryStore((s) => s.canRedo);
   const undo = useHistoryStore((s) => s.undo);
   const redo = useHistoryStore((s) => s.redo);
@@ -145,6 +150,28 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
           <HiMagnifyingGlassPlus className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Focused section indicator */}
+      {focusedSectionId && (() => {
+        const page = getCurrentPage();
+        const sections = page?.elements
+          .filter((el) => el.type === 'frame' && (el as import('@/types/editor').FrameElement).isSection)
+          .sort((a, b) => a.y - b.y) ?? [];
+        const idx = sections.findIndex((s) => s.id === focusedSectionId);
+        return (
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/15 rounded-md">
+            <HiViewfinderCircle className="w-3.5 h-3.5 text-blue-400" />
+            <span className="text-xs text-blue-300 font-medium">섹션 {idx + 1}</span>
+            <button
+              className="p-0.5 text-blue-400 hover:text-blue-200 transition-colors"
+              onClick={() => setFocusedSectionId(null)}
+              title="전체 보기"
+            >
+              <HiXMark className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        );
+      })()}
 
       <div className="flex-1" />
 

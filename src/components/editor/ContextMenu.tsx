@@ -97,13 +97,13 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 
   if (multiSelected) {
     items.push(
-      { label: '그룹', shortcut: '⌘G', action: () => { groupElements(selectedElementIds); onClose(); } },
+      { label: '그룹', shortcut: '⌘G', action: () => { saveState(); groupElements(selectedElementIds); onClose(); } },
     );
   }
 
   if (singleSelected && isFrame) {
     items.push(
-      { label: '그룹 해제', shortcut: '⌘⇧G', action: () => { ungroupElements(selectedElementIds[0]); onClose(); } },
+      { label: '그룹 해제', shortcut: '⌘⇧G', action: () => { saveState(); ungroupElements(selectedElementIds[0]); onClose(); } },
     );
   }
 

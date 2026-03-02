@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
-import type { CanvasElement, FrameElement, Layer } from '@/types/editor';
+import type { CanvasElement, FrameElement } from '@/types/editor';
 import {
   HiEye,
   HiEyeSlash,
@@ -10,10 +10,6 @@ import {
   HiLockOpen,
   HiChevronRight,
   HiChevronDown,
-  HiPlus,
-  HiTrash,
-  HiArrowUp,
-  HiArrowDown,
 } from 'react-icons/hi2';
 
 /* ── Type Icons (16x16, Figma style) ── */
@@ -137,7 +133,7 @@ function isContainerType(type: string): boolean {
   return type === 'frame';
 }
 
-/* ── Layer Row ── */
+/* ── Layer Row (individual element) ── */
 
 interface LayerRowProps {
   el: CanvasElement;
@@ -145,12 +141,11 @@ interface LayerRowProps {
   isSelected: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onSelect: () => void;
+  onSelect: (e: React.MouseEvent) => void;
   onToggleVisible: () => void;
   onToggleLock: () => void;
   showEditToggle: boolean;
   onToggleEditable?: () => void;
-  dimmed?: boolean;
 }
 
 function LayerRow({
@@ -164,7 +159,6 @@ function LayerRow({
   onToggleLock,
   showEditToggle,
   onToggleEditable,
-  dimmed,
 }: LayerRowProps) {
   const label = elementLabel(el);
   const isContainer = isContainerType(el.type);
@@ -176,16 +170,16 @@ function LayerRow({
         isSelected
           ? 'bg-[#0d99ff]/20 text-white'
           : 'hover:bg-white/5 text-[#e8e8e8]'
-      } ${dimmed ? 'opacity-40' : ''}`}
+      } ${!el.visible ? 'opacity-40' : ''}`}
       onClick={onSelect}
     >
       {/* Indent spacer */}
-      <span className="shrink-0" style={{ width: 12 + depth * 12 }} />
+      <span className="shrink-0" style={{ width: 8 + depth * 12 }} />
 
       {/* Expand caret OR spacer */}
       {isContainer ? (
         <button
-          className="flex items-center justify-center w-4 h-4 ml-1 shrink-0 text-[#b3b3b3] hover:text-white transition-colors"
+          className="flex items-center justify-center w-4 h-4 shrink-0 text-[#b3b3b3] hover:text-white transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onToggleExpand();
@@ -198,7 +192,7 @@ function LayerRow({
           )}
         </button>
       ) : (
-        <span className="w-4 ml-1 shrink-0" />
+        <span className="w-4 shrink-0" />
       )}
 
       {/* Type icon */}
@@ -206,7 +200,7 @@ function LayerRow({
         {getTypeIcon(el.type, shape)}
       </span>
 
-      {/* Layer name */}
+      {/* Element name */}
       <span
         className="flex-1 truncate ml-1.5 text-[11px] font-medium leading-none"
         title={label}
@@ -279,33 +273,32 @@ function LayerRow({
   );
 }
 
-/* ── Recursive Layer Tree (elements within a layer) ── */
+/* ── Recursive Element Tree ── */
 
 function ElementTree({
   elementIds,
   allElements,
   depth,
   selectedElementIds,
-  expandedLayers,
+  expandedIds,
   mode,
-  layerVisible,
   selectElements,
   updateElement,
   toggleElementEditable,
-  toggleLayerExpand,
+  toggleExpand,
 }: {
   elementIds: string[];
   allElements: CanvasElement[];
   depth: number;
   selectedElementIds: string[];
-  expandedLayers: Set<string>;
+  expandedIds: Set<string>;
   mode: string;
-  layerVisible: boolean;
   selectElements: (ids: string[]) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
   toggleElementEditable: (id: string) => void;
-  toggleLayerExpand: (id: string) => void;
+  toggleExpand: (id: string) => void;
 }) {
+  // Reverse so topmost element (last in array) renders first — like Figma
   const reversed = [...elementIds].reverse();
 
   return (
@@ -315,7 +308,7 @@ function ElementTree({
         if (!el) return null;
 
         const isSelected = selectedElementIds.includes(el.id);
-        const isExpanded = expandedLayers.has(el.id);
+        const isExpanded = expandedIds.has(el.id);
         const isFrame = el.type === 'frame';
 
         return (
@@ -325,13 +318,38 @@ function ElementTree({
               depth={depth}
               isSelected={isSelected}
               isExpanded={isExpanded}
-              onToggleExpand={() => toggleLayerExpand(el.id)}
-              onSelect={() => selectElements([el.id])}
+              onToggleExpand={() => toggleExpand(el.id)}
+              onSelect={(e) => {
+                if (e.metaKey || e.ctrlKey) {
+                  // Toggle: add/remove from selection
+                  const isAlreadySelected = selectedElementIds.includes(el.id);
+                  if (isAlreadySelected) {
+                    selectElements(selectedElementIds.filter((sid) => sid !== el.id));
+                  } else {
+                    selectElements([...selectedElementIds, el.id]);
+                  }
+                } else if (e.shiftKey && selectedElementIds.length > 0) {
+                  // Range select: from last selected to clicked
+                  const flatIds = reversed;
+                  const lastSelectedIdx = flatIds.findIndex((fid) => selectedElementIds.includes(fid));
+                  const clickedIdx = flatIds.indexOf(el.id);
+                  if (lastSelectedIdx >= 0 && clickedIdx >= 0) {
+                    const start = Math.min(lastSelectedIdx, clickedIdx);
+                    const end = Math.max(lastSelectedIdx, clickedIdx);
+                    const rangeIds = flatIds.slice(start, end + 1);
+                    const merged = new Set([...selectedElementIds, ...rangeIds]);
+                    selectElements([...merged]);
+                  } else {
+                    selectElements([el.id]);
+                  }
+                } else {
+                  selectElements([el.id]);
+                }
+              }}
               onToggleVisible={() => updateElement(el.id, { visible: !el.visible })}
               onToggleLock={() => updateElement(el.id, { locked: !el.locked })}
               showEditToggle={mode === 'creator'}
               onToggleEditable={() => toggleElementEditable(el.id)}
-              dimmed={!layerVisible}
             />
 
             {/* Children of expanded frame */}
@@ -341,13 +359,12 @@ function ElementTree({
                 allElements={allElements}
                 depth={depth + 1}
                 selectedElementIds={selectedElementIds}
-                expandedLayers={expandedLayers}
+                expandedIds={expandedIds}
                 mode={mode}
-                layerVisible={layerVisible}
                 selectElements={selectElements}
                 updateElement={updateElement}
                 toggleElementEditable={toggleElementEditable}
-                toggleLayerExpand={toggleLayerExpand}
+                toggleExpand={toggleExpand}
               />
             )}
           </div>
@@ -357,213 +374,32 @@ function ElementTree({
   );
 }
 
-/* ── Layer Group Header ── */
-
-interface LayerGroupHeaderProps {
-  layer: Layer;
-  isActive: boolean;
-  isExpanded: boolean;
-  isEditing: boolean;
-  editValue: string;
-  layerCount: number;
-  onSelect: () => void;
-  onToggleExpand: () => void;
-  onToggleVisibility: () => void;
-  onToggleLock: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onDelete: () => void;
-  onStartRename: () => void;
-  onEditChange: (value: string) => void;
-  onEditCommit: () => void;
-  onEditCancel: () => void;
-}
-
-function LayerGroupHeader({
-  layer,
-  isActive,
-  isExpanded,
-  isEditing,
-  editValue,
-  layerCount,
-  onSelect,
-  onToggleExpand,
-  onToggleVisibility,
-  onToggleLock,
-  onMoveUp,
-  onMoveDown,
-  onDelete,
-  onStartRename,
-  onEditChange,
-  onEditCommit,
-  onEditCancel,
-}: LayerGroupHeaderProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  return (
-    <div
-      className={`group flex items-center h-8 cursor-pointer select-none transition-colors border-b border-[#2a2a3e] ${
-        isActive
-          ? 'bg-[#2a2a4e] text-white'
-          : 'bg-[#1a1a2e] hover:bg-[#222238] text-[#c8c8c8]'
-      }`}
-      onClick={onSelect}
-    >
-      {/* Expand caret */}
-      <button
-        className="flex items-center justify-center w-5 h-5 ml-1 shrink-0 text-[#b3b3b3] hover:text-white transition-colors"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleExpand();
-        }}
-      >
-        {isExpanded ? (
-          <HiChevronDown className="w-3 h-3" />
-        ) : (
-          <HiChevronRight className="w-3 h-3" />
-        )}
-      </button>
-
-      {/* Layer name (or edit input) */}
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          className="flex-1 bg-[#1a1a2e] text-white text-[11px] px-1.5 py-0.5 rounded border border-blue-500 outline-none mx-1"
-          value={editValue}
-          onChange={(e) => onEditChange(e.target.value)}
-          onBlur={onEditCommit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onEditCommit();
-            if (e.key === 'Escape') onEditCancel();
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        <span
-          className="flex-1 truncate ml-1 text-[11px] font-semibold leading-none"
-          onDoubleClick={(e) => {
-            e.stopPropagation();
-            onStartRename();
-          }}
-          title={layer.name}
-        >
-          {layer.name}
-        </span>
-      )}
-
-      {/* Element count */}
-      <span className="text-[9px] text-[#6e6e6e] mr-1 tabular-nums">
-        {layer.elementIds.length}
-      </span>
-
-      {/* Hover actions */}
-      <div className="flex items-center gap-0.5 pr-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          className="flex items-center justify-center w-4 h-4 rounded hover:bg-white/10 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-          title="레이어 위로"
-        >
-          <HiArrowUp className="w-2.5 h-2.5 text-[#b3b3b3]" />
-        </button>
-        <button
-          className="flex items-center justify-center w-4 h-4 rounded hover:bg-white/10 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-          title="레이어 아래로"
-        >
-          <HiArrowDown className="w-2.5 h-2.5 text-[#b3b3b3]" />
-        </button>
-        <button
-          className="flex items-center justify-center w-4 h-4 rounded hover:bg-white/10 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onToggleLock(); }}
-          title={layer.locked ? '잠금 해제' : '잠금'}
-        >
-          {layer.locked ? (
-            <HiLockClosed className="w-3 h-3 text-amber-400" />
-          ) : (
-            <HiLockOpen className="w-3 h-3 text-[#b3b3b3]" />
-          )}
-        </button>
-        <button
-          className="flex items-center justify-center w-4 h-4 rounded hover:bg-white/10 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
-          title={layer.visible ? '숨기기' : '보이기'}
-        >
-          {layer.visible ? (
-            <HiEye className="w-3 h-3 text-[#b3b3b3]" />
-          ) : (
-            <HiEyeSlash className="w-3 h-3 text-[#6e6e6e]" />
-          )}
-        </button>
-        {layerCount > 1 && (
-          <button
-            className="flex items-center justify-center w-4 h-4 rounded hover:bg-white/10 transition-colors"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            title="레이어 삭제"
-          >
-            <HiTrash className="w-3 h-3 text-[#b3b3b3] hover:text-red-400" />
-          </button>
-        )}
-      </div>
-
-      {/* Persistent indicators when not hovering */}
-      {layer.locked && (
-        <span className="absolute right-2 flex items-center justify-center w-5 h-5 group-hover:hidden">
-          <HiLockClosed className="w-3 h-3 text-amber-400" />
-        </span>
-      )}
-      {!layer.visible && !layer.locked && (
-        <span className="absolute right-2 flex items-center justify-center w-5 h-5 group-hover:hidden">
-          <HiEyeSlash className="w-3 h-3 text-[#6e6e6e]" />
-        </span>
-      )}
-    </div>
-  );
-}
-
-/* ── LayerPanel ── */
+/* ── LayerPanel (Figma-style flat element tree) ── */
 
 export default function LayerPanel() {
   const project = useEditorStore((s) => s.project);
   const mode = useEditorStore((s) => s.mode);
-  const activeLayerId = useEditorStore((s) => s.activeLayerId);
   const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
   const selectElements = useEditorStore((s) => s.selectElements);
   const updateElement = useEditorStore((s) => s.updateElement);
   const toggleElementEditable = useEditorStore((s) => s.toggleElementEditable);
   const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
-  const setActiveLayerId = useEditorStore((s) => s.setActiveLayerId);
-  const addLayer = useEditorStore((s) => s.addLayer);
-  const removeLayer = useEditorStore((s) => s.removeLayer);
-  const renameLayer = useEditorStore((s) => s.renameLayer);
-  const toggleLayerVisibility = useEditorStore((s) => s.toggleLayerVisibility);
-  const toggleLayerLock = useEditorStore((s) => s.toggleLayerLock);
-  const moveLayerGroupUp = useEditorStore((s) => s.moveLayerGroupUp);
-  const moveLayerGroupDown = useEditorStore((s) => s.moveLayerGroupDown);
 
   const [collapsed, setCollapsed] = useState(false);
-  const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set());
-  const [expandedLayerGroups, setExpandedLayerGroups] = useState<Set<string>>(new Set(['__all__']));
-  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const page = getCurrentPage();
+
   if (!page || !project) {
     return (
       <div className="flex items-center justify-center h-20 text-[11px] text-[#6e6e6e]">
-        레이어가 없습니다
+        페이지가 없습니다
       </div>
     );
   }
 
-  const toggleLayerExpand = (id: string) => {
-    setExpandedLayers((prev) => {
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -571,40 +407,7 @@ export default function LayerPanel() {
     });
   };
 
-  const toggleLayerGroupExpand = (layerId: string) => {
-    setExpandedLayerGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(layerId)) next.delete(layerId);
-      else next.add(layerId);
-      return next;
-    });
-  };
-
-  const handleStartRename = (layer: Layer) => {
-    setEditingLayerId(layer.id);
-    setEditValue(layer.name);
-  };
-
-  const handleCommitRename = () => {
-    if (editingLayerId && editValue.trim()) {
-      renameLayer(editingLayerId, editValue.trim());
-    }
-    setEditingLayerId(null);
-  };
-
-  // Layers displayed top to bottom (reversed from data model which is bottom→top)
-  const reversedLayers = [...page.layers].reverse();
-
-  // Initialize expanded state for new layers
-  const allLayerIds = page.layers.map((l) => l.id);
-  const needsInit = allLayerIds.some((id) => !expandedLayerGroups.has(id) && !expandedLayerGroups.has('__all__'));
-  if (expandedLayerGroups.has('__all__') && !needsInit) {
-    // First render — expand all layers
-    const initialExpanded = new Set(allLayerIds);
-    if (expandedLayerGroups.size === 1) {
-      setExpandedLayerGroups(initialExpanded);
-    }
-  }
+  const elementCount = page.layerOrder.length;
 
   return (
     <div>
@@ -621,79 +424,30 @@ export default function LayerPanel() {
           )}
           <span>Layers</span>
         </button>
-        <div className="flex items-center gap-1 mr-2">
-          <span className="text-[10px] text-[#6e6e6e] tabular-nums mr-1">
-            {page.layers.length}
-          </span>
-          <button
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/10 text-[#b3b3b3] hover:text-white transition-colors"
-            onClick={() => addLayer()}
-            title="새 레이어 추가"
-          >
-            <HiPlus className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <span className="text-[10px] text-[#6e6e6e] tabular-nums mr-3">
+          {elementCount}
+        </span>
       </div>
 
-      {/* Layer groups + elements */}
+      {/* Flat element tree — all elements in z-order */}
       {!collapsed && (
-        <div className="flex flex-col">
-          {reversedLayers.map((layer) => {
-            const isActive = activeLayerId === layer.id;
-            const isGroupExpanded = expandedLayerGroups.has(layer.id);
-
-            return (
-              <div key={layer.id} className="relative">
-                <LayerGroupHeader
-                  layer={layer}
-                  isActive={isActive}
-                  isExpanded={isGroupExpanded}
-                  isEditing={editingLayerId === layer.id}
-                  editValue={editValue}
-                  layerCount={page.layers.length}
-                  onSelect={() => setActiveLayerId(layer.id)}
-                  onToggleExpand={() => toggleLayerGroupExpand(layer.id)}
-                  onToggleVisibility={() => toggleLayerVisibility(layer.id)}
-                  onToggleLock={() => toggleLayerLock(layer.id)}
-                  onMoveUp={() => moveLayerGroupUp(layer.id)}
-                  onMoveDown={() => moveLayerGroupDown(layer.id)}
-                  onDelete={() => removeLayer(layer.id)}
-                  onStartRename={() => handleStartRename(layer)}
-                  onEditChange={setEditValue}
-                  onEditCommit={handleCommitRename}
-                  onEditCancel={() => setEditingLayerId(null)}
-                />
-
-                {/* Elements within this layer */}
-                {isGroupExpanded && (
-                  <div className={layer.locked ? 'pointer-events-none' : ''}>
-                    <ElementTree
-                      elementIds={layer.elementIds}
-                      allElements={page.elements}
-                      depth={1}
-                      selectedElementIds={selectedElementIds}
-                      expandedLayers={expandedLayers}
-                      mode={mode}
-                      layerVisible={layer.visible}
-                      selectElements={selectElements}
-                      updateElement={updateElement}
-                      toggleElementEditable={toggleElementEditable}
-                      toggleLayerExpand={toggleLayerExpand}
-                    />
-                    {layer.elementIds.length === 0 && (
-                      <div className="flex items-center justify-center h-8 text-[10px] text-[#4e4e4e] italic">
-                        비어있음
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {page.layers.length === 0 && (
-            <div className="flex items-center justify-center h-20 text-[11px] text-[#6e6e6e]">
-              레이어를 추가해주세요
+        <div className="flex flex-col py-0.5">
+          {elementCount > 0 ? (
+            <ElementTree
+              elementIds={page.layerOrder}
+              allElements={page.elements}
+              depth={0}
+              selectedElementIds={selectedElementIds}
+              expandedIds={expandedIds}
+              mode={mode}
+              selectElements={selectElements}
+              updateElement={updateElement}
+              toggleElementEditable={toggleElementEditable}
+              toggleExpand={toggleExpand}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-16 text-[10px] text-[#4e4e4e] italic">
+              요소가 없습니다
             </div>
           )}
         </div>

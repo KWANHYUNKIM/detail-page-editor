@@ -12,6 +12,7 @@ import type {
   FontStyle,
   TextDecoration,
   FrameElement,
+  FillValue,
 } from '@/types/editor';
 import { FONT_SIZE_OPTIONS } from '@/constants/fonts';
 import ColorPicker from '@/components/ui/ColorPicker';
@@ -227,6 +228,8 @@ export default function RightPanel() {
   const updateElement = useEditorStore((s) => s.updateElement);
   const setCanvasBackground = useEditorStore((s) => s.setCanvasBackground);
   const setCanvasSize = useEditorStore((s) => s.setCanvasSize);
+  const alignElements = useEditorStore((s) => s.alignElements);
+  const distributeElements = useEditorStore((s) => s.distributeElements);
 
   const selected = getSelectedElements();
 
@@ -264,13 +267,91 @@ export default function RightPanel() {
     );
   }
 
-  /* ── Multi selection ── */
+  /* ── Multi selection: alignment & distribution tools ── */
   if (selected.length > 1) {
+    const ids = selected.map((el) => el.id);
     return (
       <div className="w-[280px] bg-white border-l border-gray-200 shrink-0 overflow-y-auto p-4">
-        <h3 className="text-sm font-semibold text-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">
           {selected.length}개 요소 선택됨
         </h3>
+
+        {/* Alignment */}
+        <div className="mb-4">
+          <label className="block text-xs text-gray-500 mb-2">정렬</label>
+          <div className="grid grid-cols-6 gap-1">
+            <button type="button" title="왼쪽 정렬" onClick={() => alignElements(ids, 'left')}
+              className="flex items-center justify-center p-2 rounded hover:bg-gray-100 border border-gray-200 text-gray-600">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1v12M4 3h7v3H4zM4 8h5v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="가로 가운데 정렬" onClick={() => alignElements(ids, 'centerH')}
+              className="flex items-center justify-center p-2 rounded hover:bg-gray-100 border border-gray-200 text-gray-600">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M3 3h8v3H3zM4 8h6v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="오른쪽 정렬" onClick={() => alignElements(ids, 'right')}
+              className="flex items-center justify-center p-2 rounded hover:bg-gray-100 border border-gray-200 text-gray-600">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 1v12M3 3h7v3H3zM5 8h5v3H5z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="위쪽 정렬" onClick={() => alignElements(ids, 'top')}
+              className="flex items-center justify-center p-2 rounded hover:bg-gray-100 border border-gray-200 text-gray-600">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1h12M3 4v7h3V4zM8 4v5h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="세로 가운데 정렬" onClick={() => alignElements(ids, 'centerV')}
+              className="flex items-center justify-center p-2 rounded hover:bg-gray-100 border border-gray-200 text-gray-600">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M3 3v8h3V3zM8 4v6h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+            <button type="button" title="아래쪽 정렬" onClick={() => alignElements(ids, 'bottom')}
+              className="flex items-center justify-center p-2 rounded hover:bg-gray-100 border border-gray-200 text-gray-600">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 13h12M3 3v7h3V3zM8 5v5h3V5z" stroke="currentColor" strokeWidth="1.2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Distribution (only when 3+ elements) */}
+        {selected.length >= 3 && (
+          <div className="mb-4">
+            <label className="block text-xs text-gray-500 mb-2">균등 분배</label>
+            <div className="grid grid-cols-2 gap-1">
+              <button type="button" onClick={() => distributeElements(ids, 'horizontal')}
+                className="flex items-center justify-center gap-1.5 p-2 rounded hover:bg-gray-100 border border-gray-200 text-xs text-gray-600">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1v12M13 1v12M4 4h2v6H4zM8 4h2v6H8z" stroke="currentColor" strokeWidth="1.2"/></svg>
+                가로 분배
+              </button>
+              <button type="button" onClick={() => distributeElements(ids, 'vertical')}
+                className="flex items-center justify-center gap-1.5 p-2 rounded hover:bg-gray-100 border border-gray-200 text-xs text-gray-600">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1h12M1 13h12M4 4v2h6V4zM4 8v2h6V8z" stroke="currentColor" strokeWidth="1.2"/></svg>
+                세로 분배
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Common opacity */}
+        <div className="mb-4">
+          <SliderInput
+            label="불투명도"
+            value={Math.round(selected.reduce((sum, e) => sum + e.opacity, 0) / selected.length * 100)}
+            onChange={(v) => {
+              const opacity = v / 100;
+              ids.forEach((id) => updateElement(id, { opacity }));
+            }}
+            min={0}
+            max={100}
+            step={1}
+            suffix="%"
+          />
+        </div>
+
+        {/* Bounding box info */}
+        <div className="pt-3 border-t border-gray-100">
+          <label className="block text-xs text-gray-500 mb-2">선택 영역</label>
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+            <div>X: {Math.round(Math.min(...selected.map((e) => e.x)))}</div>
+            <div>Y: {Math.round(Math.min(...selected.map((e) => e.y)))}</div>
+            <div>W: {Math.round(Math.max(...selected.map((e) => e.x + e.width)) - Math.min(...selected.map((e) => e.x)))}</div>
+            <div>H: {Math.round(Math.max(...selected.map((e) => e.y + e.height)) - Math.min(...selected.map((e) => e.y)))}</div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -806,6 +887,59 @@ export default function RightPanel() {
                 <SliderInput label="색조 (Tint)" value={filters.tint} onChange={(v) => handleUpdate({ filters: { ...filters, tint: v } })} min={-1} max={1} step={0.01} />
                 <SliderInput label="하이라이트" value={filters.highlights} onChange={(v) => handleUpdate({ filters: { ...filters, highlights: v } })} min={-1} max={1} step={0.01} />
                 <SliderInput label="그림자 (Shadows)" value={filters.shadows} onChange={(v) => handleUpdate({ filters: { ...filters, shadows: v } })} min={-1} max={1} step={0.01} />
+              </div>
+            </SectionAccordion>
+            {/* Gradient Overlay */}
+            <SectionAccordion title="그라데이션 오버레이" defaultOpen={false}>
+              <div className="space-y-3">
+                <ToggleSwitch
+                  label="오버레이 사용"
+                  checked={imgEl.gradientOverlay?.enabled ?? false}
+                  onChange={(v) =>
+                    handleUpdate({
+                      gradientOverlay: {
+                        ...(imgEl.gradientOverlay ?? {
+                          gradient: {
+                            type: 'linear' as const,
+                            angle: 180,
+                            stops: [
+                              { color: 'rgba(0, 0, 0, 0)', offset: 0 },
+                              { color: 'rgba(0, 0, 0, 0.7)', offset: 1 },
+                            ],
+                          },
+                          opacity: 1,
+                        }),
+                        enabled: v,
+                      },
+                    })
+                  }
+                />
+                {imgEl.gradientOverlay?.enabled && (
+                  <div className="mt-2 space-y-3">
+                    <GradientPicker
+                      label="오버레이 색상"
+                      value={imgEl.gradientOverlay.gradient}
+                      onChange={(g: FillValue) =>
+                        handleUpdate({
+                          gradientOverlay: { ...imgEl.gradientOverlay!, gradient: g },
+                        })
+                      }
+                    />
+                    <SliderInput
+                      label="오버레이 불투명도"
+                      value={imgEl.gradientOverlay.opacity ?? 1}
+                      onChange={(v) =>
+                        handleUpdate({
+                          gradientOverlay: { ...imgEl.gradientOverlay!, opacity: v },
+                        })
+                      }
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      suffix={` (${Math.round((imgEl.gradientOverlay.opacity ?? 1) * 100)}%)`}
+                    />
+                  </div>
+                )}
               </div>
             </SectionAccordion>
           </>

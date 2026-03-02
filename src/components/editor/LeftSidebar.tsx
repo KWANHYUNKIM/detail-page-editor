@@ -5,6 +5,7 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useProjectStore } from '@/stores/projectStore';
 import PagePanel from '@/components/panels/PagePanel';
 import LayerPanel from '@/components/panels/LayerPanel';
+import SectionPanel from '@/components/panels/SectionPanel';
 import {
   HiPhoto,
   HiDocumentText,
@@ -76,6 +77,7 @@ export default function LeftSidebar() {
         {activeTab === 'file' && (
           <div className="flex flex-col h-full">
             <PagePanel />
+            <SectionPanel />
             <div className="flex-1 overflow-y-auto">
               <LayerPanel />
             </div>

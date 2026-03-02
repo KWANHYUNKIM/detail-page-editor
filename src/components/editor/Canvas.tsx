@@ -75,6 +75,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImagePosRef = useRef<{ x: number; y: number } | null>(null);
   const updateOverlayRef = useRef<(() => void) | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const project = useEditorStore((s) => s.project);
   const mode = useEditorStore((s) => s.mode);
@@ -104,9 +105,16 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
   const pasteElements = useEditorStore((s) => s.pasteElements);
   const duplicateElements = useEditorStore((s) => s.duplicateElements);
   const loadProject = useEditorStore((s) => s.loadProject);
+  const nudgeElements = useEditorStore((s) => s.nudgeElements);
+  const moveLayerUp = useEditorStore((s) => s.moveLayerUp);
+  const moveLayerDown = useEditorStore((s) => s.moveLayerDown);
+  const moveLayerToTop = useEditorStore((s) => s.moveLayerToTop);
+  const moveLayerToBottom = useEditorStore((s) => s.moveLayerToBottom);
   const currentPageIndex = useEditorStore((s) => s.currentPageIndex);
   const undo = useHistoryStore((s) => s.undo);
   const redo = useHistoryStore((s) => s.redo);
+  const focusedSectionId = useEditorStore((s) => s.focusedSectionId);
+  const setFocusedSectionId = useEditorStore((s) => s.setFocusedSectionId);
 
   const page = getCurrentPage();
   const elements = page?.elements;
@@ -128,22 +136,69 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     elementId: string | null;
   } | null>(null);
 
+  // ── Helper: apply/remove clipPaths for export only ──
+  const applyExportClipPaths = useCallback(() => {
+    const canvas = fabricRef.current;
+    const fabricModule = fabricModuleRef.current;
+    if (!canvas || !fabricModule) return;
+    const page = useEditorStore.getState().getCurrentPage();
+    if (!page) return;
+    for (const obj of canvas.getObjects()) {
+      const elId = getElementId(obj);
+      if (!elId) continue;
+      const parentFrame = page.elements.find((pe) =>
+        pe.type === 'frame' &&
+        (pe as FrameElement).clipContent &&
+        (pe as FrameElement).childOrder.includes(elId)
+      ) as FrameElement | undefined;
+      if (parentFrame) {
+        const clipRect = new fabricModule.Rect({
+          left: parentFrame.x,
+          top: parentFrame.y,
+          width: parentFrame.width,
+          height: parentFrame.height,
+          rx: parentFrame.borderRadius || 0,
+          ry: parentFrame.borderRadius || 0,
+          absolutePositioned: true,
+        });
+        obj.clipPath = clipRect;
+      }
+    }
+    canvas.renderAll();
+  }, []);
+
+  const removeExportClipPaths = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    for (const obj of canvas.getObjects()) {
+      if (obj.clipPath) {
+        obj.clipPath = undefined;
+      }
+    }
+    canvas.renderAll();
+  }, []);
+
   useImperativeHandle(ref, () => ({
     exportCanvas: (filename: string, options: ExportOptions) => {
       if (fabricRef.current && exporterRef.current) {
+        applyExportClipPaths();
         exporterRef.current.exportAndDownload(
           fabricRef.current,
           filename,
           options,
         );
+        removeExportClipPaths();
       }
     },
     getDataURL: (options: ExportOptions) => {
       if (fabricRef.current && exporterRef.current) {
-        return exporterRef.current.exportCanvasToDataURL(
+        applyExportClipPaths();
+        const result = exporterRef.current.exportCanvasToDataURL(
           fabricRef.current,
           options,
         );
+        removeExportClipPaths();
+        return result;
       }
       return '';
     },
@@ -227,7 +282,36 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         const target = e.target;
         if (!target || !helpersRef.current) return;
         const elementId = getElementId(target);
-        if (!elementId) return;
+        // Handle ActiveSelection (multi-select) — sync all children back to store
+        if (!elementId) {
+          if (!('getObjects' in target) || !fabricModuleRef.current) return;
+          const objects = [...(target as fabricTypes.ActiveSelection).getObjects()];
+          if (objects.length === 0) return;
+
+          const currentPage = useEditorStore.getState().getCurrentPage();
+          if (currentPage) pushState(currentPage);
+          fabricUpdateRef.current = true;
+
+          // Discard selection to get absolute coordinates
+          isSyncingRef.current = true;
+          canvas.discardActiveObject();
+          isSyncingRef.current = false;
+
+          // Read absolute positions and sync to store
+          for (const obj of objects) {
+            const childId = getElementId(obj);
+            if (!childId || !helpersRef.current) continue;
+            updateElement(childId, helpersRef.current.fabricObjectToElementUpdate(obj));
+          }
+
+          // Re-create selection
+          isSyncingRef.current = true;
+          const sel = new fabricModuleRef.current.ActiveSelection(objects, { canvas });
+          canvas.setActiveObject(sel);
+          isSyncingRef.current = false;
+          canvas.requestRenderAll();
+          return;
+        }
 
         const currentPage = useEditorStore.getState().getCurrentPage();
         if (currentPage) pushState(currentPage);
@@ -277,24 +361,57 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         const target = e.target;
         if (!target || !helpersRef.current) return;
         const elementId = getElementId(target);
-        if (!elementId) return;
+        // Handle ActiveSelection (multi-select) — sync all children positions during drag
+        if (!elementId) {
+          if (!('getObjects' in target)) return;
+          fabricUpdateRef.current = true;
+          const gLeft = target.left ?? 0;
+          const gTop = target.top ?? 0;
+          for (const obj of (target as fabricTypes.ActiveSelection).getObjects()) {
+            const childId = getElementId(obj);
+            if (!childId) continue;
+            // Object left/top are relative to group center; group left/top is the center offset
+            updateElement(childId, { x: gLeft + (obj.left ?? 0), y: gTop + (obj.top ?? 0) });
+          }
+          return;
+        }
 
         fabricUpdateRef.current = true;
         const update = helpersRef.current.fabricObjectToElementUpdate(target);
         const el = useEditorStore.getState().getElement(elementId);
 
-        // Move children with frame
+        // Move children with frame — update store AND canvas objects directly
         if (el && el.type === 'frame') {
           const frame = el as FrameElement;
           const dx = (update.x ?? el.x) - el.x;
           const dy = (update.y ?? el.y) - el.y;
           if (dx !== 0 || dy !== 0) {
+            const childIdSet = new Set(frame.childOrder);
+            // Update store positions
             for (const childId of frame.childOrder) {
               const child = useEditorStore.getState().getElement(childId);
               if (child) {
                 updateElement(childId, { x: child.x + dx, y: child.y + dy });
               }
             }
+            // Move Fabric objects on canvas directly (including gradient overlays)
+            for (const canvasObj of canvas.getObjects()) {
+              const objId = getElementId(canvasObj);
+              if (!objId) continue;
+              // Match child elements or their gradient overlays
+              const baseId = objId.endsWith('__gradientOverlay') ? objId.replace('__gradientOverlay', '') : objId;
+              if (childIdSet.has(baseId)) {
+                canvasObj.left = (canvasObj.left ?? 0) + dx;
+                canvasObj.top = (canvasObj.top ?? 0) + dy;
+                // Update clipPath position to match new frame position
+                if (canvasObj.clipPath) {
+                  canvasObj.clipPath.left = (canvasObj.clipPath.left ?? 0) + dx;
+                  canvasObj.clipPath.top = (canvasObj.clipPath.top ?? 0) + dy;
+                }
+                canvasObj.setCoords();
+              }
+            }
+            canvas.requestRenderAll();
           }
         }
 
@@ -475,25 +592,42 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
             }
           }
 
-          // Apply clipPath if element is a child of a frame with clipContent
-          const parentFrame = sorted.find((pe) =>
-            pe.type === 'frame' &&
-            (pe as FrameElement).clipContent &&
-            (pe as FrameElement).childOrder.includes(el.id)
-          ) as FrameElement | undefined;
-          if (parentFrame && fabricModuleRef.current) {
-            const clipRect = new fabricModuleRef.current.Rect({
-              left: parentFrame.x,
-              top: parentFrame.y,
-              width: parentFrame.width,
-              height: parentFrame.height,
-              rx: parentFrame.borderRadius || 0,
-              ry: parentFrame.borderRadius || 0,
-              absolutePositioned: true,
-            });
-            obj.clipPath = clipRect;
+          // Section focus mode: dim & disable elements outside the focused section
+          const currentFocusedSectionId = useEditorStore.getState().focusedSectionId;
+          if (currentFocusedSectionId) {
+            const focusedSection = sorted.find((pe) => pe.id === currentFocusedSectionId) as FrameElement | undefined;
+            const isFocusedSection = el.id === currentFocusedSectionId;
+            const isChildOfFocusedSection = focusedSection?.childOrder.includes(el.id);
+            if (!isFocusedSection && !isChildOfFocusedSection) {
+              obj.selectable = false;
+              obj.evented = false;
+              obj.opacity = (obj.opacity ?? 1) * 0.15;
+            }
           }
+
+          // clipPath is NOT applied during editing so elements can be
+          // freely moved beyond section/frame boundaries. Clipping is
+          // applied only at export time via applyExportClipPaths().
           canvas.add(obj);
+          // Render gradient overlay for images
+          if (el.type === 'image') {
+            const imgEl = el as ImageElement;
+            if (imgEl.gradientOverlay?.enabled && fabricModuleRef.current) {
+              const overlayRect = new fabricModuleRef.current.Rect({
+                left: el.x,
+                top: el.y,
+                width: obj.width! * (obj.scaleX ?? 1),
+                height: obj.height! * (obj.scaleY ?? 1),
+                angle: el.rotation,
+                opacity: imgEl.gradientOverlay.opacity ?? 0.7,
+                fill: toFabricFill(imgEl.gradientOverlay.gradient, el.width, el.height),
+                selectable: false,
+                evented: false,
+                data: { elementId: `${el.id}__gradientOverlay`, isOverlay: true },
+              });
+              canvas.add(overlayRect);
+            }
+          }
         }
       }
 
@@ -505,6 +639,9 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         });
         if (toSelect.length === 1) {
           canvas.setActiveObject(toSelect[0]);
+        } else if (toSelect.length > 1 && fabricModuleRef.current) {
+          const sel = new fabricModuleRef.current.ActiveSelection(toSelect, { canvas });
+          canvas.setActiveObject(sel);
         }
       }
 
@@ -515,7 +652,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
     syncCanvas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, elements, layerOrder, mode, canvasBgColor]);
+  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId]);
 
   useEffect(() => {
     const canvas = fabricRef.current;
@@ -530,6 +667,54 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     updateOverlayRef.current?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoom, canvasWidth, canvasHeight]);
+
+  // ━━━ Section focus: auto-zoom + scroll to focused section ━━━
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    const scrollEl = scrollContainerRef.current;
+    if (!canvas || !project || !scrollEl || !isReady) return;
+
+    if (!focusedSectionId) {
+      // Reset to overview — fit entire canvas
+      const viewW = scrollEl.clientWidth - 64; // subtract padding
+      const viewH = scrollEl.clientHeight - 64;
+      const fitZoom = Math.min(viewW / project.canvas.width, viewH / project.canvas.height, 1);
+      const newZoom = Math.round(fitZoom * 10) / 10;
+      setZoom(newZoom);
+      // Reset scroll to top-center after zoom applies
+      requestAnimationFrame(() => {
+        scrollEl.scrollTop = 0;
+        scrollEl.scrollLeft = Math.max(0, (scrollEl.scrollWidth - scrollEl.clientWidth) / 2);
+      });
+      return;
+    }
+
+    // Find the focused section element
+    const page = useEditorStore.getState().getCurrentPage();
+    if (!page) return;
+    const section = page.elements.find(
+      (el) => el.id === focusedSectionId && el.type === 'frame' && (el as FrameElement).isSection
+    ) as FrameElement | undefined;
+    if (!section) return;
+
+    // Calculate zoom to fit section width in viewport
+    const viewW = scrollEl.clientWidth - 64;
+    const viewH = scrollEl.clientHeight - 64;
+    const zoomX = viewW / section.width;
+    const zoomY = viewH / section.height;
+    const newZoom = Math.round(Math.min(zoomX, zoomY, 2) * 10) / 10;
+    setZoom(newZoom);
+
+    // Scroll to center the section after zoom applies
+    requestAnimationFrame(() => {
+      const sectionCenterY = (section.y + section.height / 2) * newZoom;
+      const sectionCenterX = (section.x + section.width / 2) * newZoom;
+      const padding = 32; // p-8 = 32px
+      scrollEl.scrollTop = sectionCenterY + padding - scrollEl.clientHeight / 2;
+      scrollEl.scrollLeft = Math.max(0, sectionCenterX + padding - scrollEl.clientWidth / 2);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedSectionId, isReady]);
 
   // ━━━ Tool behavior effect ━━━
   // Reacts to activeTool changes and sets up appropriate canvas interaction
@@ -773,10 +958,66 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
           loadProject({ ...proj, pages: proj.pages.map((p, i) => (i === idx ? page : p)) });
         }
       }
+
+      // Select All
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        const pg = useEditorStore.getState().getCurrentPage();
+        if (pg) {
+          const allIds = pg.elements
+            .filter((el) => el.visible && !el.locked)
+            .map((el) => el.id);
+          if (allIds.length > 0) {
+            selectElements(allIds);
+          }
+        }
+      }
+
+      // Arrow keys: nudge selected elements (1px, 10px with Shift)
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const ids = useEditorStore.getState().selectedElementIds;
+        if (ids.length > 0) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          let dx = 0, dy = 0;
+          switch (e.key) {
+            case 'ArrowLeft':  dx = -step; break;
+            case 'ArrowRight': dx = step; break;
+            case 'ArrowUp':    dy = -step; break;
+            case 'ArrowDown':  dy = step; break;
+          }
+          nudgeElements(ids, dx, dy);
+        }
+      }
+
+      // ⌘] / ⌘[ : move element up/down in z-order
+      // ⌘⌥] / ⌘⌥[ : move element to top/bottom
+      if ((e.ctrlKey || e.metaKey) && (e.key === ']' || e.key === '[')) {
+        const ids = useEditorStore.getState().selectedElementIds;
+        if (ids.length === 1) {
+          e.preventDefault();
+          const id = ids[0];
+          if (e.altKey) {
+            e.key === ']' ? moveLayerToTop(id) : moveLayerToBottom(id);
+          } else {
+            e.key === ']' ? moveLayerUp(id) : moveLayerDown(id);
+          }
+        }
+      }
+
+      // Zoom: ⌘0 (fit), ⌘1 (100%), ⌘+ (zoom in), ⌘- (zoom out)
+      if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.key === '1' || e.key === '=' || e.key === '+' || e.key === '-')) {
+        e.preventDefault();
+        const currentZoom = useEditorStore.getState().zoom;
+        if (e.key === '0') setZoom(1);
+        else if (e.key === '1') setZoom(1);
+        else if (e.key === '=' || e.key === '+') setZoom(Math.min(currentZoom + 0.1, 5));
+        else if (e.key === '-') setZoom(Math.max(currentZoom - 0.1, 0.1));
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [pushState, removeElements, copyElements, cutElements, pasteElements, duplicateElements, loadProject]);
+  }, [pushState, removeElements, copyElements, cutElements, pasteElements, duplicateElements, loadProject, selectElements, nudgeElements, moveLayerUp, moveLayerDown, moveLayerToTop, moveLayerToBottom, setZoom]);
 
   // ── Image file input handler ──
   const handleImageFileChange = useCallback(
@@ -804,6 +1045,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
   return (
     <div
+      ref={scrollContainerRef}
       className="flex-1 overflow-auto bg-[#f0f0f0]"
       onWheel={handleWheel}
       onContextMenu={(e) => e.preventDefault()}

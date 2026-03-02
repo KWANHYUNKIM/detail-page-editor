@@ -121,6 +121,12 @@ export interface ImageElement extends BaseElement {
   crop: { x: number; y: number; w: number; h: number } | null;
   filters: ImageFilters;
   filterPreset: string | null;
+  /** 이미지 위에 그라데이션 오버레이 */
+  gradientOverlay?: {
+    enabled: boolean;
+    gradient: FillValue;
+    opacity: number;
+  };
 }
 
 export interface TextShadow {
