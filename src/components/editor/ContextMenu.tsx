@@ -39,6 +39,8 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
   const groupElements = useEditorStore((s) => s.groupElements);
   const ungroupElements = useEditorStore((s) => s.ungroupElements);
   const updateElement = useEditorStore((s) => s.updateElement);
+  const alignElements = useEditorStore((s) => s.alignElements);
+  const distributeElements = useEditorStore((s) => s.distributeElements);
   const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
   const pushState = useHistoryStore((s) => s.pushState);
 
@@ -97,6 +99,27 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 
   if (multiSelected) {
     items.push(
+      'separator',
+      { label: '왼쪽 정렬', action: () => { saveState(); alignElements(selectedElementIds, 'left'); onClose(); } },
+      { label: '가로 가운데 정렬', action: () => { saveState(); alignElements(selectedElementIds, 'centerH'); onClose(); } },
+      { label: '오른쪽 정렬', action: () => { saveState(); alignElements(selectedElementIds, 'right'); onClose(); } },
+      { label: '위쪽 정렬', action: () => { saveState(); alignElements(selectedElementIds, 'top'); onClose(); } },
+      { label: '세로 가운데 정렬', action: () => { saveState(); alignElements(selectedElementIds, 'centerV'); onClose(); } },
+      { label: '아래쪽 정렬', action: () => { saveState(); alignElements(selectedElementIds, 'bottom'); onClose(); } },
+    );
+  }
+
+  if (multiSelected && selectedElementIds.length >= 3) {
+    items.push(
+      'separator',
+      { label: '가로 균등 분배', action: () => { saveState(); distributeElements(selectedElementIds, 'horizontal'); onClose(); } },
+      { label: '세로 균등 분배', action: () => { saveState(); distributeElements(selectedElementIds, 'vertical'); onClose(); } },
+    );
+  }
+
+  if (multiSelected) {
+    items.push(
+      'separator',
       { label: '그룹', shortcut: '⌘G', action: () => { saveState(); groupElements(selectedElementIds); onClose(); } },
     );
   }

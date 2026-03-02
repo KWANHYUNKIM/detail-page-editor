@@ -110,7 +110,7 @@ interface EditorState {
   addShapeElement: (shape: ShapeType) => string;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
   removeElements: (ids: string[]) => void;
-  duplicateElements: (ids: string[]) => void;
+  duplicateElements: (ids: string[], offset?: { x: number; y: number }) => void;
   copyElements: () => void;
   cutElements: () => void;
   pasteElements: () => void;
@@ -451,7 +451,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  duplicateElements: (ids) => {
+  duplicateElements: (ids, offset) => {
     const state = get();
     if (!state.project) return;
     const page = state.project.pages[state.currentPageIndex];
@@ -460,7 +460,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     toDuplicate.forEach((el) => {
       const newId = uuid();
       newIds.push(newId);
-      const clone = { ...el, id: newId, x: el.x + 20, y: el.y + 20 };
+      const ox = offset?.x ?? 20;
+      const oy = offset?.y ?? 20;
+      const clone = { ...el, id: newId, x: el.x + ox, y: el.y + oy };
       // Find which layer the original is in and add clone there
       const layerIdx = findElementLayerIndex(page.layers, el.id);
       const targetLayerId = layerIdx >= 0 ? page.layers[layerIdx].id : (state.activeLayerId ?? page.layers[page.layers.length - 1]?.id);

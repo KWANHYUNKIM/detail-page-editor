@@ -224,6 +224,7 @@ function PillButton({
 export default function RightPanel() {
   const project = useEditorStore((s) => s.project);
   const mode = useEditorStore((s) => s.mode);
+  const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
   const getSelectedElements = useEditorStore((s) => s.getSelectedElements);
   const updateElement = useEditorStore((s) => s.updateElement);
   const setCanvasBackground = useEditorStore((s) => s.setCanvasBackground);
@@ -231,7 +232,10 @@ export default function RightPanel() {
   const alignElements = useEditorStore((s) => s.alignElements);
   const distributeElements = useEditorStore((s) => s.distributeElements);
 
+  // Subscribe to selectedElementIds to trigger re-render on selection change
+  // (getSelectedElements alone is a stable function ref that won't re-trigger)
   const selected = getSelectedElements();
+  void selectedElementIds; // ensure subscription is active
 
   if (!project) return null;
 

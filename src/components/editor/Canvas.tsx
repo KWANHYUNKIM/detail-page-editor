@@ -435,7 +435,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         );
       });
 
-      // Double-click: enter frame editing mode or exit it
+      // Double-click: enter frame editing mode, start text editing, or exit frame editing
       canvas.on('mouse:dblclick', (e) => {
         const target = e.target;
         if (!target) {
@@ -449,6 +449,10 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         if (clickedEl && clickedEl.type === 'frame') {
           // Enter this frame
           useEditorStore.getState().setEditingFrameId(eid);
+        } else if (clickedEl && clickedEl.type === 'text' && 'enterEditing' in target) {
+          // Enter text inline editing
+          (target as unknown as { enterEditing: () => void }).enterEditing();
+          canvas.requestRenderAll();
         }
       });
 
@@ -476,6 +480,27 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
       canvas.on('object:scaling', updateDimensionOverlay);
       canvas.on('object:rotating', updateDimensionOverlay);
       canvas.on('object:modified', updateDimensionOverlay);
+
+      // ── Alt+drag duplicate ──
+      let altDragDuplicated = false;
+      canvas.on('mouse:down', (opt) => {
+        const me = opt.e as MouseEvent;
+        if (me.altKey && me.button === 0 && opt.target) {
+          const state = useEditorStore.getState();
+          const ids = state.selectedElementIds;
+          if (ids.length > 0) {
+            // Save state for undo, then duplicate at same position (offset 0,0)
+            const currentPage = state.getCurrentPage();
+            if (currentPage) pushState(currentPage);
+            duplicateElements(ids, { x: 0, y: 0 });
+            // duplicateElements selects the new copies; re-select originals so user drags them away
+            selectElements(ids);
+            altDragDuplicated = true;
+          }
+        } else {
+          altDragDuplicated = false;
+        }
+      });
 
       // ── Right-click context menu ──
       canvas.on('mouse:down', (opt) => {
