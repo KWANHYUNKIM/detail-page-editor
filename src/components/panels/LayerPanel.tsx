@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import type { CanvasElement, FrameElement } from '@/types/editor';
+import ContextMenu from '@/components/editor/ContextMenu';
 import {
   HiEye,
   HiEyeSlash,
@@ -80,6 +81,32 @@ function LineIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
+function AutoLayoutIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M4 4h2v8H4zM3 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm7 2h2v4h-2zM9 6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1z"
+      />
+    </svg>
+  );
+}
+
+function InstanceIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M7.293 2.293a1 1 0 0 1 1.414 0l5 5a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-5-5a1 1 0 0 1 0-1.414zM3.707 8.707 3 8l.707-.707 3.586-3.586L8 3l.707.707 3.586 3.586L13 8l-.707.707-3.586 3.586L8 13l-.707-.707z"
+      />
+    </svg>
+  );
+}
+
 function getTypeIcon(type: string, shape?: string) {
   const cls = 'w-4 h-4';
   switch (type) {
@@ -113,6 +140,7 @@ function elementLabel(el: {
   content?: string;
   shape?: string;
 }): string {
+  if ((el as { name?: string }).name) return (el as { name?: string }).name!;
   switch (el.type) {
     case 'image':
       return (el as { originalName?: string }).originalName || '이미지';
@@ -148,6 +176,11 @@ interface LayerRowProps {
   onToggleLock: () => void;
   showEditToggle: boolean;
   onToggleEditable?: () => void;
+  isEditing: boolean;
+  onStartRename: () => void;
+  onCommitRename: (newName: string) => void;
+  onCancelRename: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }
 
 function LayerRow({
@@ -161,10 +194,27 @@ function LayerRow({
   onToggleLock,
   showEditToggle,
   onToggleEditable,
+  isEditing,
+  onStartRename,
+  onCommitRename,
+  onCancelRename,
+  onContextMenu,
 }: LayerRowProps) {
   const label = elementLabel(el);
   const isContainer = isContainerType(el.type);
   const shape = el.type === 'shape' ? (el as { shape?: string }).shape : undefined;
+  const [editValue, setEditValue] = useState(label);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      cancelledRef.current = false;
+      inputRef.current.focus();
+      inputRef.current.select();
+      setEditValue(label);
+    }
+  }, [isEditing, label]);
 
   return (
     <div
@@ -174,6 +224,7 @@ function LayerRow({
           : 'hover:bg-white/5 text-[#e8e8e8]'
       } ${!el.visible ? 'opacity-40' : ''}`}
       onClick={onSelect}
+      onContextMenu={onContextMenu}
     >
       {/* Indent spacer */}
       <span className="shrink-0" style={{ width: 8 + depth * 12 }} />
@@ -203,12 +254,40 @@ function LayerRow({
       </span>
 
       {/* Element name */}
-      <span
-        className="flex-1 truncate ml-1.5 text-[11px] font-medium leading-none"
-        title={label}
-      >
-        {label}
-      </span>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          className="flex-1 ml-1.5 bg-[#1a1a2e] text-white text-[11px] px-1 py-0 rounded border border-[#0d99ff] outline-none w-full"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onCommitRename(editValue);
+            } else if (e.key === 'Escape') {
+              cancelledRef.current = true;
+              onCancelRename();
+            }
+          }}
+          onBlur={() => {
+            if (!cancelledRef.current) {
+              onCommitRename(editValue);
+            }
+            cancelledRef.current = false;
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span
+          className="flex-1 truncate ml-1.5 text-[11px] font-medium leading-none"
+          title={label}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            onStartRename();
+          }}
+        >
+          {label}
+        </span>
+      )}
 
       {/* Creator mode editable badge */}
       {showEditToggle && (
@@ -288,6 +367,9 @@ function ElementTree({
   updateElement,
   toggleElementEditable,
   toggleExpand,
+  editingId,
+  setEditingId,
+  onContextMenu,
 }: {
   elementIds: string[];
   allElements: CanvasElement[];
@@ -299,6 +381,9 @@ function ElementTree({
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
   toggleElementEditable: (id: string) => void;
   toggleExpand: (id: string) => void;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  onContextMenu: (pos: { x: number; y: number; elementId: string }) => void;
 }) {
   // Reverse so topmost element (last in array) renders first — like Figma
   const reversed = [...elementIds].reverse();
@@ -352,6 +437,18 @@ function ElementTree({
               onToggleLock={() => updateElement(el.id, { locked: !el.locked })}
               showEditToggle={mode === 'creator'}
               onToggleEditable={() => toggleElementEditable(el.id)}
+              isEditing={editingId === el.id}
+              onStartRename={() => setEditingId(el.id)}
+              onCommitRename={(newName: string) => { updateElement(el.id, { name: newName } as Partial<CanvasElement>); setEditingId(null); }}
+              onCancelRename={() => setEditingId(null)}
+              onContextMenu={(e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!selectedElementIds.includes(el.id)) {
+                  selectElements([el.id]);
+                }
+                onContextMenu({ x: e.clientX, y: e.clientY, elementId: el.id });
+              }}
             />
 
             {/* Children of expanded frame */}
@@ -367,6 +464,9 @@ function ElementTree({
                 updateElement={updateElement}
                 toggleElementEditable={toggleElementEditable}
                 toggleExpand={toggleExpand}
+                editingId={editingId}
+                setEditingId={setEditingId}
+                onContextMenu={onContextMenu}
               />
             )}
           </div>
@@ -390,6 +490,8 @@ export default function LayerPanel() {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; elementId: string } | null>(null);
 
   const page = getCurrentPage();
 
@@ -435,9 +537,21 @@ export default function LayerPanel() {
           )}
           <span>Layers</span>
         </button>
-        <span className="text-[10px] text-[#6e6e6e] tabular-nums mr-3">
-          {elementCount}
-        </span>
+        <div className="flex items-center gap-1 mr-3">
+          <button
+            className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/10 text-[#6e6e6e] hover:text-white transition-colors"
+            onClick={(e) => { e.stopPropagation(); setExpandedIds(new Set()); }}
+            title="모든 레이어 접기"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M4 10l4-3 4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 13l4-3 4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span className="text-[10px] text-[#6e6e6e] tabular-nums">
+            {elementCount}
+          </span>
+        </div>
       </div>
 
       {/* Search input */}
@@ -480,6 +594,9 @@ export default function LayerPanel() {
                 updateElement={updateElement}
                 toggleElementEditable={toggleElementEditable}
                 toggleExpand={toggleExpand}
+                editingId={editingId}
+                setEditingId={setEditingId}
+                onContextMenu={(pos) => setContextMenu(pos)}
               />
             ) : (
               <div className="flex items-center justify-center h-16 text-[10px] text-[#4e4e4e] italic">
@@ -492,6 +609,16 @@ export default function LayerPanel() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Layer context menu */}
+      {contextMenu !== null && (
+        <ContextMenu
+          x={contextMenu!.x}
+          y={contextMenu!.y}
+          elementId={contextMenu!.elementId}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   );

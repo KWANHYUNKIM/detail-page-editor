@@ -20,6 +20,27 @@ type TabKey = 'file' | 'elements' | 'templates';
 export default function LeftSidebar() {
   const [activeTab, setActiveTab] = useState<TabKey>('file');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [topHeight, setTopHeight] = useState(150);
+
+  const handleDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = topHeight;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientY - startY;
+      const newHeight = Math.max(80, Math.min(startHeight + delta, 400));
+      setTopHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
   const addImageElement = useEditorStore((s) => s.addImageElement);
   const addTextElement = useEditorStore((s) => s.addTextElement);
@@ -76,9 +97,26 @@ export default function LeftSidebar() {
         {/* ━━━ File tab: Pages + Layers (Figma style) ━━━ */}
         {activeTab === 'file' && (
           <div className="flex flex-col h-full">
-            <PagePanel />
-            <SectionPanel />
-            <div className="flex-1 overflow-y-auto">
+            {/* Top: Pages + Sections (controlled height) */}
+            <div className="overflow-y-auto shrink-0" style={{ height: topHeight }}>
+              <PagePanel />
+              <SectionPanel />
+            </div>
+
+            {/* Resize handle */}
+            <div
+              className="h-1 cursor-row-resize shrink-0 group flex items-center justify-center hover:bg-[#0d99ff]/30 transition-colors"
+              onMouseDown={handleDividerMouseDown}
+              role="slider"
+              aria-label="Resize handle"
+              aria-orientation="vertical"
+              tabIndex={0}
+            >
+              <div className="w-8 h-0.5 rounded-full bg-[#3a3a3a] group-hover:bg-[#0d99ff] transition-colors" />
+            </div>
+
+            {/* Bottom: Layers (fills remaining) */}
+            <div className="flex-1 overflow-y-auto min-h-[100px]">
               <LayerPanel />
             </div>
           </div>
