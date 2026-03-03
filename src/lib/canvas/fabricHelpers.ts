@@ -1,5 +1,5 @@
 import * as fabric from 'fabric';
-import { CanvasElement, ImageElement, TextElement, ShapeElement, FrameElement, FillValue, isGradient, LinearGradient, RadialGradient } from '@/types/editor';
+import { CanvasElement, ImageElement, TextElement, ShapeElement, FrameElement, FillValue, isGradient, LinearGradient, RadialGradient, DropShadow } from '@/types/editor';
 
 // ── Gradient Helpers ──
 
@@ -59,6 +59,15 @@ export function toFabricFill(
   });
 }
 
+/** Build a fabric.Shadow from our DropShadow type */
+function buildDropShadow(ds: DropShadow): fabric.Shadow {
+  return new fabric.Shadow({
+    color: ds.color,
+    offsetX: ds.offsetX,
+    offsetY: ds.offsetY,
+    blur: ds.blur,
+  });
+}
 
 export function elementToFabricObject(
   element: CanvasElement,
@@ -78,7 +87,7 @@ export function elementToFabricObject(
 }
 
 function createFabricText(el: TextElement): fabric.Textbox {
-  // Build shadow if enabled
+  // Build shadow: textShadow takes priority, fallback to dropShadow
   let shadow: fabric.Shadow | undefined;
   if (el.textShadow?.enabled) {
     shadow = new fabric.Shadow({
@@ -87,6 +96,8 @@ function createFabricText(el: TextElement): fabric.Textbox {
       offsetY: el.textShadow.offsetY,
       blur: el.textShadow.blur,
     });
+  } else if (el.dropShadow?.enabled) {
+    shadow = buildDropShadow(el.dropShadow);
   }
 
   return new fabric.Textbox(el.content, {
@@ -112,6 +123,8 @@ function createFabricText(el: TextElement): fabric.Textbox {
     textBackgroundColor: el.textBackground || undefined,
     angle: el.rotation,
     opacity: el.opacity,
+    flipX: el.flipX ?? false,
+    flipY: el.flipY ?? false,
     selectable: !el.locked,
     visible: el.visible,
     editable: true,
@@ -120,6 +133,7 @@ function createFabricText(el: TextElement): fabric.Textbox {
 }
 
 function createFabricShape(el: ShapeElement): fabric.FabricObject {
+  const shadow = el.dropShadow?.enabled ? buildDropShadow(el.dropShadow) : undefined;
   const commonProps = {
     left: el.x,
     top: el.y,
@@ -127,6 +141,9 @@ function createFabricShape(el: ShapeElement): fabric.FabricObject {
     originY: 'top' as const,
     angle: el.rotation,
     opacity: el.opacity,
+    flipX: el.flipX ?? false,
+    flipY: el.flipY ?? false,
+    shadow,
     selectable: !el.locked,
     visible: el.visible,
     data: { elementId: el.id, elementType: el.type },
@@ -170,6 +187,7 @@ function createFabricShape(el: ShapeElement): fabric.FabricObject {
 
 function createFabricFrame(el: FrameElement): fabric.Rect {
   const isSection = el.isSection === true;
+  const shadow = el.dropShadow?.enabled ? buildDropShadow(el.dropShadow) : undefined;
   return new fabric.Rect({
     left: el.x,
     top: el.y,
@@ -185,6 +203,9 @@ function createFabricFrame(el: FrameElement): fabric.Rect {
     ry: el.borderRadius,
     angle: el.rotation,
     opacity: el.opacity,
+    flipX: el.flipX ?? false,
+    flipY: el.flipY ?? false,
+    shadow,
     selectable: !el.locked,
     visible: el.visible,
     data: { elementId: el.id, elementType: isSection ? 'section' : 'frame' },
@@ -226,10 +247,17 @@ export async function createFabricImage(
       scaleY,
       angle: el.rotation,
       opacity: el.opacity,
+      flipX: el.flipX ?? false,
+      flipY: el.flipY ?? false,
       selectable: !el.locked,
       visible: el.visible,
       data: { elementId: el.id, elementType: el.type },
     });
+
+    // Apply drop shadow
+    if (el.dropShadow?.enabled) {
+      img.shadow = buildDropShadow(el.dropShadow);
+    }
 
     // ── Apply image filters ──
     const f = el.filters;
@@ -294,6 +322,8 @@ export function fabricObjectToElementUpdate(
     y: obj.top ?? 0,
     rotation: obj.angle ?? 0,
     opacity: obj.opacity ?? 1,
+    flipX: obj.flipX ?? false,
+    flipY: obj.flipY ?? false,
   };
 
   if (obj.width && obj.scaleX) {

@@ -13,6 +13,7 @@ import type {
   TextDecoration,
   FrameElement,
   FillValue,
+  DropShadow,
 } from '@/types/editor';
 import { FONT_SIZE_OPTIONS } from '@/constants/fonts';
 import ColorPicker from '@/components/ui/ColorPicker';
@@ -231,6 +232,7 @@ export default function RightPanel() {
   const setCanvasSize = useEditorStore((s) => s.setCanvasSize);
   const alignElements = useEditorStore((s) => s.alignElements);
   const distributeElements = useEditorStore((s) => s.distributeElements);
+  const [aspectLocked, setAspectLocked] = useState(false);
 
   // Subscribe to selectedElementIds to trigger re-render on selection change
   // (getSelectedElements alone is a stable function ref that won't re-trigger)
@@ -432,19 +434,51 @@ export default function RightPanel() {
         )}
 
         {canEdit('size') && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <NumberInput
-              label="너비"
-              value={el.width}
-              onChange={(v) => handleUpdate({ width: v })}
-              min={1}
-            />
-            <NumberInput
-              label="높이"
-              value={el.height}
-              onChange={(v) => handleUpdate({ height: v })}
-              min={1}
-            />
+          <div className="mb-3">
+            <div className="grid grid-cols-[1fr_24px_1fr] gap-1 items-end">
+              <NumberInput
+                label="W"
+                value={el.width}
+                onChange={(v) => {
+                  if (aspectLocked && el.width > 0) {
+                    const ratio = el.height / el.width;
+                    handleUpdate({ width: v, height: Math.round(v * ratio) });
+                  } else {
+                    handleUpdate({ width: v });
+                  }
+                }}
+                min={1}
+              />
+              <button
+                type="button"
+                title="비율 잠금"
+                onClick={() => setAspectLocked(!aspectLocked)}
+                className={`flex items-center justify-center w-6 h-6 rounded transition-colors mb-0.5 ${
+                  aspectLocked ? 'text-blue-500' : 'text-gray-300 hover:text-gray-500'
+                }`}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  {aspectLocked ? (
+                    <path d="M3 6h8M3 8h8M1 7h2M11 7h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  ) : (
+                    <path d="M3 6h8M3 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                  )}
+                </svg>
+              </button>
+              <NumberInput
+                label="H"
+                value={el.height}
+                onChange={(v) => {
+                  if (aspectLocked && el.height > 0) {
+                    const ratio = el.width / el.height;
+                    handleUpdate({ height: v, width: Math.round(v * ratio) });
+                  } else {
+                    handleUpdate({ height: v });
+                  }
+                }}
+                min={1}
+              />
+            </div>
           </div>
         )}
 
@@ -459,6 +493,35 @@ export default function RightPanel() {
             />
           </div>
         )}
+
+        {/* Flip buttons */}
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1">반전</label>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              title="가로 반전"
+              onClick={() => handleUpdate({ flipX: !(el.flipX ?? false) })}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md border text-xs transition-colors ${
+                (el.flipX ?? false) ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12" stroke="currentColor" strokeWidth="1" strokeDasharray="2 1"/><path d="M5 4L2 7l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 4l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              가로
+            </button>
+            <button
+              type="button"
+              title="세로 반전"
+              onClick={() => handleUpdate({ flipY: !(el.flipY ?? false) })}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md border text-xs transition-colors ${
+                (el.flipY ?? false) ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12" stroke="currentColor" strokeWidth="1" strokeDasharray="2 1"/><path d="M4 5L7 2l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 9l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              세로
+            </button>
+          </div>
+        </div>
 
         {canEdit('opacity') && (
           <div className="mb-3">
@@ -860,6 +923,14 @@ export default function RightPanel() {
               />
             </div>
           )}
+
+          <div className="mb-3">
+            <ToggleSwitch
+              label="콘텐츠 자르기 (Clip)"
+              checked={(el as FrameElement).clipContent}
+              onChange={(v) => handleUpdate({ clipContent: v })}
+            />
+          </div>
         </div>
       )}
 
@@ -980,6 +1051,93 @@ export default function RightPanel() {
           </>
         );
       })()}
+
+      {/* ━━━━━━━━━━ EFFECTS (all element types) ━━━━━━━━━━ */}
+      <SectionAccordion title="효과" defaultOpen={false}>
+        <div className="space-y-4">
+          {/* Drop Shadow */}
+          <div>
+            <ToggleSwitch
+              label="그림자"
+              checked={el.dropShadow?.enabled ?? false}
+              onChange={(v) =>
+                handleUpdate({
+                  dropShadow: {
+                    ...(el.dropShadow ?? { color: 'rgba(0,0,0,0.25)', offsetX: 4, offsetY: 4, blur: 8, spread: 0 }),
+                    enabled: v,
+                  } as DropShadow,
+                })
+              }
+            />
+            {el.dropShadow?.enabled && (
+              <div className="mt-2.5 ml-1 pl-3 border-l-2 border-gray-200 space-y-2.5">
+                <ColorPicker
+                  label="그림자 색상"
+                  color={el.dropShadow.color}
+                  onChange={(c) =>
+                    handleUpdate({ dropShadow: { ...el.dropShadow!, color: c } })
+                  }
+                />
+                <SliderInput
+                  label="X 오프셋"
+                  value={el.dropShadow.offsetX}
+                  onChange={(v) =>
+                    handleUpdate({ dropShadow: { ...el.dropShadow!, offsetX: v } })
+                  }
+                  min={-30}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+                <SliderInput
+                  label="Y 오프셋"
+                  value={el.dropShadow.offsetY}
+                  onChange={(v) =>
+                    handleUpdate({ dropShadow: { ...el.dropShadow!, offsetY: v } })
+                  }
+                  min={-30}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+                <SliderInput
+                  label="흐림"
+                  value={el.dropShadow.blur}
+                  onChange={(v) =>
+                    handleUpdate({ dropShadow: { ...el.dropShadow!, blur: v } })
+                  }
+                  min={0}
+                  max={50}
+                  step={1}
+                  suffix="px"
+                />
+                <SliderInput
+                  label="확산"
+                  value={el.dropShadow.spread}
+                  onChange={(v) =>
+                    handleUpdate({ dropShadow: { ...el.dropShadow!, spread: v } })
+                  }
+                  min={0}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Layer Blur */}
+          <SliderInput
+            label="블러"
+            value={el.layerBlur ?? 0}
+            onChange={(v) => handleUpdate({ layerBlur: v })}
+            min={0}
+            max={20}
+            step={0.5}
+            suffix="px"
+          />
+        </div>
+      </SectionAccordion>
     </div>
   );
 }
