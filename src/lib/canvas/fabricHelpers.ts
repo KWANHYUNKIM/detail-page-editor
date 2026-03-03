@@ -1,5 +1,5 @@
 import * as fabric from 'fabric';
-import { CanvasElement, ImageElement, TextElement, ShapeElement, FrameElement, FillValue, isGradient, LinearGradient, RadialGradient, DropShadow } from '@/types/editor';
+import { CanvasElement, ImageElement, TextElement, ShapeElement, FrameElement, FillValue, isGradient, LinearGradient, RadialGradient, DropShadow, InnerShadow } from '@/types/editor';
 
 // ── Gradient Helpers ──
 
@@ -69,6 +69,29 @@ function buildDropShadow(ds: DropShadow): fabric.Shadow {
   });
 }
 
+/** Map our blendMode string to fabric globalCompositeOperation */
+function toGlobalCompositeOp(blendMode?: string): GlobalCompositeOperation {
+  if (!blendMode || blendMode === 'normal') return 'source-over';
+  const map: Record<string, GlobalCompositeOperation> = {
+    multiply: 'multiply',
+    screen: 'screen',
+    overlay: 'overlay',
+    darken: 'darken',
+    lighten: 'lighten',
+    'color-dodge': 'color-dodge',
+    'color-burn': 'color-burn',
+    'hard-light': 'hard-light',
+    'soft-light': 'soft-light',
+    difference: 'difference',
+    exclusion: 'exclusion',
+    hue: 'hue',
+    saturation: 'saturation',
+    color: 'color',
+    luminosity: 'luminosity',
+  };
+  return map[blendMode] ?? 'source-over';
+}
+
 export function elementToFabricObject(
   element: CanvasElement,
 ): fabric.FabricObject | null {
@@ -129,6 +152,7 @@ function createFabricText(el: TextElement): fabric.Textbox {
     visible: el.visible,
     editable: true,
     data: { elementId: el.id, elementType: el.type },
+    globalCompositeOperation: toGlobalCompositeOp(el.blendMode),
   });
 }
 
@@ -147,6 +171,7 @@ function createFabricShape(el: ShapeElement): fabric.FabricObject {
     selectable: !el.locked,
     visible: el.visible,
     data: { elementId: el.id, elementType: el.type },
+    globalCompositeOperation: toGlobalCompositeOp(el.blendMode),
   };
 
   switch (el.shape) {
@@ -209,6 +234,7 @@ function createFabricFrame(el: FrameElement): fabric.Rect {
     selectable: !el.locked,
     visible: el.visible,
     data: { elementId: el.id, elementType: isSection ? 'section' : 'frame' },
+    globalCompositeOperation: toGlobalCompositeOp(el.blendMode),
   });
 }
 
@@ -251,7 +277,8 @@ export async function createFabricImage(
       flipY: el.flipY ?? false,
       selectable: !el.locked,
       visible: el.visible,
-      data: { elementId: el.id, elementType: el.type },
+    data: { elementId: el.id, elementType: el.type },
+    globalCompositeOperation: toGlobalCompositeOp(el.blendMode),
     });
 
     // Apply drop shadow

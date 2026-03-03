@@ -14,6 +14,7 @@ import type {
   FrameElement,
   FillValue,
   DropShadow,
+  InnerShadow,
 } from '@/types/editor';
 import { FONT_SIZE_OPTIONS } from '@/constants/fonts';
 import ColorPicker from '@/components/ui/ColorPicker';
@@ -27,6 +28,8 @@ import {
   HiChevronRight,
   HiArrowPath,
   HiArrowUpTray,
+  HiLockClosed,
+  HiLockOpen,
 } from 'react-icons/hi2';
 
 /* ── Reusable small components ── */
@@ -395,6 +398,20 @@ export default function RightPanel() {
       <div className="p-4 border-b border-gray-100">
         <h3 className="text-sm font-semibold mb-3">속성</h3>
 
+        {/* Lock toggle */}
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => handleUpdate({ locked: !el.locked })}
+            className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs transition-colors ${
+              el.locked ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
+            }`}
+          >
+            {el.locked ? <HiLockClosed className="w-3.5 h-3.5" /> : <HiLockOpen className="w-3.5 h-3.5" />}
+            {el.locked ? '잠금 해제' : '잠금'}
+          </button>
+        </div>
+
         {/* Alignment (align to canvas for single element) */}
         <div className="mb-3">
           <label className="block text-xs text-gray-500 mb-1.5">정렬</label>
@@ -534,6 +551,35 @@ export default function RightPanel() {
               step={0.01}
               suffix={` (${Math.round(el.opacity * 100)}%)`}
             />
+          </div>
+        )}
+
+        {/* Blend Mode */}
+        {canEdit('blendMode') && (
+          <div className="mb-3">
+            <label className="block text-xs text-gray-500 mb-1">블렌드 모드</label>
+            <select
+              value={el.blendMode ?? 'normal'}
+              onChange={(e) => handleUpdate({ blendMode: e.target.value })}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 bg-white"
+            >
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="darken">Darken</option>
+              <option value="lighten">Lighten</option>
+              <option value="color-dodge">Color Dodge</option>
+              <option value="color-burn">Color Burn</option>
+              <option value="hard-light">Hard Light</option>
+              <option value="soft-light">Soft Light</option>
+              <option value="difference">Difference</option>
+              <option value="exclusion">Exclusion</option>
+              <option value="hue">Hue</option>
+              <option value="saturation">Saturation</option>
+              <option value="color">Color</option>
+              <option value="luminosity">Luminosity</option>
+            </select>
           </div>
         )}
       </div>
@@ -1126,6 +1172,77 @@ export default function RightPanel() {
             )}
           </div>
 
+          {/* Inner Shadow */}
+          <div>
+            <ToggleSwitch
+              label="내부 그림자"
+              checked={el.innerShadow?.enabled ?? false}
+              onChange={(v) =>
+                handleUpdate({
+                  innerShadow: {
+                    ...(el.innerShadow ?? { color: 'rgba(0,0,0,0.25)', offsetX: 2, offsetY: 2, blur: 4, spread: 0 }),
+                    enabled: v,
+                  } as InnerShadow,
+                })
+              }
+            />
+            {el.innerShadow?.enabled && (
+              <div className="mt-2.5 ml-1 pl-3 border-l-2 border-indigo-200 space-y-2.5">
+                <ColorPicker
+                  label="내부 그림자 색상"
+                  color={el.innerShadow.color}
+                  onChange={(c) =>
+                    handleUpdate({ innerShadow: { ...el.innerShadow!, color: c } })
+                  }
+                />
+                <SliderInput
+                  label="X 오프셋"
+                  value={el.innerShadow.offsetX}
+                  onChange={(v) =>
+                    handleUpdate({ innerShadow: { ...el.innerShadow!, offsetX: v } })
+                  }
+                  min={-30}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+                <SliderInput
+                  label="Y 오프셋"
+                  value={el.innerShadow.offsetY}
+                  onChange={(v) =>
+                    handleUpdate({ innerShadow: { ...el.innerShadow!, offsetY: v } })
+                  }
+                  min={-30}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+                <SliderInput
+                  label="흐림"
+                  value={el.innerShadow.blur}
+                  onChange={(v) =>
+                    handleUpdate({ innerShadow: { ...el.innerShadow!, blur: v } })
+                  }
+                  min={0}
+                  max={50}
+                  step={1}
+                  suffix="px"
+                />
+                <SliderInput
+                  label="확산"
+                  value={el.innerShadow.spread}
+                  onChange={(v) =>
+                    handleUpdate({ innerShadow: { ...el.innerShadow!, spread: v } })
+                  }
+                  min={0}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+              </div>
+            )}
+          </div>
+
           {/* Layer Blur */}
           <SliderInput
             label="블러"
@@ -1133,6 +1250,17 @@ export default function RightPanel() {
             onChange={(v) => handleUpdate({ layerBlur: v })}
             min={0}
             max={20}
+            step={0.5}
+            suffix="px"
+          />
+
+          {/* Background Blur (Frosted Glass) */}
+          <SliderInput
+            label="배경 흐림 (프로스트)"
+            value={el.backgroundBlur ?? 0}
+            onChange={(v) => handleUpdate({ backgroundBlur: v })}
+            min={0}
+            max={30}
             step={0.5}
             suffix="px"
           />

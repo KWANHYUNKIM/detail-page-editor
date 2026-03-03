@@ -88,6 +88,9 @@ interface EditorState {
   zoom: number;
   mode: EditorMode;
   clipboardElements: CanvasElement[];
+  styleClipboard: Record<string, unknown> | null;
+  showGrid: boolean;
+  gridSize: number;
   aiEnabled: boolean;
   activeTool: ToolType;
   activeLayerId: string | null;
@@ -114,6 +117,8 @@ interface EditorState {
   copyElements: () => void;
   cutElements: () => void;
   pasteElements: () => void;
+  copyStyle: () => void;
+  pasteStyle: () => void;
 
   // Frame / grouping
   addFrameElement: (x?: number, y?: number) => string;
@@ -141,6 +146,8 @@ interface EditorState {
 
   setCanvasBackground: (color: FillValue) => void;
   setCanvasSize: (width: number, height: number) => void;
+  toggleGrid: () => void;
+  setGridSize: (size: number) => void;
 
   // Page management
   addPage: (name?: string) => void;
@@ -180,6 +187,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeLayerId: null,
   editingFrameId: null,
   focusedSectionId: null,
+  styleClipboard: null,
+  showGrid: false,
+  gridSize: 50,
   initProject: (name, preset, mode = 'creator', templateData) => {
     const presetConfig = CANVAS_PRESETS.find((p) => p.key === preset) ?? CANVAS_PRESETS[0];
 
@@ -528,6 +538,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  copyStyle: () => {
+    const selected = get().getSelectedElements();
+    if (selected.length !== 1) return;
+    const el = selected[0];
+    // Extract style properties (exclude position, size, content, id, type)
+    const { id, type, x, y, width, height, rotation, locked, visible, editable, placeholder, editableProps, parentId, ...style } = el;
+    // For text, also exclude content
+    if ('content' in style) delete (style as Record<string, unknown>).content;
+    if ('src' in style) delete (style as Record<string, unknown>).src;
+    if ('originalName' in style) delete (style as Record<string, unknown>).originalName;
+    if ('childOrder' in style) delete (style as Record<string, unknown>).childOrder;
+    if ('isSection' in style) delete (style as Record<string, unknown>).isSection;
+    set({ styleClipboard: JSON.parse(JSON.stringify(style)) });
+  },
+
+  pasteStyle: () => {
+    const state = get();
+    if (!state.styleClipboard) return;
+    const selected = state.getSelectedElements();
+    if (selected.length === 0) return;
+    const style = state.styleClipboard;
+    // Apply compatible style props (skip type-specific ones that don't match)
+    for (const el of selected) {
+      const applicable: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(style)) {
+        // Skip type-specific properties if element type doesn't match
+        if (['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign', 'lineHeight', 'letterSpacing', 'textDecoration', 'textShadow', 'textStroke', 'textBackground'].includes(key) && el.type !== 'text') continue;
+        if (['shape', 'borderRadius'].includes(key) && el.type !== 'shape' && el.type !== 'frame') continue;
+        if (['scaleMode', 'crop', 'filters', 'filterPreset', 'gradientOverlay'].includes(key) && el.type !== 'image') continue;
+        if (['clipContent'].includes(key) && el.type !== 'frame') continue;
+        applicable[key] = value;
+      }
+      state.updateElement(el.id, applicable as Partial<CanvasElement>);
+    }
+  },
+
   // ━━━ Element z-ordering within layer ━━━
 
   moveLayerUp: (id) => {
@@ -648,6 +694,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       };
     });
   },
+
+  toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
+  setGridSize: (size) => set({ gridSize: Math.max(10, Math.min(200, size)) }),
 
   // ━━━ Page management ━━━
 

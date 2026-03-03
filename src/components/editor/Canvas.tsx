@@ -115,6 +115,8 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
   const redo = useHistoryStore((s) => s.redo);
   const focusedSectionId = useEditorStore((s) => s.focusedSectionId);
   const setFocusedSectionId = useEditorStore((s) => s.setFocusedSectionId);
+  const showGrid = useEditorStore((s) => s.showGrid);
+  const gridSize = useEditorStore((s) => s.gridSize);
 
   const page = getCurrentPage();
   const elements = page?.elements;
@@ -566,7 +568,11 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         canvas.backgroundColor = bgFill;
       }
 
-      if (!elements) {
+      // Read the LATEST elements from the store (not from stale closure)
+      // to avoid race conditions with async syncCanvas
+      const latestPage = useEditorStore.getState().getCurrentPage();
+      const latestElements = latestPage?.elements;
+      if (!latestElements) {
         canvas.renderAll();
         isSyncingRef.current = false;
         return;
@@ -575,7 +581,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
       // Use flat render order to properly interleave frame children
       const flatOrder = useEditorStore.getState().getFlatRenderOrder();
       const sorted = flatOrder
-        .map((id) => elements.find((e) => e.id === id))
+        .map((id) => latestElements.find((e) => e.id === id))
         .filter((e): e is CanvasElement => !!e);
 
       for (const el of sorted) {
@@ -670,6 +676,36 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         }
       }
 
+      // ── Grid overlay ──
+      const showGridNow = useEditorStore.getState().showGrid;
+      const gridSizeNow = useEditorStore.getState().gridSize;
+      if (showGridNow && fabricModuleRef.current && project) {
+        const cw = project.canvas.width;
+        const ch = project.canvas.height;
+        // Vertical lines
+        for (let x = gridSizeNow; x < cw; x += gridSizeNow) {
+          const line = new fabricModuleRef.current.Line([x, 0, x, ch], {
+            stroke: 'rgba(0,0,0,0.08)',
+            strokeWidth: 1,
+            selectable: false,
+            evented: false,
+            data: { isGrid: true },
+          });
+          canvas.add(line);
+        }
+        // Horizontal lines
+        for (let y = gridSizeNow; y < ch; y += gridSizeNow) {
+          const line = new fabricModuleRef.current.Line([0, y, cw, y], {
+            stroke: 'rgba(0,0,0,0.08)',
+            strokeWidth: 1,
+            selectable: false,
+            evented: false,
+            data: { isGrid: true },
+          });
+          canvas.add(line);
+        }
+      }
+
       canvas.renderAll();
 
       isSyncingRef.current = false;
@@ -677,7 +713,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
     syncCanvas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId]);
+  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId, showGrid, gridSize]);
 
   useEffect(() => {
     const canvas = fabricRef.current;
@@ -1039,10 +1075,80 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         else if (e.key === '=' || e.key === '+') setZoom(Math.min(currentZoom + 0.1, 5));
         else if (e.key === '-') setZoom(Math.max(currentZoom - 0.1, 0.1));
       }
+
+      // Escape: deselect / exit frame editing
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        const state = useEditorStore.getState();
+        if (state.editingFrameId) {
+          state.setEditingFrameId(null);
+        } else if (state.focusedSectionId) {
+          state.setFocusedSectionId(null);
+        } else {
+          clearSelection();
+        }
+      }
+
+      // Enter: start editing text element
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        const ids = useEditorStore.getState().selectedElementIds;
+        if (ids.length === 1) {
+          const el = useEditorStore.getState().getElement(ids[0]);
+          if (el?.type === 'text' && fabricRef.current) {
+            e.preventDefault();
+            const canvas = fabricRef.current;
+            const textObj = canvas.getObjects().find((o) => {
+              const rec = o as unknown as { data?: Record<string, unknown> };
+              return rec.data?.elementId === ids[0];
+            });
+            if (textObj && 'enterEditing' in textObj) {
+              (textObj as unknown as { enterEditing: () => void }).enterEditing();
+              canvas.requestRenderAll();
+            }
+          } else if (el?.type === 'frame') {
+            e.preventDefault();
+            useEditorStore.getState().setEditingFrameId(ids[0]);
+          }
+        }
+      }
+
+      // Tab / Shift+Tab: cycle through elements
+      if (e.key === 'Tab') {
+        const pg = useEditorStore.getState().getCurrentPage();
+        if (pg) {
+          const selectableIds = pg.elements
+            .filter((el) => el.visible && !el.locked)
+            .map((el) => el.id);
+          if (selectableIds.length > 0) {
+            e.preventDefault();
+            const currentIds = useEditorStore.getState().selectedElementIds;
+            const currentIdx = currentIds.length === 1 ? selectableIds.indexOf(currentIds[0]) : -1;
+            let nextIdx: number;
+            if (e.shiftKey) {
+              nextIdx = currentIdx <= 0 ? selectableIds.length - 1 : currentIdx - 1;
+            } else {
+              nextIdx = currentIdx >= selectableIds.length - 1 ? 0 : currentIdx + 1;
+            }
+            selectElements([selectableIds[nextIdx]]);
+          }
+        }
+      }
+
+      // Ctrl+Alt+C: copy style
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'c') {
+        e.preventDefault();
+        useEditorStore.getState().copyStyle();
+      }
+
+      // Ctrl+Alt+V: paste style
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'v') {
+        e.preventDefault();
+        useEditorStore.getState().pasteStyle();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [pushState, removeElements, copyElements, cutElements, pasteElements, duplicateElements, loadProject, selectElements, nudgeElements, moveLayerUp, moveLayerDown, moveLayerToTop, moveLayerToBottom, setZoom]);
+  }, [pushState, removeElements, copyElements, cutElements, pasteElements, duplicateElements, loadProject, selectElements, clearSelection, nudgeElements, moveLayerUp, moveLayerDown, moveLayerToTop, moveLayerToBottom, setZoom]);
 
   // ── Image file input handler ──
   const handleImageFileChange = useCallback(

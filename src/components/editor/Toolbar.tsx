@@ -17,6 +17,7 @@ import {
   HiCloud,
   HiXMark,
   HiViewfinderCircle,
+  HiSquares2X2,
 } from 'react-icons/hi2';
 
 interface ToolbarProps {
@@ -35,6 +36,8 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
   const canUndo = useHistoryStore((s) => s.canUndo);
   const focusedSectionId = useEditorStore((s) => s.focusedSectionId);
   const setFocusedSectionId = useEditorStore((s) => s.setFocusedSectionId);
+  const showGrid = useEditorStore((s) => s.showGrid);
+  const toggleGrid = useEditorStore((s) => s.toggleGrid);
   const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
   const canRedo = useHistoryStore((s) => s.canRedo);
   const undo = useHistoryStore((s) => s.undo);
@@ -150,6 +153,15 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
           <HiMagnifyingGlassPlus className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Grid toggle */}
+      <button
+        className={`p-1.5 rounded transition-colors ${showGrid ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:bg-[#2a2a3e] hover:text-white'}`}
+        onClick={toggleGrid}
+        title="그리드 표시"
+      >
+        <HiSquares2X2 className="w-4 h-4" />
+      </button>
 
       {/* Focused section indicator */}
       {focusedSectionId && (() => {

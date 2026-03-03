@@ -33,6 +33,15 @@ export interface DropShadow {
   spread: number;
 }
 
+export interface InnerShadow {
+  enabled: boolean;
+  color: string;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  spread: number;
+}
+
 // ── Gradient Types ──
 
 export interface GradientStop {
@@ -102,7 +111,10 @@ export interface BaseElement {
   locked: boolean;
   visible: boolean;
   dropShadow?: DropShadow;
+  innerShadow?: InnerShadow;
   layerBlur?: number;
+  blendMode?: string;
+  backgroundBlur?: number;
   /** 크리에이터가 지정 — 소비자 모드에서 이 요소만 편집 허용 */
   editable: boolean;
   /** 소비자에게 보여줄 안내 (예: "상품 사진을 넣어주세요") */
