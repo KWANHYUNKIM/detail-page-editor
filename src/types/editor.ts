@@ -5,6 +5,7 @@ export type PresetKey =
   | 'blog-naver'
   | 'blog-tistory'
   | 'detail-page'
+  | 'figma-slide'
   | 'custom';
 
 export interface CanvasPreset {
@@ -123,6 +124,8 @@ export interface BaseElement {
   editableProps?: string[];
   /** 부모 프레임 ID (중첩 시) */
   parentId?: string;
+  /** 사용자 지정 레이어 이름 */
+  name?: string;
 }
 
 export type ImageScaleMode = 'fill' | 'fit' | 'crop' | 'tile';
