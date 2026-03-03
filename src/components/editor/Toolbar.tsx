@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import Toolbelt from '@/components/editor/Toolbelt';
+import ShortcutsModal from '@/components/editor/ShortcutsModal';
 import type { SaveStatus } from '@/hooks/useAutoSave';
 import {
   HiArrowUturnLeft,
@@ -18,6 +19,7 @@ import {
   HiXMark,
   HiViewfinderCircle,
   HiSquares2X2,
+  HiQuestionMarkCircle,
 } from 'react-icons/hi2';
 
 interface ToolbarProps {
@@ -45,6 +47,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
 
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(project?.name ?? '');
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const handleUndo = () => {
     const page = undo();
@@ -189,6 +192,19 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
 
       <div className="flex items-center gap-1">
         <button
+          type="button"
+          onClick={() => setShowShortcuts(true)}
+          className="flex items-center justify-center px-2 py-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+          title="키보드 단축키"
+        >
+          <HiQuestionMarkCircle className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="h-5 w-px bg-[#3a3a4e]" />
+
+      <div className="flex items-center gap-1">
+        <button
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             mode === 'creator'
               ? 'bg-blue-500/20 text-blue-400'
@@ -241,6 +257,8 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
         <HiArrowDownTray className="w-4 h-4" />
         내보내기
       </button>
+
+      <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

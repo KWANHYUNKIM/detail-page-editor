@@ -38,6 +38,7 @@ function isInRange(v1: number, v2: number): boolean {
 export function initAligningGuidelines(
   canvas: fabricTypes.Canvas,
   fabricModule: typeof fabricTypes,
+  canvasBounds?: { width: number; height: number },
 ): () => void {
   let vpt: number[] = [1, 0, 0, 1, 0, 0];
   let zoom = 1;
@@ -48,6 +49,16 @@ export function initAligningGuidelines(
   const onMouseDown = () => {
     vpt = canvas.viewportTransform ?? [1, 0, 0, 1, 0, 0];
     zoom = canvas.getZoom();
+  };
+
+  // ── Canvas edge snap targets ──
+  const getCanvasSnapTargets = () => {
+    if (!canvasBounds) return [];
+    const cw = canvasBounds.width;
+    const ch = canvasBounds.height;
+    return [
+      { centerX: cw / 2, centerY: ch / 2, left: 0, right: cw, top: 0, bottom: ch, width: cw, height: ch },
+    ];
   };
 
   // ── Calculate snap and collect guide lines ──
@@ -199,6 +210,51 @@ export function initAligningGuidelines(
           'center',
         );
         aTop = y - aH / 2;
+      }
+    }
+
+    // ── Canvas edge / center snap ──
+    const snapTargets = getCanvasSnapTargets();
+    for (const ct of snapTargets) {
+      const fullVExt = { y1: -GUIDE_EXTENSION, y2: ct.height + GUIDE_EXTENSION };
+      const fullHExt = { x1: -GUIDE_EXTENSION, x2: ct.width + GUIDE_EXTENSION };
+
+      // Snap to canvas left edge
+      if (isInRange(0, aLeft - aW / 2)) {
+        verticalLines.push({ x: 0, ...fullVExt });
+        active.setPositionByOrigin(new fabricModule.Point(aW / 2, aTop), 'center', 'center');
+        aLeft = aW / 2;
+      }
+      // Snap to canvas right edge
+      else if (isInRange(ct.width, aLeft + aW / 2)) {
+        verticalLines.push({ x: ct.width, ...fullVExt });
+        active.setPositionByOrigin(new fabricModule.Point(ct.width - aW / 2, aTop), 'center', 'center');
+        aLeft = ct.width - aW / 2;
+      }
+      // Snap to canvas center X
+      else if (isInRange(ct.centerX, aLeft)) {
+        verticalLines.push({ x: ct.centerX, ...fullVExt });
+        active.setPositionByOrigin(new fabricModule.Point(ct.centerX, aTop), 'center', 'center');
+        aLeft = ct.centerX;
+      }
+
+      // Snap to canvas top edge
+      if (isInRange(0, aTop - aH / 2)) {
+        horizontalLines.push({ y: 0, ...fullHExt });
+        active.setPositionByOrigin(new fabricModule.Point(aLeft, aH / 2), 'center', 'center');
+        aTop = aH / 2;
+      }
+      // Snap to canvas bottom edge
+      else if (isInRange(ct.height, aTop + aH / 2)) {
+        horizontalLines.push({ y: ct.height, ...fullHExt });
+        active.setPositionByOrigin(new fabricModule.Point(aLeft, ct.height - aH / 2), 'center', 'center');
+        aTop = ct.height - aH / 2;
+      }
+      // Snap to canvas center Y
+      else if (isInRange(ct.centerY, aTop)) {
+        horizontalLines.push({ y: ct.centerY, ...fullHExt });
+        active.setPositionByOrigin(new fabricModule.Point(aLeft, ct.centerY), 'center', 'center');
+        aTop = ct.centerY;
       }
     }
   };

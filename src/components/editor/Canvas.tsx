@@ -255,7 +255,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
       canvas.renderAll();
 
       // Alignment snap guide lines
-      disposeGuidelines = initAligningGuidelines(canvas, fabricModule);
+      disposeGuidelines = initAligningGuidelines(canvas, fabricModule, { width: currentProject.canvas.width, height: currentProject.canvas.height });
 
       canvas.on('selection:created', () => {
         if (isSyncingRef.current) return;
@@ -1114,13 +1114,13 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
       // Tab / Shift+Tab: cycle through elements
       if (e.key === 'Tab') {
+        e.preventDefault();
         const pg = useEditorStore.getState().getCurrentPage();
         if (pg) {
           const selectableIds = pg.elements
             .filter((el) => el.visible && !el.locked)
             .map((el) => el.id);
           if (selectableIds.length > 0) {
-            e.preventDefault();
             const currentIds = useEditorStore.getState().selectedElementIds;
             const currentIdx = currentIds.length === 1 ? selectableIds.indexOf(currentIds[0]) : -1;
             let nextIdx: number;

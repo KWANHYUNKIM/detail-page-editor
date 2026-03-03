@@ -10,6 +10,8 @@ import {
   HiLockOpen,
   HiChevronRight,
   HiChevronDown,
+  HiMagnifyingGlass,
+  HiXMark,
 } from 'react-icons/hi2';
 
 /* ── Type Icons (16x16, Figma style) ── */
@@ -387,6 +389,7 @@ export default function LayerPanel() {
 
   const [collapsed, setCollapsed] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const page = getCurrentPage();
 
@@ -409,6 +412,14 @@ export default function LayerPanel() {
 
   const elementCount = page.layerOrder.length;
 
+  // Filter layers based on search query
+  const filteredLayerOrder = searchQuery.trim() === '' ? page.layerOrder : page.layerOrder.filter((id) => {
+    const el = page.elements.find((e) => e.id === id);
+    if (!el) return false;
+    const label = elementLabel(el);
+    return label.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div>
       {/* Section header */}
@@ -429,22 +440,52 @@ export default function LayerPanel() {
         </span>
       </div>
 
+      {/* Search input */}
+      {!collapsed && (
+        <div className="px-2 py-1.5 border-b border-[#3a3a3a]">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#2a2a3e] rounded text-[11px] text-white">
+            <HiMagnifyingGlass className="w-3.5 h-3.5 text-[#b3b3b3] shrink-0" />
+            <input
+              type="text"
+              placeholder="레이어 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent outline-none text-white placeholder-[#6e6e6e]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="flex items-center justify-center w-4 h-4 text-[#b3b3b3] hover:text-white transition-colors shrink-0"
+              >
+                <HiXMark className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Flat element tree — all elements in z-order */}
       {!collapsed && (
         <div className="flex flex-col py-0.5">
           {elementCount > 0 ? (
-            <ElementTree
-              elementIds={page.layerOrder}
-              allElements={page.elements}
-              depth={0}
-              selectedElementIds={selectedElementIds}
-              expandedIds={expandedIds}
-              mode={mode}
-              selectElements={selectElements}
-              updateElement={updateElement}
-              toggleElementEditable={toggleElementEditable}
-              toggleExpand={toggleExpand}
-            />
+            filteredLayerOrder.length > 0 ? (
+              <ElementTree
+                elementIds={filteredLayerOrder}
+                allElements={page.elements}
+                depth={0}
+                selectedElementIds={selectedElementIds}
+                expandedIds={expandedIds}
+                mode={mode}
+                selectElements={selectElements}
+                updateElement={updateElement}
+                toggleElementEditable={toggleElementEditable}
+                toggleExpand={toggleExpand}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-16 text-[10px] text-[#4e4e4e] italic">
+                {searchQuery ? '검색 결과가 없습니다' : '요소가 없습니다'}
+              </div>
+            )
           ) : (
             <div className="flex items-center justify-center h-16 text-[10px] text-[#4e4e4e] italic">
               요소가 없습니다

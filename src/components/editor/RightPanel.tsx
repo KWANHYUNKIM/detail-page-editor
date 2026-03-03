@@ -351,6 +351,84 @@ export default function RightPanel() {
           />
         </div>
 
+        {/* Common fill */}
+        <div className="mb-4">
+          <GradientPicker
+            label="채우기"
+            value={(() => {
+              const fills = selected.filter(e => 'fill' in e).map(e => (e as ShapeElement | FrameElement).fill);
+              const first = fills[0];
+              if (!first || fills.some(f => JSON.stringify(f) !== JSON.stringify(first))) return '#cccccc';
+              return first;
+            })()}
+            onChange={(fill) => {
+              ids.forEach(id => {
+                const el = selected.find(e => e.id === id);
+                if (el && 'fill' in el) updateElement(id, { fill });
+              });
+            }}
+          />
+        </div>
+
+        {/* Common stroke */}
+        <div className="mb-4">
+          <label className="block text-xs text-gray-500 mb-1.5">선 (Stroke)</label>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-0.5">색상</label>
+              <input
+                type="color"
+                value={(() => {
+                  const el = selected[0];
+                  return 'stroke' in el ? (el as ShapeElement | FrameElement).stroke || '#000000' : '#000000';
+                })()}
+                onChange={(e) => ids.forEach(id => {
+                  const el = selected.find(e => e.id === id);
+                  if (el && 'stroke' in el) updateElement(id, { stroke: e.target.value });
+                })}
+                className="w-full h-8 rounded border border-gray-300 cursor-pointer"
+              />
+            </div>
+            <NumberInput
+              label="두께"
+              value={Math.round(selected.filter(e => 'strokeWidth' in e).reduce((sum, e) => sum + (e as ShapeElement | FrameElement).strokeWidth, 0) / Math.max(selected.filter(e => 'strokeWidth' in e).length, 1))}
+              onChange={(v) => ids.forEach(id => {
+                const el = selected.find(e => e.id === id);
+                if (el && 'strokeWidth' in el) updateElement(id, { strokeWidth: v });
+              })}
+              min={0}
+              max={50}
+              step={1}
+            />
+          </div>
+        </div>
+
+        {/* Common blend mode */}
+        <div className="mb-4">
+          <label className="block text-xs text-gray-500 mb-1">블렌드 모드</label>
+          <select
+            value={(() => {
+              const modes = selected.map(e => e.blendMode || 'normal');
+              return modes.every(m => m === modes[0]) ? modes[0] : 'normal';
+            })()}
+            onChange={(e) => ids.forEach(id => updateElement(id, { blendMode: e.target.value }))}
+            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+          >
+            <option value="normal">Normal</option>
+            <option value="multiply">Multiply</option>
+            <option value="screen">Screen</option>
+            <option value="overlay">Overlay</option>
+            <option value="darken">Darken</option>
+            <option value="lighten">Lighten</option>
+            <option value="color-dodge">Color Dodge</option>
+            <option value="color-burn">Color Burn</option>
+            <option value="hard-light">Hard Light</option>
+            <option value="soft-light">Soft Light</option>
+            <option value="difference">Difference</option>
+            <option value="exclusion">Exclusion</option>
+          </select>
+        </div>
+
         {/* Bounding box info */}
         <div className="pt-3 border-t border-gray-100">
           <label className="block text-xs text-gray-500 mb-2">선택 영역</label>
