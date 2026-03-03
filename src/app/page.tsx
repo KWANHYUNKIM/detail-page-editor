@@ -6,6 +6,7 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { CANVAS_PRESETS } from '@/constants/presets';
 import { BUILT_IN_TEMPLATES, TEMPLATE_CATEGORIES } from '@/constants/templates';
+import { createFigmaDesignProject } from '@/constants/figmaDesign';
 import type { PresetKey, TemplateCategory, BuiltInTemplate } from '@/types/editor';
 import Modal from '@/components/ui/Modal';
 import {
@@ -42,6 +43,7 @@ export default function HomePage() {
   const [selectedPreset, setSelectedPreset] = useState<PresetKey>('detail-page');
 
   const initProject = useEditorStore((s) => s.initProject);
+  const loadProject = useEditorStore((s) => s.loadProject);
   const saveProject = useProjectStore((s) => s.saveProject);
 
   const filteredTemplates = useMemo(() => {
@@ -74,6 +76,13 @@ export default function HomePage() {
       saveProject(project);
       router.push(`/editor/${project.id}`);
     }
+  };
+
+  const handleLoadFigmaDesign = () => {
+    const project = createFigmaDesignProject();
+    loadProject(project);
+    saveProject(project);
+    router.push(`/editor/${project.id}`);
   };
 
   const handleCreateBlank = () => {
@@ -269,6 +278,39 @@ export default function HomePage() {
                   빈 상세페이지 만들기
                 </span>
               </button>
+            </div>
+
+            {/* Figma Design Sample — Featured card */}
+            <div className="group/card">
+              <button
+                onClick={handleLoadFigmaDesign}
+                className="aspect-[3/4] w-full rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-gray-900/15"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#07021B] via-[#1a1040] to-[#2d1b69]" />
+                <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="text-xs font-semibold text-purple-300 tracking-wider">FIGMA SAMPLE</div>
+                    <div className="mt-2 text-[11px] text-purple-400/60">960×640 · 6페이지</div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white leading-tight">상세페이지<br/>만들기</div>
+                      <div className="mt-1 text-xs text-purple-300/70">리디드로우의 피그마 강의</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    <span className="text-[10px] text-gray-400">6페이지 디자인 자료</span>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 opacity-0 group-hover/card:opacity-100 translate-y-2 group-hover/card:translate-y-0 transition-all duration-300">
+                    이 디자인 열기
+                  </span>
+                </div>
+              </button>
+              <p className="mt-3 text-sm font-medium text-gray-700 truncate">피그마 디자인 자료모음</p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">온라인셀러를 위한 상세페이지 만들기 가이드</p>
             </div>
 
             {/* Template cards */}
