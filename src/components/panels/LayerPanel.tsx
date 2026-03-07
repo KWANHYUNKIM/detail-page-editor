@@ -611,6 +611,7 @@ export default function LayerPanel() {
         </div>
       )}
 
+
       {/* Layer context menu */}
       {contextMenu !== null && (
         <ContextMenu

@@ -152,7 +152,8 @@ function buildCoverPage(): Page {
 
   // Bottom-right branding (Frame 1 — auto layout)
   els.push(s('rect', 720, 580, 210, 40, 'rgba(127,116,148,0.12)', 'transparent', 0, 20, 1, 'Frame 1'));
-  els.push(t(735, 588, 180, 24, '리디드로우 @rddraw', 13, C.purple, 'normal', 'right', 1.2, 0, 0.8, '브랜드'));
+  els.push(t(735, 583, 180, 20, '리디드로우', 13, C.purple, 'bold', 'right', 1.2, 0, 0.9, '리디드로우'));
+  els.push(t(735, 601, 180, 20, '@rddraw', 12, C.purple, 'normal', 'right', 1.2, 0, 0.7, '@rddraw'));
 
   return makePage('표지', els);
 }
