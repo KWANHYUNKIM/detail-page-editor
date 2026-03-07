@@ -123,17 +123,16 @@ function makePage(name: string, elements: CanvasElement[]): Page {
 }
 
 // ─── Page 1: 표지 (Cover) ────────────────────────────────────────────────────
-// Background: #07021B — 정확한 Figma 추출 데이터 기반
+// Background: #07021B — Figma 원본 기준 정확 추출
 
 function buildCoverPage(): Page {
   const els: CanvasElement[] = [];
 
-  // Full-canvas background
+  // Full-canvas background (Figma: 표지 frame fill #07021B)
   els.push(s('rect', 0, 0, W, H, C.navy, 'transparent', 0, 0, 1, '배경'));
 
   // Decorative frame (Frame 25) — subtle accent shape
   els.push(s('rect', 680, 80, 200, 200, 'rgba(127,116,148,0.08)', 'transparent', 0, 16, 1, 'Frame 25'));
-  els.push(s('circle', 750, 450, 120, 120, 'rgba(74,111,165,0.06)', 'transparent', 0, 0, 1, '장식 원'));
 
   // Figma logo placeholder
   els.push(img(208, 80, 48, 48, '', 'Figma 로고', 'figma_logo 1'));
@@ -144,16 +143,17 @@ function buildCoverPage(): Page {
   // "온라인셀러를 위한" subtitle
   els.push(t(208, 225, 283, 40, '온라인셀러를 위한', 28, C.white, 'bold', 'left', 1.3, 0, 1, '온라인셀러를 위한'));
 
-  // "상세페이지 만들기" main title — extracted: 58.33px, letterSpacing -1%
-  els.push(t(208, 296, 500, 70, '상세페이지 만들기', 58, C.white, 'bold', 'left', 1.1, -0.58, 1, '상세페이지 만들기'));
+  // "상세페이지 만들기" main title — Figma: 58.33px Bold Pretendard, letterSpacing -1%
+  els.push(t(208, 296, 413, 70, '상세페이지 만들기', 58, C.white, 'bold', 'left', 1.1, -0.58, 1, '상세페이지 만들기'));
 
-  // "리디드로우의 피그마 강의" — extracted: 30px, #7F7494, letterSpacing -2%
+  // "리디드로우의 피그마 강의" — Figma: 30px Bold #7F7494, letterSpacing -2%
   els.push(t(209, 378, 292, 36, '리디드로우의 피그마 강의', 30, C.purple, 'bold', 'left', 1.2, -0.6, 1, '리디드로우의 피그마 강의'));
 
-  // Bottom-right branding (Frame 1 — auto layout)
-  els.push(s('rect', 720, 580, 210, 40, 'rgba(127,116,148,0.12)', 'transparent', 0, 20, 1, 'Frame 1'));
-  els.push(t(735, 583, 180, 20, '리디드로우', 13, C.purple, 'bold', 'right', 1.2, 0, 0.9, '리디드로우'));
-  els.push(t(735, 601, 180, 20, '@rddraw', 12, C.purple, 'normal', 'right', 1.2, 0, 0.7, '@rddraw'));
+  // Bottom-right branding (Frame 1 — Figma auto layout)
+  // Figma: logo 1 이미지 + "리디드로우 @rddraw" 단일 텍스트
+  els.push(s('rect', 720, 568, 210, 52, 'rgba(127,116,148,0.12)', 'transparent', 0, 20, 1, 'Frame 1'));
+  els.push(img(730, 574, 32, 32, '', '브랜드 로고', 'logo 1'));
+  els.push(t(770, 575, 150, 38, '리디드로우\n@rddraw', 13, C.purple, 'bold', 'left', 1.6, 0, 0.9, '리디드로우 @rddraw'));
 
   return makePage('표지', els);
 }

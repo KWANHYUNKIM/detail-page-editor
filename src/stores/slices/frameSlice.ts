@@ -303,14 +303,22 @@ export function createFrameSlice(set: SetFn, get: GetFn): FrameSlice {
       const page: Page | null = get().getCurrentPage();
       if (!page) return [];
       const result: string[] = [];
+      const seen = new Set<string>();
       const addWithChildren = (ids: string[]) => {
         for (const id of ids) {
+          if (seen.has(id)) continue; // prevent duplicates
+          seen.add(id);
           result.push(id);
           const el = page.elements.find((e) => e.id === id);
           if (el && el.type === 'frame') addWithChildren((el as FrameElement).childOrder);
         }
       };
-      addWithChildren(page.layerOrder);
+      // Filter layerOrder: skip elements that have a parentId (they belong inside a frame)
+      const topLevelIds = page.layerOrder.filter((id) => {
+        const el = page.elements.find((e) => e.id === id);
+        return !el?.parentId;
+      });
+      addWithChildren(topLevelIds);
       return result;
     },
   };

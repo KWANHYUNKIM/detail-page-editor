@@ -9,7 +9,7 @@ import type {
   Page,
 } from '@/types/editor';
 import { DEFAULT_FONT, DEFAULT_FONT_SIZE, DEFAULT_TEXT_COLOR } from '@/constants/fonts';
-import { addElementToLayer, findElementLayerIndex } from '@/stores/storeHelpers';
+import { addElementToLayer, findElementLayerIndex, removeElementsFromLayers } from '@/stores/storeHelpers';
 
 export interface ElementSlice {
   addImageElement: (src: string, name?: string) => string;
@@ -161,7 +161,6 @@ export function createElementSlice(set: SetFn, get: GetFn): ElementSlice {
             return el;
           });
 
-        const { removeElementsFromLayers } = require('@/stores/storeHelpers'); // dynamic to avoid circular in TS
         page.elements = updatedElements;
         page = removeElementsFromLayers(page, allIds);
         pages[s.currentPageIndex] = page;

@@ -512,10 +512,15 @@ export default function LayerPanel() {
     });
   };
 
-  const elementCount = page.layerOrder.length;
+  // Exclude children that have a parentId — they appear inside their parent frame's subtree
+  const topLevelLayerOrder = page.layerOrder.filter((id) => {
+    const el = page.elements.find((e) => e.id === id);
+    return el && !el.parentId;
+  });
+  const elementCount = topLevelLayerOrder.length;
 
   // Filter layers based on search query
-  const filteredLayerOrder = searchQuery.trim() === '' ? page.layerOrder : page.layerOrder.filter((id) => {
+  const filteredLayerOrder = searchQuery.trim() === '' ? topLevelLayerOrder : topLevelLayerOrder.filter((id) => {
     const el = page.elements.find((e) => e.id === id);
     if (!el) return false;
     const label = elementLabel(el);
