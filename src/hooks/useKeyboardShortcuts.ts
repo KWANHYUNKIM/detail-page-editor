@@ -1,104 +1,65 @@
 'use client';
 
-import { useEffect, MutableRefObject } from 'react';
-import type * as fabricTypes from 'fabric';
+/**
+ * useKeyboardShortcuts — zero-parameter hook.
+ * Reads canvas refs from CanvasContext, store state/actions from useEditorStore.
+ */
+
+import { useEffect } from 'react';
+import { useCanvasContext } from '@/contexts/CanvasContext';
 import { useEditorStore } from '@/stores/editorStore';
 import { useHistoryStore } from '@/stores/historyStore';
-import type { Page, Project } from '@/types/editor';
-interface UseKeyboardShortcutsOptions {
-  fabricRef: MutableRefObject<fabricTypes.Canvas | null>;
-  pushState: (page: Page) => void;
-  removeElements: (ids: string[]) => void;
-  copyElements: () => void;
-  cutElements: () => void;
-  pasteElements: () => void;
-  duplicateElements: (ids: string[], offset?: { x: number; y: number }) => void;
-  loadProject: (project: Project) => void;
-  selectElements: (ids: string[]) => void;
-  clearSelection: () => void;
-  nudgeElements: (ids: string[], dx: number, dy: number) => void;
-  moveLayerUp: (id: string) => void;
-  moveLayerDown: (id: string) => void;
-  moveLayerToTop: (id: string) => void;
-  moveLayerToBottom: (id: string) => void;
-  setZoom: (zoom: number) => void;
-}
 
-export function useKeyboardShortcuts({
-  fabricRef,
-  pushState,
-  removeElements,
-  copyElements,
-  cutElements,
-  pasteElements,
-  duplicateElements,
-  loadProject,
-  selectElements,
-  clearSelection,
-  nudgeElements,
-  moveLayerUp,
-  moveLayerDown,
-  moveLayerToTop,
-  moveLayerToBottom,
-  setZoom,
-}: UseKeyboardShortcutsOptions) {
+export function useKeyboardShortcuts() {
+  const { fabricRef } = useCanvasContext();
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
         e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
+      ) return;
+
+      const store = useEditorStore.getState();
 
       // Delete / Backspace
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length > 0) {
+        if (store.selectedElementIds.length > 0) {
           e.preventDefault();
-          const currentPage = useEditorStore.getState().getCurrentPage();
-          if (currentPage) pushState(currentPage);
-          removeElements(ids);
+          const page = store.getCurrentPage();
+          if (page) useHistoryStore.getState().pushState(page);
+          store.removeElements(store.selectedElementIds);
         }
       }
 
       // Copy
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length > 0) {
-          e.preventDefault();
-          copyElements();
-        }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.altKey) {
+        if (store.selectedElementIds.length > 0) { e.preventDefault(); store.copyElements(); }
       }
 
       // Cut
       if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length > 0) {
+        if (store.selectedElementIds.length > 0) {
           e.preventDefault();
-          const currentPage = useEditorStore.getState().getCurrentPage();
-          if (currentPage) pushState(currentPage);
-          cutElements();
+          const page = store.getCurrentPage();
+          if (page) useHistoryStore.getState().pushState(page);
+          store.cutElements();
         }
       }
 
       // Paste
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-        if (useEditorStore.getState().clipboardElements.length > 0) {
-          e.preventDefault();
-          pasteElements();
-        }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.altKey) {
+        if (store.clipboardElements.length > 0) { e.preventDefault(); store.pasteElements(); }
       }
 
       // Duplicate
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length > 0) {
+        if (store.selectedElementIds.length > 0) {
           e.preventDefault();
-          const currentPage = useEditorStore.getState().getCurrentPage();
-          if (currentPage) pushState(currentPage);
-          duplicateElements(ids);
+          const page = store.getCurrentPage();
+          if (page) useHistoryStore.getState().pushState(page);
+          store.duplicateElements(store.selectedElementIds);
         }
       }
 
@@ -106,10 +67,9 @@ export function useKeyboardShortcuts({
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         const page = useHistoryStore.getState().undo();
-        const proj = useEditorStore.getState().project;
-        const idx = useEditorStore.getState().currentPageIndex;
+        const proj = store.project;
         if (page && proj) {
-          loadProject({ ...proj, pages: proj.pages.map((p, i) => (i === idx ? page : p)) });
+          store.loadProject({ ...proj, pages: proj.pages.map((p, i) => (i === store.currentPageIndex ? page : p)) });
         }
       }
 
@@ -117,158 +77,104 @@ export function useKeyboardShortcuts({
       if ((e.ctrlKey || e.metaKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
         e.preventDefault();
         const page = useHistoryStore.getState().redo();
-        const proj = useEditorStore.getState().project;
-        const idx = useEditorStore.getState().currentPageIndex;
+        const proj = store.project;
         if (page && proj) {
-          loadProject({ ...proj, pages: proj.pages.map((p, i) => (i === idx ? page : p)) });
+          store.loadProject({ ...proj, pages: proj.pages.map((p, i) => (i === store.currentPageIndex ? page : p)) });
         }
       }
 
       // Select All
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
-        const pg = useEditorStore.getState().getCurrentPage();
+        const pg = store.getCurrentPage();
         if (pg) {
-          const allIds = pg.elements
-            .filter((el) => el.visible && !el.locked)
-            .map((el) => el.id);
-          if (allIds.length > 0) {
-            selectElements(allIds);
-          }
+          const allIds = pg.elements.filter((el) => el.visible && !el.locked).map((el) => el.id);
+          if (allIds.length > 0) store.selectElements(allIds);
         }
       }
 
-      // Arrow keys: nudge selected elements (1px, 10px with Shift)
+      // Arrow nudge (1px; 10px with Shift)
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length > 0) {
+        if (store.selectedElementIds.length > 0) {
           e.preventDefault();
           const step = e.shiftKey ? 10 : 1;
-          let dx = 0, dy = 0;
-          switch (e.key) {
-            case 'ArrowLeft':  dx = -step; break;
-            case 'ArrowRight': dx = step; break;
-            case 'ArrowUp':    dy = -step; break;
-            case 'ArrowDown':  dy = step; break;
-          }
-          nudgeElements(ids, dx, dy);
+          const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+          const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+          store.nudgeElements(store.selectedElementIds, dx, dy);
         }
       }
 
-      // ⌘] / ⌘[ : move element up/down in z-order
-      // ⌘⌥] / ⌘⌥[ : move element to top/bottom
+      // Z-order: ⌘] / ⌘[ (+ Alt for top/bottom)
       if ((e.ctrlKey || e.metaKey) && (e.key === ']' || e.key === '[')) {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length === 1) {
+        if (store.selectedElementIds.length === 1) {
           e.preventDefault();
-          const id = ids[0];
-          if (e.altKey) {
-            e.key === ']' ? moveLayerToTop(id) : moveLayerToBottom(id);
-          } else {
-            e.key === ']' ? moveLayerUp(id) : moveLayerDown(id);
-          }
+          const id = store.selectedElementIds[0];
+          if (e.altKey) { e.key === ']' ? store.moveLayerToTop(id) : store.moveLayerToBottom(id); }
+          else { e.key === ']' ? store.moveLayerUp(id) : store.moveLayerDown(id); }
         }
       }
 
-      // Zoom: ⌘0 (fit), ⌘1 (100%), ⌘+ (zoom in), ⌘- (zoom out)
-      if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.key === '1' || e.key === '=' || e.key === '+' || e.key === '-')) {
+      // Zoom: ⌘0/1/+/-
+      if ((e.ctrlKey || e.metaKey) && ['0', '1', '=', '+', '-'].includes(e.key)) {
         e.preventDefault();
-        const currentZoom = useEditorStore.getState().zoom;
-        if (e.key === '0') setZoom(1);
-        else if (e.key === '1') setZoom(1);
-        else if (e.key === '=' || e.key === '+') setZoom(Math.min(currentZoom + 0.1, 5));
-        else if (e.key === '-') setZoom(Math.max(currentZoom - 0.1, 0.1));
+        const z = store.zoom;
+        if (e.key === '0' || e.key === '1') store.setZoom(1);
+        else if (e.key === '=' || e.key === '+') store.setZoom(Math.min(z + 0.1, 5));
+        else if (e.key === '-') store.setZoom(Math.max(z - 0.1, 0.1));
       }
 
-      // Escape: deselect / exit frame editing
+      // Escape
       if (e.key === 'Escape') {
         e.preventDefault();
-        const state = useEditorStore.getState();
-        if (state.editingFrameId) {
-          state.setEditingFrameId(null);
-        } else if (state.focusedSectionId) {
-          state.setFocusedSectionId(null);
-        } else {
-          clearSelection();
-        }
+        if (store.editingFrameId) store.setEditingFrameId(null);
+        else if (store.focusedSectionId) store.setFocusedSectionId(null);
+        else store.clearSelection();
       }
 
-      // Enter: start editing text element
+      // Enter: start text editing or enter frame
       if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        const ids = useEditorStore.getState().selectedElementIds;
-        if (ids.length === 1) {
-          const el = useEditorStore.getState().getElement(ids[0]);
+        if (store.selectedElementIds.length === 1) {
+          const el = store.getElement(store.selectedElementIds[0]);
           if (el?.type === 'text' && fabricRef.current) {
             e.preventDefault();
-            const canvas = fabricRef.current;
-            const textObj = canvas.getObjects().find((o) => {
+            const textObj = fabricRef.current.getObjects().find((o) => {
               const rec = o as unknown as { data?: Record<string, unknown> };
-              return rec.data?.elementId === ids[0];
+              return rec.data?.elementId === store.selectedElementIds[0];
             });
             if (textObj && 'enterEditing' in textObj) {
               (textObj as unknown as { enterEditing: () => void }).enterEditing();
-              canvas.requestRenderAll();
+              fabricRef.current.requestRenderAll();
             }
           } else if (el?.type === 'frame') {
             e.preventDefault();
-            useEditorStore.getState().setEditingFrameId(ids[0]);
+            store.setEditingFrameId(store.selectedElementIds[0]);
           }
         }
       }
 
-      // Tab / Shift+Tab: cycle through elements
+      // Tab / Shift+Tab: cycle selection
       if (e.key === 'Tab') {
         e.preventDefault();
-        const pg = useEditorStore.getState().getCurrentPage();
+        const pg = store.getCurrentPage();
         if (pg) {
-          const selectableIds = pg.elements
-            .filter((el) => el.visible && !el.locked)
-            .map((el) => el.id);
-          if (selectableIds.length > 0) {
-            const currentIds = useEditorStore.getState().selectedElementIds;
-            const currentIdx = currentIds.length === 1 ? selectableIds.indexOf(currentIds[0]) : -1;
-            let nextIdx: number;
-            if (e.shiftKey) {
-              nextIdx = currentIdx <= 0 ? selectableIds.length - 1 : currentIdx - 1;
-            } else {
-              nextIdx = currentIdx >= selectableIds.length - 1 ? 0 : currentIdx + 1;
-            }
-            selectElements([selectableIds[nextIdx]]);
+          const ids = pg.elements.filter((el) => el.visible && !el.locked).map((el) => el.id);
+          if (ids.length > 0) {
+            const cur = store.selectedElementIds;
+            const curIdx = cur.length === 1 ? ids.indexOf(cur[0]) : -1;
+            const next = e.shiftKey
+              ? (curIdx <= 0 ? ids.length - 1 : curIdx - 1)
+              : (curIdx >= ids.length - 1 ? 0 : curIdx + 1);
+            store.selectElements([ids[next]]);
           }
         }
       }
 
-      // Ctrl+Alt+C: copy style
-      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'c') {
-        e.preventDefault();
-        useEditorStore.getState().copyStyle();
-      }
-
-      // Ctrl+Alt+V: paste style
-      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'v') {
-        e.preventDefault();
-        useEditorStore.getState().pasteStyle();
-      }
+      // Style copy/paste: Cmd+Alt+C / Cmd+Alt+V
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'c') { e.preventDefault(); store.copyStyle(); }
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'v') { e.preventDefault(); store.pasteStyle(); }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [
-    fabricRef,
-    pushState,
-    removeElements,
-    copyElements,
-    cutElements,
-    pasteElements,
-    duplicateElements,
-    loadProject,
-    selectElements,
-    clearSelection,
-    nudgeElements,
-    moveLayerUp,
-    moveLayerDown,
-    moveLayerToTop,
-    moveLayerToBottom,
-    setZoom,
-  ]);
+  }, [fabricRef]);
 }

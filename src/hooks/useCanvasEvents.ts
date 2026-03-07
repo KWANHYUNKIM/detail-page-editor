@@ -1,27 +1,23 @@
 'use client';
 
 /**
- * useCanvasEvents
+ * useCanvasEvents — zero-parameter hook.
  *
- * Registers all persistent Fabric.js canvas event listeners:
- *   - selection:created / updated / cleared  → sync to store
- *   - object:modified                        → sync element + frame children + auto-parent/unparent
- *   - object:moving                          → live sync during drag
- *   - text:editing:exited                    → sync text content
- *   - mouse:dblclick                         → enter frame/text editing
- *   - dimension overlay update listeners
- *   - Alt+drag duplicate
- *   - Right-click context menu
+ * Registers persistent Fabric.js event listeners after canvas init.
+ * All refs come from CanvasContext; all store calls go directly to useEditorStore.
+ *
+ * 1. Selection sync   (selection:created/updated/cleared → store)
+ * 2. Mutation sync    (object:modified, object:moving, text:editing:exited → store)
+ * 3. Interaction      (dblclick, alt+drag duplicate, right-click menu)
+ * 4. Dimension badge  (overlay update on every transform event)
  */
 
-import { useEffect, MutableRefObject, Dispatch, SetStateAction } from 'react';
+import { useEffect, Dispatch, SetStateAction } from 'react';
 import type * as fabricTypes from 'fabric';
+import { useCanvasContext } from '@/contexts/CanvasContext';
 import { useEditorStore } from '@/stores/editorStore';
-import type { CanvasElement, FrameElement, Page } from '@/types/editor';
-
-type FabricHelpers = {
-  fabricObjectToElementUpdate: (obj: fabricTypes.FabricObject) => Partial<CanvasElement>;
-};
+import { useHistoryStore } from '@/stores/historyStore';
+import type { FrameElement } from '@/types/editor';
 
 function getElementId(obj: fabricTypes.FabricObject): string | undefined {
   const rec = obj as unknown as { data?: Record<string, unknown> };
@@ -29,103 +25,58 @@ function getElementId(obj: fabricTypes.FabricObject): string | undefined {
   return undefined;
 }
 
-interface SelectionInfo {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
+interface SelectionInfo { left: number; top: number; width: number; height: number; }
+interface ContextMenuState { x: number; y: number; elementId: string | null; }
 
-interface ContextMenuState {
-  x: number;
-  y: number;
-  elementId: string | null;
-}
+/**
+ * Two UI-state setters are passed as arguments because they belong to Canvas.tsx’s
+ * local render state (not the global store). Everything else comes from context/store.
+ */
+export function useCanvasEvents(
+  setSelectionInfo: Dispatch<SetStateAction<SelectionInfo | null>>,
+  setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>,
+) {
+  const {
+    fabricRef, fabricModuleRef, helpersRef,
+    isSyncingRef, fabricUpdateRef, updateOverlayRef, isReady,
+  } = useCanvasContext();
 
-interface UseCanvasEventsOptions {
-  fabricRef: MutableRefObject<fabricTypes.Canvas | null>;
-  fabricModuleRef: MutableRefObject<typeof fabricTypes | null>;
-  helpersRef: MutableRefObject<FabricHelpers | null>;
-  isSyncingRef: MutableRefObject<boolean>;
-  fabricUpdateRef: MutableRefObject<boolean>;
-  updateOverlayRef: MutableRefObject<(() => void) | null>;
-  isReady: boolean;
-  selectElements: (ids: string[]) => void;
-  clearSelection: () => void;
-  updateElement: (id: string, update: Partial<CanvasElement>) => void;
-  moveToFrame: (ids: string[], frameId: string) => void;
-  moveOutOfFrame: (ids: string[]) => void;
-  duplicateElements: (ids: string[], offset?: { x: number; y: number }) => void;
-  pushState: (page: Page) => void;
-  setSelectionInfo: Dispatch<SetStateAction<SelectionInfo | null>>;
-  setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
-}
-
-export function useCanvasEvents({
-  fabricRef,
-  fabricModuleRef,
-  helpersRef,
-  isSyncingRef,
-  fabricUpdateRef,
-  updateOverlayRef,
-  isReady,
-  selectElements,
-  clearSelection,
-  updateElement,
-  moveToFrame,
-  moveOutOfFrame,
-  duplicateElements,
-  pushState,
-  setSelectionInfo,
-  setContextMenu,
-}: UseCanvasEventsOptions) {
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !isReady) return;
 
-    // ── Selection sync ──
+    // 1. Selection sync
     const onSelectionCreated = () => {
       if (isSyncingRef.current) return;
       const ids = canvas.getActiveObjects().map(getElementId).filter((id): id is string => !!id);
-      selectElements(ids);
+      useEditorStore.getState().selectElements(ids);
     };
-    const onSelectionUpdated = () => {
-      if (isSyncingRef.current) return;
-      const ids = canvas.getActiveObjects().map(getElementId).filter((id): id is string => !!id);
-      selectElements(ids);
-    };
+    const onSelectionUpdated = onSelectionCreated;
     const onSelectionCleared = () => {
       if (isSyncingRef.current) return;
-      clearSelection();
+      useEditorStore.getState().clearSelection();
     };
 
-    // ── object:modified ──
+    // 2a. object:modified
     const onObjectModified = (e: { target: fabricTypes.FabricObject }) => {
-      const target = e.target;
       const helpers = helpersRef.current;
-      if (!target || !helpers) return;
-      const elementId = getElementId(target);
+      if (!e.target || !helpers) return;
+      const store = useEditorStore.getState();
+      const elementId = getElementId(e.target);
 
-      // Multi-select (ActiveSelection)
       if (!elementId) {
-        if (!('getObjects' in target) || !fabricModuleRef.current) return;
-        const objects = [...(target as fabricTypes.ActiveSelection).getObjects()];
+        // ActiveSelection
+        if (!('getObjects' in e.target) || !fabricModuleRef.current) return;
+        const objects = [...(e.target as fabricTypes.ActiveSelection).getObjects()];
         if (objects.length === 0) return;
-
-        const currentPage = useEditorStore.getState().getCurrentPage();
-        if (currentPage) pushState(currentPage);
+        const page = store.getCurrentPage();
+        if (page) useHistoryStore.getState().pushState(page);
         fabricUpdateRef.current = true;
-
-        isSyncingRef.current = true;
-        canvas.discardActiveObject();
-        isSyncingRef.current = false;
-
+        isSyncingRef.current = true; canvas.discardActiveObject(); isSyncingRef.current = false;
         for (const obj of objects) {
-          const childId = getElementId(obj);
-          if (!childId) continue;
-          updateElement(childId, helpers.fabricObjectToElementUpdate(obj));
+          const cid = getElementId(obj);
+          if (cid) store.updateElement(cid, helpers.fabricObjectToElementUpdate(obj));
         }
-
         isSyncingRef.current = true;
         const sel = new fabricModuleRef.current.ActiveSelection(objects, { canvas });
         canvas.setActiveObject(sel);
@@ -134,93 +85,80 @@ export function useCanvasEvents({
         return;
       }
 
-      const currentPage = useEditorStore.getState().getCurrentPage();
-      if (currentPage) pushState(currentPage);
-
+      const page = store.getCurrentPage();
+      if (page) useHistoryStore.getState().pushState(page);
       fabricUpdateRef.current = true;
-      const update = helpers.fabricObjectToElementUpdate(target);
-      updateElement(elementId, update);
+      const update = helpers.fabricObjectToElementUpdate(e.target);
+      store.updateElement(elementId, update);
+      const el = store.getElement(elementId);
 
-      const el = useEditorStore.getState().getElement(elementId);
-
-      // Move frame children by same delta
-      if (el && el.type === 'frame') {
+      // Propagate frame drag delta to children
+      if (el?.type === 'frame') {
         const frame = el as FrameElement;
         const dx = (update.x ?? el.x) - el.x;
         const dy = (update.y ?? el.y) - el.y;
         if (dx !== 0 || dy !== 0) {
-          for (const childId of frame.childOrder) {
-            const child = useEditorStore.getState().getElement(childId);
-            if (child) updateElement(childId, { x: child.x + dx, y: child.y + dy });
+          for (const cid of frame.childOrder) {
+            const child = store.getElement(cid);
+            if (child) store.updateElement(cid, { x: child.x + dx, y: child.y + dy });
           }
         }
       }
 
       // Auto-parent / auto-unparent
       if (el && el.type !== 'frame') {
-        const allEls = useEditorStore.getState().getCurrentPage()?.elements ?? [];
+        const allEls = store.getCurrentPage()?.elements ?? [];
         const cx = (update.x ?? el.x) + el.width / 2;
         const cy = (update.y ?? el.y) + el.height / 2;
-        const alreadyInFrame = allEls.some(
-          (fe) => fe.type === 'frame' && (fe as FrameElement).childOrder.includes(el.id)
-        );
-        if (!alreadyInFrame) {
-          const targetFrame = allEls.find(
-            (fe) =>
-              fe.type === 'frame' &&
-              cx >= fe.x && cx <= fe.x + fe.width &&
-              cy >= fe.y && cy <= fe.y + fe.height
+        const inFrame = allEls.some((fe) => fe.type === 'frame' && (fe as FrameElement).childOrder.includes(el.id));
+        if (!inFrame) {
+          const target = allEls.find((fe) =>
+            fe.type === 'frame' && cx >= fe.x && cx <= fe.x + fe.width && cy >= fe.y && cy <= fe.y + fe.height
           );
-          if (targetFrame) moveToFrame([elementId], targetFrame.id);
+          if (target) store.moveToFrame([elementId], target.id);
         } else {
-          const parentFrame = allEls.find(
-            (fe) => fe.type === 'frame' && (fe as FrameElement).childOrder.includes(el.id)
+          const parent = allEls.find((fe) =>
+            fe.type === 'frame' && (fe as FrameElement).childOrder.includes(el.id)
           ) as FrameElement | undefined;
-          if (parentFrame) {
-            const isOutside =
-              cx < parentFrame.x || cx > parentFrame.x + parentFrame.width ||
-              cy < parentFrame.y || cy > parentFrame.y + parentFrame.height;
-            if (isOutside) moveOutOfFrame([elementId]);
+          if (parent) {
+            const outside = cx < parent.x || cx > parent.x + parent.width || cy < parent.y || cy > parent.y + parent.height;
+            if (outside) store.moveOutOfFrame([elementId]);
           }
         }
       }
     };
 
-    // ── object:moving ──
+    // 2b. object:moving (live drag)
     const onObjectMoving = (e: { target: fabricTypes.FabricObject }) => {
-      const target = e.target;
       const helpers = helpersRef.current;
-      if (!target || !helpers) return;
-      const elementId = getElementId(target);
+      if (!e.target || !helpers) return;
+      const store = useEditorStore.getState();
+      const elementId = getElementId(e.target);
 
-      // Multi-select
       if (!elementId) {
-        if (!('getObjects' in target)) return;
+        if (!('getObjects' in e.target)) return;
         fabricUpdateRef.current = true;
-        const gLeft = target.left ?? 0;
-        const gTop = target.top ?? 0;
-        for (const obj of (target as fabricTypes.ActiveSelection).getObjects()) {
-          const childId = getElementId(obj);
-          if (!childId) continue;
-          updateElement(childId, { x: gLeft + (obj.left ?? 0), y: gTop + (obj.top ?? 0) });
+        const gLeft = e.target.left ?? 0; const gTop = e.target.top ?? 0;
+        for (const obj of (e.target as fabricTypes.ActiveSelection).getObjects()) {
+          const cid = getElementId(obj);
+          if (cid) store.updateElement(cid, { x: gLeft + (obj.left ?? 0), y: gTop + (obj.top ?? 0) });
         }
         return;
       }
 
       fabricUpdateRef.current = true;
-      const update = helpers.fabricObjectToElementUpdate(target);
-      const el = useEditorStore.getState().getElement(elementId);
+      const update = helpers.fabricObjectToElementUpdate(e.target);
+      const el = store.getElement(elementId);
 
-      // Move frame children live
-      if (el && el.type === 'frame') {
+      if (el?.type === 'frame') {
         const frame = el as FrameElement;
         const dx = (update.x ?? el.x) - el.x;
         const dy = (update.y ?? el.y) - el.y;
         if (dx !== 0 || dy !== 0) {
           const childIdSet = new Set(frame.childOrder);
-          for (const childId of frame.childOrder) {
-            const child = useEditorStore.getState().getElement(childId);
-            if (child) updateElement(childId, { x: child.x + dx, y: child.y + dy });
+          for (const cid of frame.childOrder) {
+            const child = store.getElement(cid);
+            if (child) store.updateElement(cid, { x: child.x + dx, y: child.y + dy });
           }
           for (const canvasObj of canvas.getObjects()) {
             const objId = getElementId(canvasObj);
@@ -239,44 +177,67 @@ export function useCanvasEvents({
           canvas.requestRenderAll();
         }
       }
-
-      updateElement(elementId, update);
+      store.updateElement(elementId, update);
     };
 
-    // ── text:editing:exited ──
+    // 2c. text:editing:exited
     const onTextEditingExited = (e: { target: fabricTypes.FabricObject }) => {
-      const target = e.target;
       const helpers = helpersRef.current;
-      if (!target || !helpers) return;
-      const elementId = getElementId(target);
+      if (!e.target || !helpers) return;
+      const elementId = getElementId(e.target);
       if (!elementId) return;
-
-      const currentPage = useEditorStore.getState().getCurrentPage();
-      if (currentPage) pushState(currentPage);
+      const store = useEditorStore.getState();
+      const page = store.getCurrentPage();
+      if (page) useHistoryStore.getState().pushState(page);
       fabricUpdateRef.current = true;
-      updateElement(elementId, helpers.fabricObjectToElementUpdate(target));
+      store.updateElement(elementId, helpers.fabricObjectToElementUpdate(e.target));
     };
 
-    // ── mouse:dblclick ──
+    // 3a. Double-click: enter frame or start text inline edit
     const onDblClick = (e: { target?: fabricTypes.FabricObject }) => {
-      const target = e.target;
-      if (!target) {
-        useEditorStore.getState().setEditingFrameId(null);
-        return;
-      }
-      const eid = getElementId(target);
+      const store = useEditorStore.getState();
+      if (!e.target) { store.setEditingFrameId(null); return; }
+      const eid = getElementId(e.target);
       if (!eid) return;
-      const clickedEl = useEditorStore.getState().getElement(eid);
-      if (clickedEl && clickedEl.type === 'frame') {
-        useEditorStore.getState().setEditingFrameId(eid);
-      } else if (clickedEl && clickedEl.type === 'text' && 'enterEditing' in target) {
-        (target as unknown as { enterEditing: () => void }).enterEditing();
+      const el = store.getElement(eid);
+      if (el?.type === 'frame') {
+        store.setEditingFrameId(eid);
+      } else if (el?.type === 'text' && 'enterEditing' in e.target) {
+        (e.target as unknown as { enterEditing: () => void }).enterEditing();
         canvas.requestRenderAll();
       }
     };
 
-    // ── Dimension overlay ──
-    const updateDimensionOverlay = () => {
+    // 3b. Alt+drag duplicate
+    const onMouseDownAlt = (opt: { e: Event; target?: fabricTypes.FabricObject }) => {
+      const me = opt.e as MouseEvent;
+      if (me.altKey && me.button === 0 && opt.target) {
+        const store = useEditorStore.getState();
+        const ids = store.selectedElementIds;
+        if (ids.length > 0) {
+          const page = store.getCurrentPage();
+          if (page) useHistoryStore.getState().pushState(page);
+          store.duplicateElements(ids, { x: 0, y: 0 });
+          store.selectElements(ids);
+        }
+      }
+    };
+
+    // 3c. Right-click context menu
+    const onMouseDownContext = (opt: { e: Event; target?: fabricTypes.FabricObject }) => {
+      const me = opt.e as MouseEvent;
+      if (me.button === 2) {
+        const targetId = opt.target ? getElementId(opt.target) : null;
+        const store = useEditorStore.getState();
+        if (targetId && !store.selectedElementIds.includes(targetId)) {
+          canvas.setActiveObject(opt.target!); canvas.renderAll(); store.selectElements([targetId]);
+        }
+        setContextMenu({ x: me.clientX, y: me.clientY, elementId: targetId ?? null });
+      } else { setContextMenu(null); }
+    };
+
+    // 4. Dimension badge overlay
+    const updateOverlay = () => {
       if (isSyncingRef.current) return;
       const active = canvas.getActiveObject();
       if (!active) { setSelectionInfo(null); return; }
@@ -290,41 +251,7 @@ export function useCanvasEvents({
         height: Math.round((active.height ?? 0) * (active.scaleY ?? 1)),
       });
     };
-    updateOverlayRef.current = updateDimensionOverlay;
-
-    // ── Alt+drag duplicate ──
-    const onMouseDownAlt = (opt: { e: Event; target?: fabricTypes.FabricObject }) => {
-      const me = opt.e as MouseEvent;
-      if (me.altKey && me.button === 0 && opt.target) {
-        const state = useEditorStore.getState();
-        const ids = state.selectedElementIds;
-        if (ids.length > 0) {
-          const currentPage = state.getCurrentPage();
-          if (currentPage) pushState(currentPage);
-          duplicateElements(ids, { x: 0, y: 0 });
-          selectElements(ids);
-        }
-      }
-    };
-
-    // ── Right-click context menu ──
-    const onMouseDownContext = (opt: { e: Event; target?: fabricTypes.FabricObject }) => {
-      const me = opt.e as MouseEvent;
-      if (me.button === 2) {
-        const targetId = opt.target ? getElementId(opt.target) : null;
-        if (targetId) {
-          const state = useEditorStore.getState();
-          if (!state.selectedElementIds.includes(targetId)) {
-            canvas.setActiveObject(opt.target!);
-            canvas.renderAll();
-            selectElements([targetId]);
-          }
-        }
-        setContextMenu({ x: me.clientX, y: me.clientY, elementId: targetId ?? null });
-      } else {
-        setContextMenu(null);
-      }
-    };
+    updateOverlayRef.current = updateOverlay;
 
     canvas.on('selection:created', onSelectionCreated);
     canvas.on('selection:updated', onSelectionUpdated);
@@ -333,15 +260,15 @@ export function useCanvasEvents({
     canvas.on('object:moving', onObjectMoving as (e: unknown) => void);
     canvas.on('text:editing:exited', onTextEditingExited as (e: unknown) => void);
     canvas.on('mouse:dblclick', onDblClick as (e: unknown) => void);
-    canvas.on('selection:created', updateDimensionOverlay);
-    canvas.on('selection:updated', updateDimensionOverlay);
-    canvas.on('selection:cleared', () => setSelectionInfo(null));
-    canvas.on('object:moving', updateDimensionOverlay);
-    canvas.on('object:scaling', updateDimensionOverlay);
-    canvas.on('object:rotating', updateDimensionOverlay);
-    canvas.on('object:modified', updateDimensionOverlay);
     canvas.on('mouse:down', onMouseDownAlt as (e: unknown) => void);
     canvas.on('mouse:down', onMouseDownContext as (e: unknown) => void);
+    canvas.on('selection:created', updateOverlay);
+    canvas.on('selection:updated', updateOverlay);
+    canvas.on('selection:cleared', () => setSelectionInfo(null));
+    canvas.on('object:moving', updateOverlay);
+    canvas.on('object:scaling', updateOverlay);
+    canvas.on('object:rotating', updateOverlay);
+    canvas.on('object:modified', updateOverlay);
 
     return () => {
       canvas.off('selection:created', onSelectionCreated);

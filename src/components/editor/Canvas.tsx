@@ -11,15 +11,12 @@ import {
 import type * as fabricTypes from 'fabric';
 import { useEditorStore } from '@/stores/editorStore';
 import { useHistoryStore } from '@/stores/historyStore';
-import type {
-  CanvasElement,
-  ImageElement,
-  ExportOptions,
-} from '@/types/editor';
+import type { ExportOptions } from '@/types/editor';
 import { isGradient } from '@/types/editor';
 import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { initAligningGuidelines } from '@/lib/canvas/alignmentGuides';
 import ContextMenu from '@/components/editor/ContextMenu';
+import { CanvasProvider, type CanvasContextValue, type FabricHelpers, type FabricExporter } from '@/contexts/CanvasContext';
 
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCanvasEvents } from '@/hooks/useCanvasEvents';
@@ -32,75 +29,77 @@ export interface CanvasHandle {
   getDataURL: (options: ExportOptions) => string;
 }
 
-type FabricHelpers = {
-  elementToFabricObject: (el: CanvasElement) => fabricTypes.FabricObject | null;
-  createFabricImage: (el: ImageElement) => Promise<fabricTypes.FabricImage | null>;
-  fabricObjectToElementUpdate: (obj: fabricTypes.FabricObject) => Partial<CanvasElement>;
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// CanvasHooks — lives INSIDE CanvasProvider so it can call useCanvasContext()
+//
+// Mounts all zero-param hooks and wires the gray-area mousedown handler into
+// the parent's ref so the outer scroll container can attach it without
+// prop-drilling or re-rendering.
+// ─────────────────────────────────────────────────────────────────────────────
 
-type FabricExporter = {
-  exportAndDownload: (canvas: fabricTypes.Canvas, filename: string, options: ExportOptions) => void;
-  exportCanvasToDataURL: (canvas: fabricTypes.Canvas, options: ExportOptions) => string;
-};
+interface CanvasHooksProps {
+  setSelectionInfo: React.Dispatch<React.SetStateAction<{
+    left: number; top: number; width: number; height: number;
+  } | null>>;
+  setContextMenu: React.Dispatch<React.SetStateAction<{
+    x: number; y: number; elementId: string | null;
+  } | null>>;
+  grayAreaHandlerRef: React.MutableRefObject<((e: React.MouseEvent) => void) | null>;
+}
+
+function CanvasHooks({ setSelectionInfo, setContextMenu, grayAreaHandlerRef }: CanvasHooksProps) {
+  useKeyboardShortcuts();
+  useCanvasEvents(setSelectionInfo, setContextMenu);
+  useCanvasSync();
+  useToolBehavior();
+
+  const { handleGrayAreaMouseDown, marquee } = useGrayAreaMarquee();
+
+  // Wire the latest gray-area handler into the parent ref (no re-render needed)
+  useEffect(() => {
+    grayAreaHandlerRef.current = handleGrayAreaMouseDown;
+  }, [handleGrayAreaMouseDown, grayAreaHandlerRef]);
+
+  return (
+    <>
+      {marquee && (
+        <div
+          className="fixed pointer-events-none z-50"
+          style={{
+            left: marquee.x,
+            top: marquee.y,
+            width: marquee.width,
+            height: marquee.height,
+            border: '1px dashed rgba(59, 130, 246, 0.8)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EditorCanvas — creates all canvas refs, provides CanvasContext, renders layout
+// ─────────────────────────────────────────────────────────────────────────────
 
 const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
+  // ── Canvas refs (shared via CanvasContext) ──
   const containerRef = useRef<HTMLDivElement>(null);
   const fabricRef = useRef<fabricTypes.Canvas | null>(null);
   const helpersRef = useRef<FabricHelpers | null>(null);
   const exporterRef = useRef<FabricExporter | null>(null);
   const fabricUpdateRef = useRef(false);
   const isSyncingRef = useRef(false);
-  const [isReady, setIsReady] = useState(false);
   const fabricModuleRef = useRef<typeof fabricTypes | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImagePosRef = useRef<{ x: number; y: number } | null>(null);
   const updateOverlayRef = useRef<(() => void) | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // ── Store subscriptions ──
-  const project = useEditorStore((s) => s.project);
-  const mode = useEditorStore((s) => s.mode);
-  const zoom = useEditorStore((s) => s.zoom);
-  const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
-  const selectElements = useEditorStore((s) => s.selectElements);
-  const clearSelection = useEditorStore((s) => s.clearSelection);
-  const updateElement = useEditorStore((s) => s.updateElement);
-  const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
-  const setZoom = useEditorStore((s) => s.setZoom);
-  const pushState = useHistoryStore((s) => s.pushState);
-  const activeTool = useEditorStore((s) => s.activeTool);
-  const setActiveTool = useEditorStore((s) => s.setActiveTool);
-  const addShapeElement = useEditorStore((s) => s.addShapeElement);
-  const addTextElement = useEditorStore((s) => s.addTextElement);
-  const addImageElement = useEditorStore((s) => s.addImageElement);
-  const addFrameElement = useEditorStore((s) => s.addFrameElement);
-  const addSectionElement = useEditorStore((s) => s.addSectionElement);
-  const removeElements = useEditorStore((s) => s.removeElements);
-  const moveToFrame = useEditorStore((s) => s.moveToFrame);
-  const moveOutOfFrame = useEditorStore((s) => s.moveOutOfFrame);
-  const copyElements = useEditorStore((s) => s.copyElements);
-  const cutElements = useEditorStore((s) => s.cutElements);
-  const pasteElements = useEditorStore((s) => s.pasteElements);
-  const duplicateElements = useEditorStore((s) => s.duplicateElements);
-  const loadProject = useEditorStore((s) => s.loadProject);
-  const nudgeElements = useEditorStore((s) => s.nudgeElements);
-  const moveLayerUp = useEditorStore((s) => s.moveLayerUp);
-  const moveLayerDown = useEditorStore((s) => s.moveLayerDown);
-  const moveLayerToTop = useEditorStore((s) => s.moveLayerToTop);
-  const moveLayerToBottom = useEditorStore((s) => s.moveLayerToBottom);
-  const focusedSectionId = useEditorStore((s) => s.focusedSectionId);
-  const setFocusedSectionId = useEditorStore((s) => s.setFocusedSectionId);
-  const showGrid = useEditorStore((s) => s.showGrid);
-  const gridSize = useEditorStore((s) => s.gridSize);
+  const [isReady, setIsReady] = useState(false);
 
-  const page = getCurrentPage();
-  const elements = page?.elements;
-  const layerOrder = page?.layerOrder;
-  const canvasBgColor = project?.canvas.backgroundColor;
-  const canvasWidth = project?.canvas.width;
-  const canvasHeight = project?.canvas.height;
-
-  // ── UI state ──
+  // ── Local UI state ──
   const [selectionInfo, setSelectionInfo] = useState<{
     left: number; top: number; width: number; height: number;
   } | null>(null);
@@ -108,7 +107,19 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     x: number; y: number; elementId: string | null;
   } | null>(null);
 
-  // ── Export clip paths (for export only) ──
+  // Receives the gray-area handler from CanvasHooks (avoids prop-drilling)
+  const grayAreaHandlerRef = useRef<((e: React.MouseEvent) => void) | null>(null);
+
+  // ── Store (only what EditorCanvas itself uses) ──
+  const projectId = useEditorStore((s) => s.project?.id);
+  const zoom = useEditorStore((s) => s.zoom);
+  const setZoom = useEditorStore((s) => s.setZoom);
+  const pushState = useHistoryStore((s) => s.pushState);
+  const addImageElement = useEditorStore((s) => s.addImageElement);
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const setActiveTool = useEditorStore((s) => s.setActiveTool);
+
+  // ── Export clip-path helpers ──
   const applyExportClipPaths = useCallback(() => {
     const canvas = fabricRef.current;
     const fabricModule = fabricModuleRef.current;
@@ -169,7 +180,6 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
   }));
 
   // ── Canvas initialization ──
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const currentProject = useEditorStore.getState().project;
     if (!currentProject || !containerRef.current) return;
@@ -211,7 +221,11 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
       const initBg = currentProject.canvas.backgroundColor;
       if (isGradient(initBg)) {
-        canvas.backgroundColor = toFabricFill(initBg, currentProject.canvas.width, currentProject.canvas.height) as string;
+        canvas.backgroundColor = toFabricFill(
+          initBg,
+          currentProject.canvas.width,
+          currentProject.canvas.height,
+        ) as string;
       } else {
         canvas.backgroundColor = (initBg as string) || '#ffffff';
       }
@@ -239,96 +253,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         containerRef.current.innerHTML = '';
       }
     };
-  }, [project?.id]);
-
-  // ── Delegate to hooks ──
-
-  useCanvasEvents({
-    fabricRef,
-    fabricModuleRef,
-    helpersRef,
-    isSyncingRef,
-    fabricUpdateRef,
-    updateOverlayRef,
-    isReady,
-    selectElements,
-    clearSelection,
-    updateElement,
-    moveToFrame,
-    moveOutOfFrame,
-    duplicateElements,
-    pushState,
-    setSelectionInfo,
-    setContextMenu,
-  });
-
-  useCanvasSync({
-    fabricRef,
-    fabricModuleRef,
-    helpersRef,
-    isSyncingRef,
-    fabricUpdateRef,
-    scrollContainerRef,
-    updateOverlayRef,
-    isReady,
-    elements,
-    layerOrder,
-    mode,
-    canvasBgColor,
-    focusedSectionId,
-    showGrid,
-    gridSize,
-    zoom,
-    canvasWidth,
-    canvasHeight,
-    project,
-    setZoom,
-  });
-
-  useToolBehavior({
-    fabricRef,
-    fabricModuleRef,
-    isSyncingRef,
-    fileInputRef,
-    pendingImagePosRef,
-    isReady,
-    activeTool,
-    mode,
-    pushState,
-    addShapeElement,
-    addTextElement,
-    addFrameElement,
-    addSectionElement,
-    updateElement,
-    setActiveTool,
-  });
-
-  useKeyboardShortcuts({
-    fabricRef,
-    pushState,
-    removeElements,
-    copyElements,
-    cutElements,
-    pasteElements,
-    duplicateElements,
-    loadProject,
-    selectElements,
-    clearSelection,
-    nudgeElements,
-    moveLayerUp,
-    moveLayerDown,
-    moveLayerToTop,
-    moveLayerToBottom,
-    setZoom,
-  });
-
-  const { handleGrayAreaMouseDown, marquee } = useGrayAreaMarquee({
-    fabricRef,
-    fabricModuleRef,
-    containerRef,
-    activeTool,
-    clearSelection,
-  });
+  }, [projectId]); // re-init only when project changes
 
   // ── Wheel zoom ──
   const handleWheel = useCallback(
@@ -363,62 +288,82 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     [pushState, addImageElement, updateElement, setActiveTool],
   );
 
+  // ── Gray-area mousedown — delegates to handler set by CanvasHooks ──
+  const handleGrayAreaMouseDown = useCallback((e: React.MouseEvent) => {
+    grayAreaHandlerRef.current?.(e);
+  }, []);
+
+  // ── Context value (all refs + isReady) ──
+  const contextValue: CanvasContextValue = {
+    fabricRef,
+    fabricModuleRef,
+    helpersRef,
+    exporterRef,
+    isSyncingRef,
+    fabricUpdateRef,
+    scrollContainerRef,
+    containerRef,
+    updateOverlayRef,
+    fileInputRef,
+    pendingImagePosRef,
+    isReady,
+  };
+
   return (
-    <div
-      ref={scrollContainerRef}
-      className="flex-1 overflow-auto bg-[#f0f0f0]"
-      onWheel={handleWheel}
-      onMouseDown={handleGrayAreaMouseDown}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      {/* Hidden file input for image tool */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleImageFileChange}
+    <CanvasProvider value={contextValue}>
+      {/*
+       * CanvasHooks MUST be inside the provider — it calls useCanvasContext().
+       * It renders the marquee overlay and wires the gray-area handler into
+       * grayAreaHandlerRef so the scroll container below can use it.
+       */}
+      <CanvasHooks
+        setSelectionInfo={setSelectionInfo}
+        setContextMenu={setContextMenu}
+        grayAreaHandlerRef={grayAreaHandlerRef}
       />
-      <div className="flex justify-center p-8" style={{ minHeight: '100%' }}>
-        <div className="relative shrink-0 self-start">
-          <div ref={containerRef} className="shadow-lg" />
-          {/* Dimension overlay badge */}
-          {selectionInfo && (
-            <div
-              className="absolute pointer-events-none z-10"
-              style={{ left: selectionInfo.left, top: selectionInfo.top }}
-            >
-              <div className="bg-blue-500 text-white text-[11px] px-1.5 py-0.5 rounded whitespace-nowrap font-mono shadow-sm">
-                {selectionInfo.width} × {selectionInfo.height}
+
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-auto bg-[#f0f0f0]"
+        onWheel={handleWheel}
+        onMouseDown={handleGrayAreaMouseDown}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {/* Hidden file input for the image placement tool */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageFileChange}
+        />
+        <div className="flex justify-center p-8" style={{ minHeight: '100%' }}>
+          <div className="relative shrink-0 self-start">
+            <div ref={containerRef} className="shadow-lg" />
+            {/* Dimension overlay badge */}
+            {selectionInfo && (
+              <div
+                className="absolute pointer-events-none z-10"
+                style={{ left: selectionInfo.left, top: selectionInfo.top }}
+              >
+                <div className="bg-blue-500 text-white text-[11px] px-1.5 py-0.5 rounded whitespace-nowrap font-mono shadow-sm">
+                  {selectionInfo.width} × {selectionInfo.height}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+        {/* Context menu */}
+        {contextMenu && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            elementId={contextMenu.elementId}
+            onClose={() => setContextMenu(null)}
+          />
+        )}
       </div>
-      {/* Context menu */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          elementId={contextMenu.elementId}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
-      {/* Gray area marquee selection overlay */}
-      {marquee && (
-        <div
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: marquee.x,
-            top: marquee.y,
-            width: marquee.width,
-            height: marquee.height,
-            border: '1px dashed rgba(59, 130, 246, 0.8)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          }}
-        />
-      )}
-    </div>
+    </CanvasProvider>
   );
 });
 

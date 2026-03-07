@@ -1,0 +1,61 @@
+import type { EditorMode, ToolType, CanvasElement } from '@/types/editor';
+
+export interface UiSlice {
+  selectedElementIds: string[];
+  zoom: number;
+  mode: EditorMode;
+  activeTool: ToolType;
+  showGrid: boolean;
+  gridSize: number;
+  aiEnabled: boolean;
+  editingFrameId: string | null;
+  focusedSectionId: string | null;
+  clipboardElements: CanvasElement[];
+  styleClipboard: Record<string, unknown> | null;
+
+  setMode: (mode: EditorMode) => void;
+  setZoom: (zoom: number) => void;
+  selectElements: (ids: string[]) => void;
+  clearSelection: () => void;
+  setActiveTool: (tool: ToolType) => void;
+  setEditingFrameId: (id: string | null) => void;
+  setFocusedSectionId: (id: string | null) => void;
+  toggleGrid: () => void;
+  setGridSize: (size: number) => void;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createUiSlice(set: (fn: any) => void, get: () => any): UiSlice {
+  return {
+    // ── Initial state ──
+    selectedElementIds: [],
+    zoom: 1,
+    mode: 'creator',
+    activeTool: 'move',
+    showGrid: false,
+    gridSize: 50,
+    aiEnabled: false,
+    editingFrameId: null,
+    focusedSectionId: null,
+    clipboardElements: [],
+    styleClipboard: null,
+
+    // ── Actions ──
+    setMode: (mode) => {
+      set({ mode });
+      if (get().project) {
+        set((s: { project: { mode: EditorMode } | null }) => ({
+          project: s.project ? { ...s.project, mode } : null,
+        }));
+      }
+    },
+    setZoom: (zoom) => set({ zoom: Math.max(0.1, Math.min(5, zoom)) }),
+    selectElements: (ids) => set({ selectedElementIds: ids }),
+    clearSelection: () => set({ selectedElementIds: [] }),
+    setActiveTool: (tool) => set({ activeTool: tool }),
+    setEditingFrameId: (id) => set({ editingFrameId: id }),
+    setFocusedSectionId: (id) => set({ focusedSectionId: id }),
+    toggleGrid: () => set((s: { showGrid: boolean }) => ({ showGrid: !s.showGrid })),
+    setGridSize: (size) => set({ gridSize: Math.max(10, Math.min(200, size)) }),
+  };
+}
