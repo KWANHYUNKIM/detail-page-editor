@@ -12,6 +12,7 @@ export interface UiSlice {
   focusedSectionId: string | null;
   clipboardElements: CanvasElement[];
   styleClipboard: Record<string, unknown> | null;
+  scrollToElementId: string | null;
 
   setMode: (mode: EditorMode) => void;
   setZoom: (zoom: number) => void;
@@ -22,6 +23,7 @@ export interface UiSlice {
   setFocusedSectionId: (id: string | null) => void;
   toggleGrid: () => void;
   setGridSize: (size: number) => void;
+  scrollToElement: (id: string | null) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,6 +41,7 @@ export function createUiSlice(set: (fn: any) => void, get: () => any): UiSlice {
     focusedSectionId: null,
     clipboardElements: [],
     styleClipboard: null,
+    scrollToElementId: null,
 
     // ── Actions ──
     setMode: (mode) => {
@@ -57,5 +60,6 @@ export function createUiSlice(set: (fn: any) => void, get: () => any): UiSlice {
     setFocusedSectionId: (id) => set({ focusedSectionId: id }),
     toggleGrid: () => set((s: { showGrid: boolean }) => ({ showGrid: !s.showGrid })),
     setGridSize: (size) => set({ gridSize: Math.max(10, Math.min(200, size)) }),
+    scrollToElement: (id) => set({ scrollToElementId: id }),
   };
 }

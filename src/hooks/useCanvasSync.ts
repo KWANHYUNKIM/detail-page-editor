@@ -39,6 +39,9 @@ export function useCanvasSync() {
   const canvasHeight = useEditorStore((s) => s.project?.canvas.height);
   const project = useEditorStore((s) => s.project);
   const setZoom = useEditorStore((s) => s.setZoom);
+  const scrollToElementId = useEditorStore((s) => s.scrollToElementId);
+  const scrollToElement = useEditorStore((s) => s.scrollToElement);
+  const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
 
   // 1. Element render loop
   // selectedElementIds intentionally EXCLUDED — avoids clear→selection:cleared→rerender loop
@@ -214,4 +217,66 @@ export function useCanvasSync() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusedSectionId, isReady]);
+
+  // 4. Scroll to element (triggered from LayerPanel clicks)
+  useEffect(() => {
+    const scrollEl = scrollContainerRef.current;
+    if (!scrollToElementId || !scrollEl || !isReady || !project) return;
+
+    const page = useEditorStore.getState().getCurrentPage();
+    if (!page) return;
+    const el = page.elements.find((e) => e.id === scrollToElementId);
+    if (!el) { scrollToElement(null); return; }
+
+    const currentZoom = useEditorStore.getState().zoom;
+    const padding = 32; // p-8 padding in the canvas wrapper
+    requestAnimationFrame(() => {
+      const centerX = (el.x + el.width / 2) * currentZoom + padding;
+      const centerY = (el.y + el.height / 2) * currentZoom + padding;
+      scrollEl.scrollTo({
+        top: centerY - scrollEl.clientHeight / 2,
+        left: Math.max(0, centerX - scrollEl.clientWidth / 2),
+        behavior: 'smooth',
+      });
+    });
+    scrollToElement(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToElementId, isReady]);
+
+  // 5. External selection sync (LayerPanel click → Fabric activeObject)
+  // Runs when selectedElementIds changes from outside the canvas (e.g. LayerPanel).
+  // Guarded by isSyncingRef to avoid circular: canvas event → store → this effect → canvas.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !isReady || isSyncingRef.current) return;
+
+    const currentActive = canvas.getActiveObjects();
+    const currentActiveIds = new Set(
+      currentActive.map((o) => (o as unknown as { data?: { elementId?: string } }).data?.elementId).filter(Boolean)
+    );
+
+    // Skip if canvas selection already matches store (avoids flicker)
+    if (
+      selectedElementIds.length === currentActiveIds.size &&
+      selectedElementIds.every((id) => currentActiveIds.has(id))
+    ) return;
+
+    isSyncingRef.current = true;
+    if (selectedElementIds.length === 0) {
+      canvas.discardActiveObject();
+    } else {
+      const objs = canvas.getObjects().filter((o) => {
+        const id = (o as unknown as { data?: { elementId?: string } }).data?.elementId;
+        return id && selectedElementIds.includes(id);
+      });
+      if (objs.length === 1) {
+        canvas.setActiveObject(objs[0]);
+      } else if (objs.length > 1 && fabricModuleRef.current) {
+        canvas.setActiveObject(new fabricModuleRef.current.ActiveSelection(objs, { canvas }));
+      }
+    }
+    canvas.renderAll();
+    isSyncingRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedElementIds, isReady]);
 }

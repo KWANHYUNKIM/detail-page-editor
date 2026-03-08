@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import type { CanvasElement, FrameElement } from '@/types/editor';
 import ContextMenu from '@/components/editor/ContextMenu';
@@ -486,12 +486,19 @@ export default function LayerPanel() {
   const updateElement = useEditorStore((s) => s.updateElement);
   const toggleElementEditable = useEditorStore((s) => s.toggleElementEditable);
   const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
+  const scrollToElement = useEditorStore((s) => s.scrollToElement);
 
   const [collapsed, setCollapsed] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; elementId: string } | null>(null);
+
+  // Select elements AND scroll canvas to the first selected element
+  const selectAndScroll = useCallback((ids: string[]) => {
+    selectElements(ids);
+    if (ids.length > 0) scrollToElement(ids[0]);
+  }, [selectElements, scrollToElement]);
 
   const page = getCurrentPage();
 
@@ -595,7 +602,7 @@ export default function LayerPanel() {
                 selectedElementIds={selectedElementIds}
                 expandedIds={expandedIds}
                 mode={mode}
-                selectElements={selectElements}
+                selectElements={selectAndScroll}
                 updateElement={updateElement}
                 toggleElementEditable={toggleElementEditable}
                 toggleExpand={toggleExpand}

@@ -54,7 +54,7 @@ function NumberInput({
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <input
         type="number"
-        value={Math.round(value * 100) / 100}
+        value={value == null || isNaN(value) ? 0 : Math.round(value * 100) / 100}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (!isNaN(v)) onChange(v);
@@ -90,7 +90,7 @@ function SliderInput({
       <div className="flex items-center justify-between mb-1">
         <label className="text-xs text-gray-500">{label}</label>
         <span className="text-xs text-gray-400 font-mono tabular-nums">
-          {Math.round(value * 100) / 100}{suffix}
+          {value == null || isNaN(value) ? 0 : Math.round(value * 100) / 100}{suffix}
         </span>
       </div>
       <input
@@ -98,7 +98,7 @@ function SliderInput({
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={value == null || isNaN(value) ? min : value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="w-full accent-blue-500 h-1.5"
       />
