@@ -699,6 +699,131 @@ function buildPremiumDiffuserPage(idx: number): CanvasElement[] {
 }
 
 const T17 = buildPremiumDiffuserPage(17);
+
+// ─── Monster Energy Product Info Page ────────────────────────────────────────
+
+function buildMonsterEnergyPage(idx: number): CanvasElement[] {
+  const id = makeId(idx);
+  const els: CanvasElement[] = [];
+
+  // ━━━ FULL PAGE BACKGROUND ━━━
+  els.push(shape(id(), 'rect', 0, 0, 860, 1280, '#ffffff'));
+
+  // ━━━ SECTION 1: TITLE (0 → 70) ━━━
+  els.push(text(id(), 30, 20, 800, 40, '몬스터 에너지 파피용 355ml x 24캔', 22, '#222222', 'bold', 'left'));
+
+  // ━━━ SECTION 2: PRODUCT IMAGE + NUTRITION TABLE (70 → 560) ━━━
+
+  // Product image placeholder (left)
+  els.push(shape(id(), 'rect', 30, 75, 270, 432, '#f0f0f0', '#cccccc', 1, 8));
+  els.push(text(id(), 30, 260, 270, 30, '[ 이미지 삽입 ]', 16, '#999999', 'bold', 'center'));
+  els.push(text(id(), 30, 295, 270, 20, '제품 사진을 넣어주세요', 11, '#bbbbbb', 'normal', 'center'));
+
+  // Nutrition header (right)
+  els.push(text(id(), 330, 75, 80, 24, '영양정보', 15, '#222222', 'bold', 'left'));
+  els.push(text(id(), 420, 78, 410, 20, '총 내용량(355 ml)  154 kcal', 12, '#666666', 'normal', 'left'));
+
+  // Table top border
+  els.push(shape(id(), 'line', 330, 105, 500, 0, 'transparent', '#333333', 2));
+
+  // Column header
+  els.push(text(id(), 700, 110, 130, 18, '%영양소기준치', 11, '#888888', 'normal', 'right'));
+
+  // Table header separator
+  els.push(shape(id(), 'line', 330, 130, 500, 0, 'transparent', '#333333', 1));
+
+  // Nutrition data rows
+  const rows: [string, string, string][] = [
+    ['나트륨', '150mg', '8%'],
+    ['탄수화물', '37g', '11%'],
+    ['당류', '36g', '36%'],
+    ['지방', '0g', '0%'],
+    ['트랜스지방', '0g', ''],
+    ['포화지방', '0g', '0%'],
+    ['콜레스테롤', '0mg', '0%'],
+    ['단백질', '1.4g', '3%'],
+    ['비타민 B2', '2.6mg', '186%'],
+    ['나이아신(비타민 B3)', '30mgNE', '200%'],
+    ['비타민 B6', '3.0mg', '200%'],
+    ['비타민 B12', '9.0\u03BCg', '375%'],
+  ];
+
+  rows.forEach(([name, amount, pct], i) => {
+    const ry = 135 + i * 34;
+    els.push(text(id(), 330, ry, 260, 30, name, 13, '#444444', 'normal', 'left'));
+    els.push(text(id(), 600, ry, 100, 30, amount, 13, '#222222', 'normal', 'right'));
+    if (pct) {
+      els.push(text(id(), 720, ry, 110, 30, pct, 13, '#222222', 'normal', 'right'));
+    }
+    els.push(shape(id(), 'line', 330, ry + 30, 500, 0, 'transparent', '#e5e7eb', 1));
+  });
+
+  // ━━━ SECTION 3: INGREDIENTS (570 → 730) ━━━
+  els.push(text(id(), 30, 575, 800, 120,
+    '정제수, 설탕, 포도당, 사과농축액, 이산화탄소, 타우린, 구연산, 향료, 구연산삼나트륨, 복숭아농축액, 인삼추출물, 배농축액, 파인애플농축액, 소브산칼륨(보존료), 망고퓨레, 바나나퓨린, 차추출물(녹차), 덱스트린, 카페인(향미증진제), L-니코틴산아미드, 수크랄로스(감미료), L-카르니틴, 이노시톨, 과라나추출분말, B-카로틴(착색료), 비타민B6 염산염, 비타민B2, 비타민B12',
+    13, '#444444', 'normal', 'left', 1.7));
+
+  // "복숭아 함유" badge
+  els.push(shape(id(), 'rect', 30, 710, 80, 26, '#FFF0E0', 'transparent', 0, 4));
+  els.push(text(id(), 30, 712, 80, 22, '복숭아 함유', 11, '#E87C3A', 'bold', 'center'));
+
+  // ━━━ SECTION 4: MANUFACTURER INFO (750 → 830) ━━━
+  els.push(shape(id(), 'line', 30, 755, 800, 0, 'transparent', '#e5e7eb', 1));
+
+  els.push(text(id(), 30, 770, 60, 22, '제조원', 13, '#222222', 'bold', 'left'));
+  els.push(text(id(), 100, 770, 730, 22, '해태에이치티비(주) P5: 충남 천안시 동남구 청당산업길 250', 13, '#444444', 'normal', 'left'));
+
+  els.push(text(id(), 30, 800, 60, 22, '판매원', 13, '#222222', 'bold', 'left'));
+  els.push(text(id(), 100, 800, 730, 22, '코카-콜라음료(주) 경남 양산시 총렬로 269(유산동)', 13, '#444444', 'normal', 'left'));
+
+  // ━━━ SECTION 5: CONSUMER SAFETY NOTICE (840 → 1250) ━━━
+  els.push(shape(id(), 'line', 30, 840, 800, 0, 'transparent', '#e5e7eb', 1));
+
+  els.push(text(id(), 30, 860, 800, 25, '소비자안전을 위한 주의사항', 14, '#222222', 'bold', 'left'));
+
+  els.push(text(id(), 30, 895, 800, 330,
+    '\u00B7 용기가 변형, 팽창, 손상되었거나 내용물이 변질되었을 경우 음용하지 마십시오.\n\u00B7 제품교환: 고객상담실 (080-024-5999) 및 각 구입처\n\u00B7 직사광선을 피해 서늘한 곳에 얼지 않게 보관하시고 개봉 후에는 냉장보관 및 빨리 드세요.\n\u00B7 제조의 파손될 수 있으니 차내 등 고온의 밀폐공간에 두지 마세요.\n\u00B7 본 제품은 공정거래위원회 고시한 소비자분쟁해결기준에 따라 교환 또는 보상을 받을 수 있습니다.\n\u00B7 부정, 불량식품신고는 국번없이 1399\n\u00B7 이 제품은 우유, 대두, 토마토, 메밀, 땅콩, 밀, 아황산류를 사용한 제품과 같은 제조시설에서 제조하고 있습니다.\n\u00B7 과량 섭취 하지 마시기 바라며 어린이, 임산부, 모유수유 중인 분 혹은 카페인에 민감하신 분은 섭취에 주의하여 주시기 바랍니다.',
+    12, '#666666', 'normal', 'left', 1.8));
+
+  return els;
+}
+
+const T18 = buildMonsterEnergyPage(18);
+
+// ─── Pringles Sweet Onion Product Page ───────────────────────────────────────
+
+function buildPringlesPage(idx: number): CanvasElement[] {
+  const id = makeId(idx);
+  const els: CanvasElement[] = [];
+
+  // ━━━ FULL PAGE BACKGROUND ━━━
+  els.push(shape(id(), 'rect', 0, 0, 860, 1380, '#382B73'));
+
+  // ━━━ SECTION 1: LOGO (0 → 140) ━━━
+  els.push(shape(id(), 'circle', 380, 25, 100, 100, '#ffffff'));
+  els.push(text(id(), 380, 50, 100, 50, 'P', 36, '#382B73', 'bold', 'center'));
+
+  // ━━━ SECTION 2: TITLE (150 → 380) ━━━
+  els.push({ ...text(id(), 0, 155, 860, 65, 'SWEET', 56, '#E8C840', 'bold', 'center'), fontFamily: 'Bebas Neue, sans-serif' });
+  els.push({ ...text(id(), 0, 225, 860, 65, 'ONION', 56, '#E8C840', 'bold', 'center'), fontFamily: 'Bebas Neue, sans-serif' });
+  els.push({ ...text(id(), 0, 310, 860, 55, '스윗 어니언', 46, '#ffffff', 'bold', 'center'), fontFamily: 'Black Han Sans, sans-serif' });
+
+  // ━━━ SECTION 3: DESCRIPTION (390 → 580) ━━━
+  els.push({ ...text(id(), 80, 395, 700, 180,
+    '양파 맛집 프링글스가 자신있게 선보이는 신제품 스윗 어니언!\n신선한 양파를 볶을 때 느껴지는 달콤한 풍미와\n팬에서 노릇하게 구운 양파의 짭조름함이 완벽하게 어우러져\n한입 먹으면 멈출 수 없을 거예요!',
+    15, '#d8d0f0', 'normal', 'center', 1.9), fontFamily: 'Noto Sans KR, sans-serif' });
+
+  // ━━━ SECTION 4: PRODUCT PHOTO AREA (600 → 1380) ━━━
+  els.push(shape(id(), 'rect', 0, 600, 860, 780, '#3D8B4F'));
+  els.push(shape(id(), 'rect', 130, 700, 600, 520, '#4A9C5C', '#5AAD6C', 1, 12));
+  els.push(text(id(), 130, 920, 600, 30, '[ 이미지 삽입 ]', 18, '#a8d5b0', 'bold', 'center'));
+  els.push(text(id(), 130, 955, 600, 20, '제품 사진을 넣어주세요', 12, '#7ab88a', 'normal', 'center'));
+
+  return els;
+}
+
+const T19 = buildPringlesPage(19);
+
 // ─── Exported template list ──────────────────────────────────────────────────
 
 export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
@@ -803,5 +928,22 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     description: '감성 스토리텔링형 프리미엄 디퓨저/향초 판매용 롱폼 상세페이지 (~7500px)', preset: 'detail-page',
     thumbnail: { background: 'linear-gradient(180deg, #1a1a1a 0%, #2a2a2a 45%, #f7f7f7 55%, #ffffff 100%)', accent: '#d4a574', previewText: '프리미엄 디퓨저' },
     elements: T17, backgroundColor: '#ffffff', tags: ['디퓨저', '향초', '향수', '프리미엄', '감성', '롱폼', '스토리텔링', '인테리어', '뷰티'],
+  },
+  {
+    id: 'template-018', name: '몬스터 에너지 파피용 상세페이지', category: ['food'],
+    description: '몬스터 에너지 파피용 355ml x 24캔 제품 상세 정보 페이지',
+    preset: 'detail-page',
+    thumbnailImage: '/templates/17-monster-energy.png',
+    thumbnail: { background: 'linear-gradient(135deg, #1a1a1a 0%, #e87c3a 50%, #ffd700 100%)', accent: '#00ff00', previewText: '몬스터 에너지' },
+    elements: T18, backgroundColor: '#ffffff',
+    tags: ['에너지', '음료', '몬스터', '식품', '영양정보', '코카콜라'],
+  },
+  {
+    id: 'template-019', name: '프링글스 스윗 어니언 상세페이지', category: ['food'],
+    description: '보라색 초록색 프링글스 스윗 어니언 신제품 프로모션 상세페이지',
+    preset: 'detail-page',
+    thumbnail: { background: 'linear-gradient(135deg, #382B73 0%, #4A3890 50%, #3D8B4F 100%)', accent: '#E8C840', previewText: '프링글스' },
+    elements: T19, backgroundColor: '#382B73',
+    tags: ['프링글스', '스낵', '스윗어니언', '양파', '식품', '신제품'],
   },
 ];

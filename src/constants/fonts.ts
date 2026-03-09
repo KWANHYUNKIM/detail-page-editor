@@ -9,12 +9,12 @@ export interface FontOption {
 }
 
 /* ─────────────────────────────────────────
-   한국어 Google Fonts + 시스템 폰트 (45개)
+   Google Fonts + CDN + 시스템 폰트 (85+개)
    카테고리별로 정렬
    ───────────────────────────────────────── */
 
 export const FONT_LIST: FontOption[] = [
-  // ━━━ 고딕 (Sans-serif) ━━━
+  // ━━━ 한국어 고딕 (Korean Sans-serif) ━━━
   { family: 'Noto Sans KR', label: 'Noto Sans KR', category: 'sans', googleFamily: 'Noto+Sans+KR' },
   { family: 'Pretendard', label: 'Pretendard', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css' },
   { family: 'Gothic A1', label: 'Gothic A1', category: 'sans', googleFamily: 'Gothic+A1' },
@@ -29,14 +29,43 @@ export const FONT_LIST: FontOption[] = [
   { family: 'Sunflower', label: '해바라기', category: 'sans', googleFamily: 'Sunflower' },
   { family: 'Orbit', label: 'Orbit', category: 'sans', googleFamily: 'Orbit' },
 
-  // ━━━ 명조 (Serif) ━━━
+  // ━━━ 영문 고딕 (International Sans-serif) ━━━
+  { family: 'Montserrat', label: 'Montserrat', category: 'sans', googleFamily: 'Montserrat' },
+  { family: 'Poppins', label: 'Poppins', category: 'sans', googleFamily: 'Poppins' },
+  { family: 'Inter', label: 'Inter', category: 'sans', googleFamily: 'Inter' },
+  { family: 'Roboto', label: 'Roboto', category: 'sans', googleFamily: 'Roboto' },
+  { family: 'Open Sans', label: 'Open Sans', category: 'sans', googleFamily: 'Open+Sans' },
+  { family: 'Lato', label: 'Lato', category: 'sans', googleFamily: 'Lato' },
+  { family: 'Raleway', label: 'Raleway', category: 'sans', googleFamily: 'Raleway' },
+  { family: 'DM Sans', label: 'DM Sans', category: 'sans', googleFamily: 'DM+Sans' },
+  { family: 'Plus Jakarta Sans', label: 'Plus Jakarta Sans', category: 'sans', googleFamily: 'Plus+Jakarta+Sans' },
+  { family: 'Manrope', label: 'Manrope', category: 'sans', googleFamily: 'Manrope' },
+  { family: 'Space Grotesk', label: 'Space Grotesk', category: 'sans', googleFamily: 'Space+Grotesk' },
+  { family: 'Work Sans', label: 'Work Sans', category: 'sans', googleFamily: 'Work+Sans' },
+  { family: 'Nunito', label: 'Nunito', category: 'sans', googleFamily: 'Nunito' },
+  { family: 'Rubik', label: 'Rubik', category: 'sans', googleFamily: 'Rubik' },
+  { family: 'Outfit', label: 'Outfit', category: 'sans', googleFamily: 'Outfit' },
+  { family: 'Figtree', label: 'Figtree', category: 'sans', googleFamily: 'Figtree' },
+
+  // ━━━ 한국어 명조 (Korean Serif) ━━━
   { family: 'Noto Serif KR', label: 'Noto Serif KR', category: 'serif', googleFamily: 'Noto+Serif+KR' },
   { family: 'Nanum Myeongjo', label: '나눔명조', category: 'serif', googleFamily: 'Nanum+Myeongjo' },
   { family: 'Gowun Batang', label: '고운바탕', category: 'serif', googleFamily: 'Gowun+Batang' },
   { family: 'Song Myung', label: '송명', category: 'serif', googleFamily: 'Song+Myung' },
   { family: 'Gamja Flower', label: '감자꽃', category: 'serif', googleFamily: 'Gamja+Flower' },
 
-  // ━━━ 디스플레이 (Display / 제목용) ━━━
+  // ━━━ 영문 명조 (International Serif) ━━━
+  { family: 'Playfair Display', label: 'Playfair Display', category: 'serif', googleFamily: 'Playfair+Display' },
+  { family: 'Merriweather', label: 'Merriweather', category: 'serif', googleFamily: 'Merriweather' },
+  { family: 'Lora', label: 'Lora', category: 'serif', googleFamily: 'Lora' },
+  { family: 'EB Garamond', label: 'EB Garamond', category: 'serif', googleFamily: 'EB+Garamond' },
+  { family: 'Crimson Text', label: 'Crimson Text', category: 'serif', googleFamily: 'Crimson+Text' },
+  { family: 'Cormorant Garamond', label: 'Cormorant Garamond', category: 'serif', googleFamily: 'Cormorant+Garamond' },
+  { family: 'Libre Baskerville', label: 'Libre Baskerville', category: 'serif', googleFamily: 'Libre+Baskerville' },
+  { family: 'Spectral', label: 'Spectral', category: 'serif', googleFamily: 'Spectral' },
+  { family: 'Cinzel', label: 'Cinzel', category: 'serif', googleFamily: 'Cinzel' },
+
+  // ━━━ 한국어 디스플레이 (Korean Display) ━━━
   { family: 'Black Han Sans', label: '블랙한산스', category: 'display', googleFamily: 'Black+Han+Sans' },
   { family: 'Do Hyeon', label: '도현체', category: 'display', googleFamily: 'Do+Hyeon' },
   { family: 'Gugi', label: '구기', category: 'display', googleFamily: 'Gugi' },
@@ -49,6 +78,24 @@ export const FONT_LIST: FontOption[] = [
   { family: 'Stylish', label: '스타일리시', category: 'display', googleFamily: 'Stylish' },
   { family: 'Hi Melody', label: '하이멜로디', category: 'display', googleFamily: 'Hi+Melody' },
   { family: 'Cute Font', label: '큐트', category: 'display', googleFamily: 'Cute+Font' },
+
+  // ━━━ 영문 디스플레이 & 임팩트 (International Display & Impact) ━━━
+  { family: 'Bebas Neue', label: 'Bebas Neue', category: 'display', googleFamily: 'Bebas+Neue' },
+  { family: 'Oswald', label: 'Oswald', category: 'display', googleFamily: 'Oswald' },
+  { family: 'Anton', label: 'Anton', category: 'display', googleFamily: 'Anton' },
+  { family: 'Barlow Condensed', label: 'Barlow Condensed', category: 'display', googleFamily: 'Barlow+Condensed' },
+  { family: 'Saira Condensed', label: 'Saira Condensed', category: 'display', googleFamily: 'Saira+Condensed' },
+  { family: 'Fjalla One', label: 'Fjalla One', category: 'display', googleFamily: 'Fjalla+One' },
+  { family: 'Abril Fatface', label: 'Abril Fatface', category: 'display', googleFamily: 'Abril+Fatface' },
+  { family: 'Alfa Slab One', label: 'Alfa Slab One', category: 'display', googleFamily: 'Alfa+Slab+One' },
+  { family: 'Righteous', label: 'Righteous', category: 'display', googleFamily: 'Righteous' },
+  { family: 'Teko', label: 'Teko', category: 'display', googleFamily: 'Teko' },
+  { family: 'Staatliches', label: 'Staatliches', category: 'display', googleFamily: 'Staatliches' },
+  { family: 'Russo One', label: 'Russo One', category: 'display', googleFamily: 'Russo+One' },
+  { family: 'Passion One', label: 'Passion One', category: 'display', googleFamily: 'Passion+One' },
+  { family: 'Archivo Narrow', label: 'Archivo Narrow', category: 'display', googleFamily: 'Archivo+Narrow' },
+  { family: 'Yanone Kaffeesatz', label: 'Yanone Kaffeesatz', category: 'display', googleFamily: 'Yanone+Kaffeesatz' },
+  { family: 'Pathway Gothic One', label: 'Pathway Gothic One', category: 'display', googleFamily: 'Pathway+Gothic+One' },
 
   // ━━━ 손글씨 (Handwriting) ━━━
   { family: 'Gaegu', label: '개구', category: 'handwriting', googleFamily: 'Gaegu' },
