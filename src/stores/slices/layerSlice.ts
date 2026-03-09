@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import type { Layer, Project, Page } from '@/types/editor';
+import type { Layer, Project, Page, FrameElement, CanvasElement } from '@/types/editor';
 import { deriveLayerOrder, findElementLayerIndex } from '@/stores/storeHelpers';
 
 export interface LayerSlice {
@@ -23,6 +23,11 @@ export interface LayerSlice {
   moveLayerDown: (id: string) => void;
   moveLayerToTop: (id: string) => void;
   moveLayerToBottom: (id: string) => void;
+
+  // Drag-and-drop reorder / reparent
+  reorderLayerItem: (fromIndex: number, toIndex: number) => void;
+  moveElementToFrame: (elementId: string, frameId: string) => void;
+  moveElementOutOfFrame: (elementId: string) => void;
 }
 
 type SetFn = (fn: ((s: any) => any) | Record<string, unknown>) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -235,6 +240,117 @@ export function createLayerSlice(set: SetFn, get: GetFn): LayerSlice {
       set((s: { project: Project | null; currentPageIndex: number }) =>
         swapInLayer(s, id, (order) => [id, ...order.filter((eid) => eid !== id)])
       );
+    },
+
+    reorderLayerItem: (fromIndex, toIndex) => {
+      set((s: { project: Project | null; currentPageIndex: number; activeLayerId: string | null }) => {
+        if (!s.project) return s;
+        const pages = [...s.project.pages];
+        const page: Page = { ...pages[s.currentPageIndex] };
+
+        // Build the visible top-level order (excluding children with parentId)
+        const topLevel = page.layerOrder.filter((id) => {
+          const el = page.elements.find((e) => e.id === id);
+          return el && !el.parentId;
+        });
+
+        // UI renders reversed (topmost first), so indices are in reversed space
+        const reversedTopLevel = [...topLevel].reverse();
+        if (fromIndex < 0 || fromIndex >= reversedTopLevel.length || toIndex < 0 || toIndex >= reversedTopLevel.length) return s;
+
+        const movedId = reversedTopLevel[fromIndex];
+        // Apply the move in reversed space
+        reversedTopLevel.splice(fromIndex, 1);
+        reversedTopLevel.splice(toIndex, 0, movedId);
+
+        // Convert back to normal (bottom-to-top) order
+        const newTopLevel = [...reversedTopLevel].reverse();
+
+        // Rebuild each layer's elementIds preserving relative order
+        const newTopLevelSet = new Set(newTopLevel);
+        const layers = page.layers.map((l) => {
+          const layerTopLevel = l.elementIds.filter((eid) => newTopLevelSet.has(eid));
+          if (layerTopLevel.length === 0) return l;
+          const nonTopLevel = l.elementIds.filter((eid) => !newTopLevelSet.has(eid));
+          const thisLayerNewTopLevel = newTopLevel.filter((eid) => l.elementIds.includes(eid));
+          return { ...l, elementIds: [...nonTopLevel, ...thisLayerNewTopLevel] };
+        });
+
+        page.layers = layers;
+        page.layerOrder = layers.flatMap((l) => l.elementIds);
+        pages[s.currentPageIndex] = page;
+        return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+      });
+    },
+
+    moveElementToFrame: (elementId, frameId) => {
+      set((s: { project: Project | null; currentPageIndex: number }) => {
+        if (!s.project) return s;
+        const pages = [...s.project.pages];
+        const page: Page = { ...pages[s.currentPageIndex] };
+
+        const el = page.elements.find((e) => e.id === elementId);
+        if (!el || elementId === frameId) return s;
+
+        page.elements = page.elements.map((e) => {
+          if (e.id === elementId) return { ...e, parentId: frameId } as CanvasElement;
+          if (e.id === frameId && e.type === 'frame') {
+            const f = e as FrameElement;
+            if (!f.childOrder.includes(elementId)) {
+              return { ...f, childOrder: [...f.childOrder, elementId] } as CanvasElement;
+            }
+          }
+          return e;
+        });
+
+        const idSet = new Set([elementId]);
+        const layers = page.layers.map((l) => ({
+          ...l,
+          elementIds: l.elementIds.filter((eid) => !idSet.has(eid)),
+        }));
+        page.layers = layers;
+        page.layerOrder = layers.flatMap((l) => l.elementIds);
+        pages[s.currentPageIndex] = page;
+        return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+      });
+    },
+
+    moveElementOutOfFrame: (elementId) => {
+      set((s: { project: Project | null; currentPageIndex: number; activeLayerId: string | null }) => {
+        if (!s.project) return s;
+        const pages = [...s.project.pages];
+        const page: Page = { ...pages[s.currentPageIndex] };
+
+        const el = page.elements.find((e) => e.id === elementId);
+        if (!el || !el.parentId) return s;
+
+        const oldParentId = el.parentId;
+
+        page.elements = page.elements.map((e) => {
+          if (e.id === elementId) {
+            const { parentId: _removed, ...rest } = e;
+            return rest as CanvasElement;
+          }
+          if (e.id === oldParentId && e.type === 'frame') {
+            const f = e as FrameElement;
+            return { ...f, childOrder: f.childOrder.filter((cid) => cid !== elementId) } as CanvasElement;
+          }
+          return e;
+        });
+
+        const targetLayerId = s.activeLayerId ?? page.layers[page.layers.length - 1]?.id;
+        if (targetLayerId) {
+          const layers = page.layers.map((l) => {
+            if (l.id === targetLayerId) return { ...l, elementIds: [...l.elementIds, elementId] };
+            return l;
+          });
+          page.layers = layers;
+          page.layerOrder = layers.flatMap((l) => l.elementIds);
+        }
+
+        pages[s.currentPageIndex] = page;
+        return { project: { ...s.project, pages, updatedAt: new Date().toISOString() } };
+      });
     },
   };
 }

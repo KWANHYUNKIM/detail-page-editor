@@ -289,22 +289,6 @@ function LayerRow({
         </span>
       )}
 
-      {/* Creator mode editable badge */}
-      {showEditToggle && (
-        <button
-          className={`shrink-0 mr-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
-            el.editable
-              ? 'bg-green-500/20 text-green-400'
-              : 'bg-[#2a2a3e] text-[#6e6e6e]'
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleEditable?.();
-          }}
-        >
-          편집
-        </button>
-      )}
 
       {/* Row actions — hover only (Lock + Visibility) */}
       <div className="flex items-center gap-0.5 pr-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -385,12 +369,12 @@ function ElementTree({
   setEditingId: (id: string | null) => void;
   onContextMenu: (pos: { x: number; y: number; elementId: string }) => void;
 }) {
-  // Reverse so topmost element (last in array) renders first — like Figma
-  const reversed = [...elementIds].reverse();
+  // Display in natural order — first element in array appears at top of panel
+  const ordered = elementIds;
 
   return (
     <>
-      {reversed.map((id) => {
+      {ordered.map((id) => {
         const el = allElements.find((e) => e.id === id);
         if (!el) return null;
 
@@ -417,7 +401,7 @@ function ElementTree({
                   }
                 } else if (e.shiftKey && selectedElementIds.length > 0) {
                   // Range select: from last selected to clicked
-                  const flatIds = reversed;
+                  const flatIds = ordered;
                   const lastSelectedIdx = flatIds.findIndex((fid) => selectedElementIds.includes(fid));
                   const clickedIdx = flatIds.indexOf(el.id);
                   if (lastSelectedIdx >= 0 && clickedIdx >= 0) {

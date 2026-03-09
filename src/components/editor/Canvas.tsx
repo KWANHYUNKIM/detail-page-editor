@@ -13,6 +13,7 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import type { ExportOptions } from '@/types/editor';
 import { isGradient } from '@/types/editor';
+import { uploadImage } from '@/lib/supabase/storage';
 import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { initAligningGuidelines } from '@/lib/canvas/alignmentGuides';
 import ContextMenu from '@/components/editor/ContextMenu';
@@ -269,21 +270,30 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
   // ── Image file input handler ──
   const handleImageFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        const pos = pendingImagePosRef.current ?? { x: 100, y: 100 };
-        const currentPage = useEditorStore.getState().getCurrentPage();
-        if (currentPage) pushState(currentPage);
-        const id = addImageElement(dataUrl, file.name);
-        updateElement(id, { x: pos.x, y: pos.y });
-        pendingImagePosRef.current = null;
-        setActiveTool('move');
-      };
-      reader.readAsDataURL(file);
+
+      const pos = pendingImagePosRef.current ?? { x: 100, y: 100 };
+      const currentPage = useEditorStore.getState().getCurrentPage();
+      if (currentPage) pushState(currentPage);
+
+      let src: string;
+      try {
+        src = await uploadImage(file);
+      } catch {
+        // Supabase Storage 실패 시 data URL fallback
+        src = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const id = addImageElement(src, file.name);
+      updateElement(id, { x: pos.x, y: pos.y });
+      pendingImagePosRef.current = null;
+      setActiveTool('move');
     },
     [pushState, addImageElement, updateElement, setActiveTool],
   );

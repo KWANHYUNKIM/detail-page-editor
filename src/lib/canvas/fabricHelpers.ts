@@ -242,6 +242,48 @@ export async function createFabricImage(
   el: ImageElement,
 ): Promise<fabric.FabricImage | null> {
   try {
+    // ── Placeholder rendering when src is empty ───────────────────────────
+    if (!el.src) {
+      const bgRect = new fabric.Rect({
+        width: el.width,
+        height: el.height,
+        fill: '#E8DDD0',
+        stroke: '#B0957A',
+        strokeWidth: 1.5,
+        strokeDashArray: [6, 4],
+        rx: 4,
+        ry: 4,
+      });
+      const label = new fabric.FabricText(
+        (el as ImageElement & { placeholder?: string }).placeholder ?? '이미지',
+        {
+          fontSize: Math.min(14, el.width / 8),
+          fill: '#7A6045',
+          fontFamily: 'Pretendard, sans-serif',
+          textAlign: 'center',
+          originX: 'center',
+          originY: 'center',
+          left: el.width / 2,
+          top: el.height / 2,
+          width: el.width - 16,
+          lineHeight: 1.4,
+        },
+      );
+      const group = new fabric.Group([bgRect, label], {
+        left: el.x,
+        top: el.y,
+        originX: 'left',
+        originY: 'top',
+        angle: el.rotation,
+        opacity: el.opacity,
+        selectable: !el.locked,
+        visible: el.visible,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (group as any).data = { elementId: el.id, elementType: el.type };
+      return group as unknown as fabric.FabricImage;
+    }
+
     const img = await fabric.FabricImage.fromURL(el.src, {
       crossOrigin: 'anonymous',
     });

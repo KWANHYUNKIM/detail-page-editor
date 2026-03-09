@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { useProjectStore } from '@/stores/projectStore';
 import PagePanel from '@/components/panels/PagePanel';
 import LayerPanel from '@/components/panels/LayerPanel';
 import SectionPanel from '@/components/panels/SectionPanel';
+import { uploadImage } from '@/lib/supabase/storage';
 import {
   HiPhoto,
   HiDocumentText,
@@ -48,21 +49,27 @@ export default function LeftSidebar() {
   const loadProject = useEditorStore((s) => s.loadProject);
   const getTemplates = useProjectStore((s) => s.getTemplates);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataURL = reader.result as string;
-      addImageElement(dataURL, file.name);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadImage(file);
+      addImageElement(url, file.name);
+    } catch (err) {
+      // Supabase Storage 실패 시 data URL fallback
+      console.warn('[LeftSidebar] Storage upload failed, using data URL:', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        addImageElement(reader.result as string, file.name);
+      };
+      reader.readAsDataURL(file);
+    }
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, [addImageElement]);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'file', label: '파일', icon: <HiDocument className="w-4 h-4" /> },

@@ -126,6 +126,20 @@ export interface BaseElement {
   parentId?: string;
   /** 사용자 지정 레이어 이름 */
   name?: string;
+  /** Individual corner radius */
+  borderRadiusTopLeft?: number;
+  borderRadiusTopRight?: number;
+  borderRadiusBottomLeft?: number;
+  borderRadiusBottomRight?: number;
+  /** Stroke advanced */
+  strokeAlign?: 'inside' | 'center' | 'outside';
+  strokeDashArray?: number[];
+  /** Export settings */
+  exportSettings?: Array<{
+    format: 'png' | 'jpeg' | 'svg' | 'pdf';
+    scale: number;
+    suffix?: string;
+  }>;
 }
 
 export type ImageScaleMode = 'fill' | 'fit' | 'crop' | 'tile';
@@ -210,6 +224,26 @@ export interface FrameElement extends BaseElement {
   childOrder: string[];
   /** 섹션 여부 — true이면 캔버스 전체 너비 섹션으로 동작 */
   isSection?: boolean;
+  /** Auto Layout */
+  layoutMode?: 'NONE' | 'VERTICAL' | 'HORIZONTAL' | 'GRID';
+  layoutGap?: number;
+  layoutPaddingTop?: number;
+  layoutPaddingRight?: number;
+  layoutPaddingBottom?: number;
+  layoutPaddingLeft?: number;
+  layoutAlignItems?: 'start' | 'center' | 'end' | 'stretch';
+  layoutJustifyContent?: 'start' | 'center' | 'end' | 'space-between';
+  layoutGridColumns?: number;
+  layoutWrap?: boolean;
+  /** Layout guides */
+  layoutGuides?: Array<{
+    type: 'columns' | 'rows' | 'grid';
+    count: number;
+    gutterSize: number;
+    margin: number;
+    color: string;
+    visible: boolean;
+  }>;
 }
 
 export type CanvasElement = ImageElement | TextElement | ShapeElement | FrameElement;
@@ -245,6 +279,8 @@ export interface Project {
     backgroundColor: FillValue;
   };
   pages: Page[];
+  isPublic?: boolean;
+  forkedFromId?: string;
   createdAt: string;
   updatedAt: string;
 }

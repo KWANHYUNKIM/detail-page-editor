@@ -5,10 +5,12 @@ import type {
   ImageElement,
   TextElement,
   ShapeElement,
+  FrameElement,
   FontWeight,
   TextAlign,
 } from '@/types/editor';
 
+import { buildMonggoDetailElements } from './monggoDesign';
 export const TEMPLATE_CATEGORIES: { key: TemplateCategory; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'fashion', label: '패션' },
@@ -699,6 +701,174 @@ function buildPremiumDiffuserPage(idx: number): CanvasElement[] {
 }
 
 const T17 = buildPremiumDiffuserPage(17);
+const T18 = buildMonggoDetailElements();
+
+// ─── Interior Lighting Detail Page ────────────────────────────────────────────
+
+function buildInteriorLightingPage(idx: number): CanvasElement[] {
+  const id = makeId(idx);
+  const els: CanvasElement[] = [];
+
+  const DARK = '#1a1a1a';
+  const WARM_GOLD = '#c9a96e';
+  const WARM_BG = '#f8f6f2';
+  const LIGHT_BG = '#f5f3ef';
+  const BODY = '#333333';
+  const SUB = '#888888';
+
+  function sect(
+    sId: string, y: number, h: number, fill: string, sName: string,
+  ): FrameElement {
+    return {
+      id: sId, type: 'frame', x: 0, y, width: 860, height: h,
+      rotation: 0, opacity: 1, locked: false, visible: true, editable: false,
+      fill, stroke: 'transparent', strokeWidth: 0,
+      borderRadius: 0, clipContent: true, childOrder: [],
+      isSection: true, name: sName,
+    };
+  }
+
+  function pushSection(frame: FrameElement, children: CanvasElement[]) {
+    frame.childOrder = children.map((c) => c.id);
+    for (const c of children) { c.parentId = frame.id; }
+    els.push(frame, ...children);
+  }
+
+  // ━━━ 1. 히어로 (0 → 900) ━━━
+  const s1 = sect(id(), 0, 900, DARK, '히어로');
+  pushSection(s1, [
+    image(id(), 0, 0, 860, 900, '', '펜던트 조명 인테리어 사진을 넣어주세요'),
+    shape(id(), 'rect', 0, 0, 860, 900, 'rgba(0,0,0,0.45)'),
+    text(id(), 0, 200, 860, 20, 'I N T E R I O R   D E S I G N', 14, WARM_GOLD, 'normal', 'center', 1.2),
+    shape(id(), 'line', 360, 235, 140, 0, 'transparent', WARM_GOLD, 1),
+    text(id(), 40, 280, 780, 120, '조명이 바꾸는\n공간의 온도', 46, '#ffffff', 'bold', 'center', 1.4),
+    text(id(), 0, 650, 860, 50, '빛 하나로 달라지는\n당신의 공간을 경험하세요.', 16, '#ffffff', 'normal', 'center', 1.6, 0.7),
+  ]);
+
+  // ━━━ 2. 제품 정보 (900 → 1500) ━━━
+  const s2 = sect(id(), 900, 600, WARM_BG, '제품 정보');
+  pushSection(s2, [
+    text(id(), 0, 950, 860, 20, 'OSRAM PENDANT LIGHT', 13, WARM_GOLD, 'normal', 'center', 1.2),
+    text(id(), 0, 990, 860, 50, '팬던트 오스람 조명', 36, BODY, 'bold', 'center'),
+    shape(id(), 'line', 400, 1055, 60, 0, 'transparent', WARM_GOLD, 2),
+    text(id(), 0, 1075, 860, 30, 'LED 30W / 45W', 18, SUB, 'normal', 'center'),
+    text(id(), 100, 1120, 660, 60, '독일 오스람 기술력이 만들어낸 프리미엄 펜던트 조명.\n절제된 디자인 속에 담긴 최고의 조명 품질을 경험하세요.', 15, '#555555', 'normal', 'center', 1.7),
+    image(id(), 180, 1210, 500, 260, '', '제품 사진을 넣어주세요'),
+  ]);
+
+  // ━━━ 3. 스타일 체크리스트 (1500 → 2200) ━━━
+  const s3 = sect(id(), 1500, 700, LIGHT_BG, '스타일 체크리스트');
+  const s3Children: CanvasElement[] = [
+    text(id(), 0, 1540, 860, 20, 'STYLE CHECK', 13, WARM_GOLD, 'normal', 'center', 1.2),
+    text(id(), 0, 1575, 860, 40, '디자인 포인트', 28, BODY, 'bold', 'center'),
+    text(id(), 0, 1625, 860, 25, '하나하나 꼼꼼히 체크한 프리미엄 품질', 14, SUB, 'normal', 'center'),
+  ];
+  const checkItems = [
+    '고급 알루미늄 + 유리 소재',
+    '에너지 효율 A++ 등급',
+    '3단계 밝기 조절 (30% / 60% / 100%)',
+    '무선 리모컨 제어 지원',
+    '전문 설치 서비스 포함',
+    '5년 품질 보증',
+  ];
+  checkItems.forEach((item, i) => {
+    const cy = 1680 + i * 56;
+    s3Children.push(shape(id(), 'rect', 230, cy, 24, 24, 'transparent', BODY, 2, 4));
+    s3Children.push(text(id(), 234, cy + 2, 16, 20, '\u2713', 14, BODY, 'bold', 'center'));
+    s3Children.push(text(id(), 268, cy, 360, 24, item, 16, BODY, 'normal'));
+  });
+  s3Children.push(image(id(), 80, 2030, 700, 140, '', '인테리어 무드 이미지를 넣어주세요'));
+  pushSection(s3, s3Children);
+
+  // ━━━ 4. 특징 01 — 모던 미니멀 디자인 (2200 → 2900) ━━━
+  const s4 = sect(id(), 2200, 700, '#ffffff', '특징 01');
+  pushSection(s4, [
+    text(id(), 60, 2240, 200, 80, '01', 72, '#e8e4df', 'bold'),
+    text(id(), 60, 2320, 200, 20, 'Style Check', 13, WARM_GOLD, 'normal'),
+    text(id(), 60, 2355, 380, 40, '모던 미니멀 디자인', 26, BODY, 'bold'),
+    text(id(), 60, 2410, 380, 80, '군더더기 없는 깨끗한 라인과\n절제된 형태가 어떤 공간에도\n자연스럽게 어울립니다.', 15, '#555555', 'normal', 'left', 1.7),
+    image(id(), 470, 2240, 340, 350, '', '조명 디자인 이미지'),
+  ]);
+
+  // ━━━ 5. 특징 02 — 에너지 절약 LED (2900 → 3600) ━━━
+  const s5 = sect(id(), 2900, 700, WARM_BG, '특징 02');
+  pushSection(s5, [
+    image(id(), 50, 2940, 340, 350, '', '에너지 절약 이미지'),
+    text(id(), 600, 2940, 200, 80, '02', 72, '#e8e4df', 'bold'),
+    text(id(), 420, 3020, 380, 20, 'Style Check', 13, WARM_GOLD, 'normal'),
+    text(id(), 420, 3055, 380, 40, '에너지 절약 LED', 26, BODY, 'bold'),
+    text(id(), 420, 3110, 380, 80, '독일 오스람 LED 기술로\n전기료는 줄이고 밝기는 높이고,\n최대 50,000시간 수명을 보장합니다.', 15, '#555555', 'normal', 'left', 1.7),
+  ]);
+
+  // ━━━ 6. 특징 03 — 스마트 밝기 조절 (3600 → 4300) ━━━
+  const s6 = sect(id(), 3600, 700, '#ffffff', '특징 03');
+  pushSection(s6, [
+    text(id(), 60, 3640, 200, 80, '03', 72, '#e8e4df', 'bold'),
+    text(id(), 60, 3720, 200, 20, 'Style Check', 13, WARM_GOLD, 'normal'),
+    text(id(), 60, 3755, 380, 40, '스마트 밝기 조절', 26, BODY, 'bold'),
+    text(id(), 60, 3810, 380, 80, '무선 리모컨으로 3단계 밝기 조절.\n독서를 위한 은은한 불빛부터\n작업을 위한 환한 조명까지.', 15, '#555555', 'normal', 'left', 1.7),
+    image(id(), 470, 3640, 340, 350, '', '밝기 조절 이미지'),
+  ]);
+
+  // ━━━ 7. 특징 04 — 간편 설치 시스템 (4300 → 5000) ━━━
+  const s7 = sect(id(), 4300, 700, WARM_BG, '특징 04');
+  pushSection(s7, [
+    image(id(), 50, 4340, 340, 350, '', '설치 이미지'),
+    text(id(), 600, 4340, 200, 80, '04', 72, '#e8e4df', 'bold'),
+    text(id(), 420, 4420, 380, 20, 'Style Check', 13, WARM_GOLD, 'normal'),
+    text(id(), 420, 4455, 380, 40, '간편 설치 시스템', 26, BODY, 'bold'),
+    text(id(), 420, 4510, 380, 80, '전문 기사가 방문하여\n안전하게 설치해드립니다.\n추가 비용 없이 무료 설치.', 15, '#555555', 'normal', 'left', 1.7),
+  ]);
+
+  // ━━━ 8. 제품 사양 (5000 → 5600) ━━━
+  const s8 = sect(id(), 5000, 600, '#ffffff', '제품 사양');
+  const s8Children: CanvasElement[] = [
+    text(id(), 0, 5040, 860, 20, 'SPECIFICATION', 13, WARM_GOLD, 'normal', 'center', 1.2),
+    text(id(), 0, 5075, 860, 40, '제품 사양', 28, BODY, 'bold', 'center'),
+    shape(id(), 'line', 100, 5135, 660, 0, 'transparent', '#e0e0e0', 1),
+  ];
+  const specs: [string, string][] = [
+    ['제품명', '팬던트 오스람 조명'],
+    ['소재', '알루미늄 + 유리'],
+    ['전구', 'LED 30W / 45W'],
+    ['색온도', '3000K (웜화이트) / 4000K (자연광)'],
+    ['크기', 'Φ400 × H300mm'],
+    ['설치', '천장 매립형'],
+  ];
+  specs.forEach(([label, value], i) => {
+    const sy = 5155 + i * 55;
+    s8Children.push(text(id(), 160, sy, 160, 30, label, 15, SUB, 'normal', 'right'));
+    s8Children.push(shape(id(), 'rect', 340, sy + 5, 1, 20, '#dddddd'));
+    s8Children.push(text(id(), 365, sy, 340, 30, value, 15, BODY, 'normal'));
+    if (i < specs.length - 1) {
+      s8Children.push(shape(id(), 'line', 160, sy + 45, 505, 0, 'transparent', '#f0f0f0', 1));
+    }
+  });
+  pushSection(s8, s8Children);
+
+  // ━━━ 9. CTA (5600 → 6100) ━━━
+  const s9 = sect(id(), 5600, 500, DARK, 'CTA');
+  pushSection(s9, [
+    shape(id(), 'circle', 100, 5650, 120, 120, 'rgba(201,169,110,0.06)'),
+    shape(id(), 'circle', 650, 5780, 80, 80, 'rgba(201,169,110,0.04)'),
+    text(id(), 0, 5760, 860, 50, '공간을 빛으로 디자인하다', 36, '#ffffff', 'bold', 'center'),
+    text(id(), 0, 5830, 860, 30, '지금 주문하면 무료 설치 + 리모컨 증정', 16, '#ffffff', 'normal', 'center', 1.4, 0.7),
+    shape(id(), 'rect', 280, 5910, 300, 56, WARM_GOLD, 'transparent', 0, 28),
+    text(id(), 280, 5920, 300, 36, '지금 구매하기', 18, DARK, 'bold', 'center'),
+  ]);
+
+  // ━━━ 10. 배송 안내 (6100 → 6500) ━━━
+  const s10 = sect(id(), 6100, 400, '#f5f5f5', '배송 안내');
+  pushSection(s10, [
+    text(id(), 0, 6145, 860, 30, '배송 및 교환/반품 안내', 20, BODY, 'bold', 'center'),
+    shape(id(), 'line', 350, 6185, 160, 0, 'transparent', '#dddddd', 1),
+    text(id(), 100, 6220, 660, 250, '배송비: 무료 (도서산간 지역 추가 5,000원)\n배송기간: 결제 완료 후 3~5일 이내 출고 (설치 일정 별도 협의)\n\n교환/반품: 수령 후 7일 이내 가능\n단, 설치 완료 후에는 교환/반품 불가\n\n고객센터: 1588-0000 (평일 10:00~18:00)\n이메일: support@interior-light.kr', 14, '#666666', 'normal', 'center', 1.8),
+  ]);
+
+  return els;
+}
+
+const T19 = buildInteriorLightingPage(19);
 // ─── Exported template list ──────────────────────────────────────────────────
 
 export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
@@ -803,5 +973,17 @@ export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     description: '감성 스토리텔링형 프리미엄 디퓨저/향초 판매용 롱폼 상세페이지 (~7500px)', preset: 'detail-page',
     thumbnail: { background: 'linear-gradient(180deg, #1a1a1a 0%, #2a2a2a 45%, #f7f7f7 55%, #ffffff 100%)', accent: '#d4a574', previewText: '프리미엄 디퓨저' },
     elements: T17, backgroundColor: '#ffffff', tags: ['디퓨저', '향초', '향수', '프리미엄', '감성', '롱폼', '스토리텔링', '인테리어', '뷰티'],
+  },
+  {
+    id: 'template-018', name: '몽고간장 송표 프라임 상세페이지', category: ['food'],
+    description: '따뜻한 베이지 크림색 간장 양조식품 브랜드 상세페이지 — 히어로/제품소개/특징/요리추천/라인업/Q&A 구성', preset: 'detail-page',
+    thumbnail: { background: 'linear-gradient(135deg, #F5EDE0 0%, #D4922A 50%, #3D2B1A 100%)', accent: '#D4922A', previewText: '몽고간장' },
+    elements: T18, backgroundColor: '#FAFAF6', tags: ['간장', '양조', '식품', '전통', '몽고간장', '송표', '브랜드'],
+  },
+  {
+    id: 'template-019', name: '인테리어 조명 상세페이지', category: ['interior'],
+    description: '모던 미니멀 인테리어 팬던트 조명 제품 상세페이지 (체크리스트 + 4섹션 피처)', preset: 'detail-page',
+    thumbnail: { background: 'linear-gradient(135deg, #1a1a1a 0%, #333333 50%, #c9a96e 100%)', accent: '#c9a96e', previewText: '조명' },
+    elements: T19, backgroundColor: '#f8f6f2', tags: ['조명', '인테리어', '펜던트', '조명기구', '모던', '미니멀', '오스람'],
   },
 ];

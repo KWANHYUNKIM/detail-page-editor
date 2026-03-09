@@ -1,16 +1,18 @@
 import { create } from 'zustand';
 import { Project } from '@/types/editor';
 import {
-  getAllProjects,
-  getProject as idbGetProject,
-  putProject,
-  deleteProject as idbDeleteProject,
-  migrateFromLocalStorage,
-} from '@/lib/storage/indexedDB';
+  fetchProjects,
+  createProject,
+  saveProject as apiSaveProject,
+  deleteProject as apiDeleteProject,
+} from '@/lib/supabase/projects';
+
+/** IDs of projects that exist in the database */
+const persistedIds = new Set<string>();
 
 interface ProjectListState {
   projects: Project[];
-  /** true once initial load (+ migration) is complete */
+  /** true once initial load is complete */
   isLoaded: boolean;
 
   loadProjects: () => void;
@@ -25,11 +27,10 @@ export const useProjectStore = create<ProjectListState>((set, get) => ({
   isLoaded: false,
 
   loadProjects: () => {
-    // Fire async — migrate localStorage first, then load from IndexedDB
     (async () => {
       try {
-        await migrateFromLocalStorage<Project>();
-        const projects = await getAllProjects<Project>();
+        const projects = await fetchProjects();
+        projects.forEach((p) => persistedIds.add(p.id));
         set({ projects, isLoaded: true });
       } catch (err) {
         console.warn('[projectStore] Failed to load projects:', err);
@@ -39,7 +40,7 @@ export const useProjectStore = create<ProjectListState>((set, get) => ({
   },
 
   saveProject: (project) => {
-    // Update Zustand state synchronously for immediate UI response
+    // Optimistic UI update
     set((s) => {
       const idx = s.projects.findIndex((p) => p.id === project.id);
       const updated =
@@ -49,19 +50,27 @@ export const useProjectStore = create<ProjectListState>((set, get) => ({
       return { projects: updated };
     });
 
-    // Persist to IndexedDB async (fire-and-forget)
-    putProject(project).catch((err) =>
-      console.warn('[projectStore] Failed to save project:', err),
-    );
+    // Persist to Supabase
+    if (persistedIds.has(project.id)) {
+      apiSaveProject(project).catch((err) =>
+        console.warn('[projectStore] Failed to update project:', err),
+      );
+    } else {
+      createProject(project)
+        .then(() => persistedIds.add(project.id))
+        .catch((err) =>
+          console.warn('[projectStore] Failed to create project:', err),
+        );
+    }
   },
 
   deleteProject: (id) => {
-    set((s) => {
-      const updated = s.projects.filter((p) => p.id !== id);
-      return { projects: updated };
-    });
+    set((s) => ({
+      projects: s.projects.filter((p) => p.id !== id),
+    }));
 
-    idbDeleteProject(id).catch((err) =>
+    persistedIds.delete(id);
+    apiDeleteProject(id).catch((err) =>
       console.warn('[projectStore] Failed to delete project:', err),
     );
   },
