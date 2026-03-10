@@ -135,11 +135,7 @@ export interface BaseElement {
   strokeAlign?: 'inside' | 'center' | 'outside';
   strokeDashArray?: number[];
   /** Export settings */
-  exportSettings?: Array<{
-    format: 'png' | 'jpeg' | 'svg' | 'pdf';
-    scale: number;
-    suffix?: string;
-  }>;
+  exportSettings?: ExportSetting[];
 }
 
 export type ImageScaleMode = 'fill' | 'fit' | 'crop' | 'tile';
@@ -351,16 +347,19 @@ export interface EffectItem {
 }
 
 export interface ExportSetting {
-  id: string;
+  id?: string;
   scale: string;
   format: ExportFormat;
   suffix?: string;
 }
 
 export interface LayoutGuide {
-  id: string;
+  id?: string;
   type: 'grid' | 'columns' | 'rows';
-  size: number;
+  count: number;
+  gutterSize: number;
+  margin: number;
+  size?: number;
   color: string;
   visible: boolean;
 }

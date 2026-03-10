@@ -112,11 +112,12 @@ interface FramePropertiesPanelProps {
   handleUpdate: (updates: Record<string, unknown>) => void;
   alignElements: (ids: string[], direction: 'left' | 'right' | 'top' | 'bottom' | 'centerH' | 'centerV') => void;
   distributeElements: (ids: string[], axis: 'horizontal' | 'vertical') => void;
+  getChildElements: (frameId: string) => Array<{ x: number; y: number; width: number; height: number }>;
   aspectLocked: boolean;
   setAspectLocked: (v: boolean) => void;
 }
 
-export default function FramePropertiesPanel({ frame, handleUpdate, alignElements, distributeElements, aspectLocked, setAspectLocked }: FramePropertiesPanelProps) {
+export default function FramePropertiesPanel({ frame, handleUpdate, alignElements, distributeElements, getChildElements, aspectLocked, setAspectLocked }: FramePropertiesPanelProps) {
   const [showIndividualCorners, setShowIndividualCorners] = useState(false);
   const [presetOpen, setPresetOpen] = useState(false);
 
@@ -128,6 +129,7 @@ export default function FramePropertiesPanel({ frame, handleUpdate, alignElement
   ];
   const exports: ExportSetting[] = frame.exportSettings ?? [];
   const guides: LayoutGuide[] = frame.layoutGuides ?? [];
+  const layoutMode = frame.layoutMode ?? 'NONE';
 
   const updateFills = (newFills: FillItem[]) => {
     handleUpdate({ fills: newFills, fill: newFills[0]?.color ?? '#FFFFFF' });
@@ -287,7 +289,7 @@ export default function FramePropertiesPanel({ frame, handleUpdate, alignElement
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={frame.clipContent} onChange={(e) => handleUpdate({ clipContent: e.target.checked })}
             className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 focus:ring-1 cursor-pointer" />
-          <span className="text-gray-600">Clip content</span>
+          <span className="text-gray-600">콘텐츠 자르기 (Clip)</span>
         </label>
       </div>
 
@@ -558,29 +560,195 @@ export default function FramePropertiesPanel({ frame, handleUpdate, alignElement
         )}
       </div>
 
+      <div className={SECTION_BORDER}>
+        <SectionHeader title="Layout" />
+        <div className="px-2 pb-2">
+          <div className="mb-2">
+            <span className="text-[10px] text-gray-400">Mode</span>
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              {([
+                { value: 'NONE', label: 'Free' },
+                { value: 'VERTICAL', label: 'Vertical' },
+                { value: 'HORIZONTAL', label: 'Horizontal' },
+                { value: 'GRID', label: 'Grid' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleUpdate({ layoutMode: opt.value })}
+                  className={`h-7 rounded border text-[10px] transition-colors ${layoutMode === opt.value ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 hover:border-gray-300 text-gray-600'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {layoutMode !== 'NONE' && (
+            <div className="space-y-2 mb-2">
+              <label className="flex items-center h-6 rounded bg-transparent hover:bg-gray-50 border border-gray-200">
+                <span className="pl-1.5 pr-1 text-[10px] text-gray-400">Gap</span>
+                <input
+                  type="number"
+                  value={frame.layoutGap ?? 0}
+                  min={0}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v)) handleUpdate({ layoutGap: v });
+                  }}
+                  className="w-full h-full bg-transparent text-[10px] text-gray-700 outline-none pr-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+              </label>
+
+              <div>
+                <span className="text-[10px] text-gray-400">Padding</span>
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  {([
+                    ['layoutPaddingTop', 'T', frame.layoutPaddingTop ?? 0],
+                    ['layoutPaddingRight', 'R', frame.layoutPaddingRight ?? 0],
+                    ['layoutPaddingBottom', 'B', frame.layoutPaddingBottom ?? 0],
+                    ['layoutPaddingLeft', 'L', frame.layoutPaddingLeft ?? 0],
+                  ] as const).map(([key, label, value]) => (
+                    <label key={key} className="flex items-center h-6 rounded bg-transparent hover:bg-gray-50 border border-gray-200">
+                      <span className="pl-1.5 pr-1 text-[10px] text-gray-400">{label}</span>
+                      <input
+                        type="number"
+                        value={value}
+                        min={0}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          if (!isNaN(v)) handleUpdate({ [key]: v });
+                        }}
+                        className="w-full h-full bg-transparent text-[10px] text-gray-700 outline-none pr-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="text-[10px] text-gray-400">Align</span>
+                <select
+                  value={frame.layoutAlignItems ?? 'start'}
+                  onChange={(e) => handleUpdate({ layoutAlignItems: e.target.value })}
+                  className="mt-1 w-full h-7 px-1.5 text-[10px] border border-gray-200 rounded bg-transparent outline-none"
+                >
+                  <option value="start">Start</option>
+                  <option value="center">Center</option>
+                  <option value="end">End</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </label>
+
+              {layoutMode === 'GRID' && (
+                <label className="flex items-center h-6 rounded bg-transparent hover:bg-gray-50 border border-gray-200">
+                  <span className="pl-1.5 pr-1 text-[10px] text-gray-400">Cols</span>
+                  <input
+                    type="number"
+                    value={frame.layoutGridColumns ?? 2}
+                    min={1}
+                    max={12}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      if (!isNaN(v)) handleUpdate({ layoutGridColumns: v });
+                    }}
+                    className="w-full h-full bg-transparent text-[10px] text-gray-700 outline-none pr-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </label>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              const children = getChildElements(frame.id);
+              if (children.length === 0) return;
+              const minX = Math.min(...children.map((c) => c.x));
+              const minY = Math.min(...children.map((c) => c.y));
+              const maxX = Math.max(...children.map((c) => c.x + c.width));
+              const maxY = Math.max(...children.map((c) => c.y + c.height));
+              const pad = 10;
+              handleUpdate({
+                x: minX - pad,
+                y: minY - pad,
+                width: maxX - minX + pad * 2,
+                height: maxY - minY + pad * 2,
+              });
+            }}
+            className="w-full h-7 text-[10px] text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+          >
+            콘텐츠에 맞추기
+          </button>
+        </div>
+      </div>
+
       {/* ═══ Layout Guide ═══ */}
       <div className={SECTION_BORDER}>
-        <SectionHeader title="Layout guide" onAdd={() => updateGuides([...guides, { id: uid(), type: 'grid', size: 10, color: 'rgba(255,0,0,0.1)', visible: true }])} />
+        <SectionHeader title="Layout guide" onAdd={() => updateGuides([...guides, { id: uid(), type: 'columns', count: 12, gutterSize: 20, margin: 0, color: 'rgba(255,0,0,0.1)', visible: true }])} />
         {guides.map((g, i) => (
-          <div key={g.id} className="group px-2 py-1 flex items-center gap-1.5 hover:bg-gray-50">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
-              <path fill="#b3b3b3" fillRule="evenodd" clipRule="evenodd" d="M8 6.5a.5.5 0 0 0-1 0V7h-.5a.5.5 0 0 0 0 1H7v3.5h-.5a.5.5 0 0 0 0 1H7V16h-.5a.5.5 0 0 0 0 1H7v.5a.5.5 0 0 0 1 0V17h3.5v.5a.5.5 0 0 0 1 0V17H16v.5a.5.5 0 0 0 1 0V17h.5a.5.5 0 0 0 0-1H17v-3.5h.5a.5.5 0 0 0 0-1H17V8h.5a.5.5 0 0 0 0-1H17v-.5a.5.5 0 0 0-1 0V7h-3.5v-.5a.5.5 0 0 0-1 0V7H8zm8 9.5v-3.5h-3.5V16zm-4.5 0v-3.5H8V16zM8 11.5V8h3.5v3.5zm4.5 0V8H16v3.5z" />
-            </svg>
-            <div className="flex-1">
-              <span className="text-[11px] text-gray-700 capitalize">{g.type}</span>
-              <span className="text-gray-400 ml-1 text-[10px]">{g.size}px</span>
+          <div key={g.id ?? i} className="group px-2 py-1.5 space-y-1.5 hover:bg-gray-50">
+            <div className="flex items-center gap-1">
+              <select
+                value={g.type}
+                onChange={(e) => {
+                  const ng = [...guides];
+                  ng[i] = { ...g, type: e.target.value as LayoutGuide['type'] };
+                  updateGuides(ng);
+                }}
+                className="h-6 px-1.5 text-[10px] border border-gray-200 rounded bg-transparent outline-none"
+              >
+                <option value="columns">Columns</option>
+                <option value="rows">Rows</option>
+                <option value="grid">Grid</option>
+              </select>
+              <button type="button" onClick={() => { const ng = [...guides]; ng[i] = { ...g, visible: !g.visible }; updateGuides(ng); }}>
+                <EyeSvg visible={g.visible} size={14} />
+              </button>
+              <button type="button" title="Remove" onClick={() => updateGuides(guides.filter((_, j) => j !== i))}
+                className="text-gray-400 hover:text-red-500">
+                <MinusSvg size={14} />
+              </button>
             </div>
-            <input type="number" value={g.size} min={1} max={200}
-              onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) { const ng = [...guides]; ng[i] = { ...g, size: v }; updateGuides(ng); } }}
-              className="w-10 h-5 text-[10px] text-center border border-gray-200 rounded bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <button type="button" onClick={() => { const ng = [...guides]; ng[i] = { ...g, visible: !g.visible }; updateGuides(ng); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <EyeSvg visible={g.visible} size={14} />
-            </button>
-            <button type="button" title="Remove" onClick={() => updateGuides(guides.filter((_, j) => j !== i))}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500">
-              <MinusSvg size={14} />
-            </button>
+
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                ['count', 'Count', g.count],
+                ['gutterSize', 'Gutter', g.gutterSize],
+                ['margin', 'Margin', g.margin],
+              ] as const).map(([key, label, value]) => (
+                <label key={key} className="flex items-center h-6 rounded bg-transparent hover:bg-gray-50 border border-gray-200">
+                  <span className="pl-1 pr-1 text-[9px] text-gray-400">{label}</span>
+                  <input
+                    type="number"
+                    value={value}
+                    min={0}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      if (isNaN(v)) return;
+                      const ng = [...guides];
+                      ng[i] = { ...g, [key]: v };
+                      updateGuides(ng);
+                    }}
+                    className="w-full h-full bg-transparent text-[10px] text-gray-700 outline-none pr-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </label>
+              ))}
+            </div>
+
+            <label className="block">
+              <span className="text-[10px] text-gray-400">Color</span>
+              <input
+                type="color"
+                value={g.color.startsWith('rgba') ? '#ff0000' : g.color}
+                onChange={(e) => {
+                  const ng = [...guides];
+                  ng[i] = { ...g, color: `${e.target.value}1a` };
+                  updateGuides(ng);
+                }}
+                className="mt-1 w-full h-6 rounded border border-gray-200 cursor-pointer"
+              />
+            </label>
           </div>
         ))}
       </div>
