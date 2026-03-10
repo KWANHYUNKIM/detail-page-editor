@@ -112,8 +112,6 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
   // ── Store (only what EditorCanvas itself uses) ──
   const projectId = useEditorStore((s) => s.project?.id);
-  const zoom = useEditorStore((s) => s.zoom);
-  const setZoom = useEditorStore((s) => s.setZoom);
   const pushState = useHistoryStore((s) => s.pushState);
   const addImageElement = useEditorStore((s) => s.addImageElement);
   const updateElement = useEditorStore((s) => s.updateElement);
@@ -255,17 +253,24 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     };
   }, [projectId]); // re-init only when project changes
 
-  // ── Wheel zoom ──
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // ── Wheel zoom (native listener to block browser zoom) ──
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
+        e.stopPropagation();
+        const currentZoom = useEditorStore.getState().zoom;
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom(Math.round((zoom + delta) * 10) / 10);
+        useEditorStore.getState().setZoom(Math.round((currentZoom + delta) * 10) / 10);
       }
-    },
-    [zoom, setZoom],
-  );
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
 
   // ── Image file input handler ──
   const handleImageFileChange = useCallback(
@@ -325,7 +330,6 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto bg-[#f0f0f0]"
-        onWheel={handleWheel}
         onMouseDown={handleGrayAreaMouseDown}
         onContextMenu={(e) => e.preventDefault()}
       >
