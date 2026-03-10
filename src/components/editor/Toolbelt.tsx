@@ -238,7 +238,7 @@ function ToolGroup({
 
       {/* Dropdown menu */}
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[160px]">
+        <div className="absolute bottom-full left-0 mb-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[160px]">
           {subTools.map((sub) => (
             <button
               key={sub.tool}

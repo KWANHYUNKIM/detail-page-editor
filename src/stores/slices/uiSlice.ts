@@ -32,7 +32,7 @@ export function createUiSlice(set: (fn: any) => void, get: () => any): UiSlice {
     // ── Initial state ──
     selectedElementIds: [],
     zoom: 1,
-    mode: 'creator',
+    mode: 'design',
     activeTool: 'move',
     showGrid: false,
     gridSize: 50,

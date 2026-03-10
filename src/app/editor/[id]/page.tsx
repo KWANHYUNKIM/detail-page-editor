@@ -6,10 +6,9 @@ import { useEditorStore } from '@/stores/editorStore';
 import { useProjectStore } from '@/stores/projectStore';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import EditorCanvas, { type CanvasHandle } from '@/components/editor/Canvas';
-import Toolbar from '@/components/editor/Toolbar';
 import LeftSidebar from '@/components/editor/LeftSidebar';
 import RightPanel from '@/components/editor/RightPanel';
-import AIPromptBar from '@/components/editor/AIPromptBar';
+import FloatingToolbar from '@/components/editor/FloatingToolbar';
 import ExportModal from '@/components/editor/ExportModal';
 
 export default function EditorPage() {
@@ -25,18 +24,15 @@ export default function EditorPage() {
   const isLoaded = useProjectStore((s) => s.isLoaded);
   const getProject = useProjectStore((s) => s.getProject);
 
-  // Auto-save to IndexedDB on every change
-  const [saveStatus] = useAutoSave();
+  useAutoSave();
 
-  // Load projects from IndexedDB on mount
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
-  // Once IndexedDB load is complete, load the specific project into editor
   useEffect(() => {
     if (!isLoaded) return;
-    if (project?.id === projectId) return; // Already loaded
+    if (project?.id === projectId) return;
     const stored = getProject(projectId);
     if (stored) {
       loadProject(stored);
@@ -48,23 +44,29 @@ export default function EditorPage() {
       <div className="h-screen flex items-center justify-center bg-[#f0f0f0]">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">프로젝트를 불러오는 중...</p>
+          <p className="text-gray-500 text-sm">Loading project...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col editor-page">
-      <Toolbar onExport={() => setExportOpen(true)} saveStatus={saveStatus} />
+    <div className="h-screen flex editor-page">
+      <LeftSidebar />
 
-      <div className="flex flex-1 overflow-hidden">
-        <LeftSidebar />
+      <div className="flex-1 relative overflow-hidden">
         <EditorCanvas ref={canvasRef} />
-        <RightPanel />
+
+        <div className="absolute top-3 left-3 z-40 pointer-events-none">
+          <div className="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-lg shadow-sm px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200/50">
+            {project.name}
+          </div>
+        </div>
+
+        <FloatingToolbar onExport={() => setExportOpen(true)} />
       </div>
 
-      <AIPromptBar />
+      <RightPanel />
 
       <ExportModal
         isOpen={exportOpen}

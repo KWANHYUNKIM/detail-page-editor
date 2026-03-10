@@ -446,7 +446,7 @@ export default function RightPanel() {
   const el = selected[0];
 
   /* ── Consumer mode: non-editable ── */
-  if (mode === 'consumer' && !el.editable) {
+  if (mode === 'dev' && !el.editable) {
     return (
       <div className="w-[280px] bg-white border-l border-gray-200 shrink-0 overflow-y-auto p-4">
         <p className="text-sm text-gray-400 text-center py-8">
@@ -456,7 +456,7 @@ export default function RightPanel() {
     );
   }
 
-  const isConsumerLimited = mode === 'consumer' && el.editable;
+  const isConsumerLimited = mode === 'dev' && el.editable;
   const editableProps = el.editableProps ?? [];
 
   const canEdit = (prop: string) => {

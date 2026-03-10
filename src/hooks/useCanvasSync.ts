@@ -84,7 +84,7 @@ export function useCanvasSync() {
 
         if (!obj) continue;
 
-        if (mode === 'consumer' && !el.editable) { obj.selectable = false; obj.evented = false; }
+        if (mode === 'dev' && !el.editable) { obj.selectable = false; obj.evented = false; }
         if (el.locked) { obj.selectable = false; obj.evented = false; }
 
         // Background: full-canvas shape at index 0 → non-interactive

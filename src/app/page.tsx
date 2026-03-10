@@ -67,7 +67,7 @@ export default function HomePage() {
   }, [activeCategory, search]);
 
   const handleUseTemplate = (template: BuiltInTemplate) => {
-    initProject(template.name, template.preset, 'creator', {
+    initProject(template.name, template.preset, 'design', {
       elements: template.elements,
       backgroundColor: template.backgroundColor,
     });

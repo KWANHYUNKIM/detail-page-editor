@@ -48,7 +48,7 @@ export function useToolBehavior() {
         if (elId) {
           const el = useEditorStore.getState().getElement(elId);
           const locked = el?.locked ?? false;
-          const consumerLocked = mode === 'consumer' && el && !el.editable;
+          const consumerLocked = mode === 'dev' && el && !el.editable;
           obj.selectable = !locked && !consumerLocked;
           obj.evented = !locked && !consumerLocked;
         }

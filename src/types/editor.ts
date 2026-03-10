@@ -16,7 +16,7 @@ export interface CanvasPreset {
   description: string;
 }
 
-export type EditorMode = 'creator' | 'consumer';
+export type EditorMode = 'draw' | 'design' | 'dev';
 export type ElementType = 'image' | 'text' | 'shape' | 'frame';
 export type ShapeType = 'rect' | 'circle' | 'line' | 'arrow';
 export type ToolType = 'move' | 'hand' | 'rectangle' | 'circle' | 'line' | 'text' | 'image' | 'frame' | 'section';

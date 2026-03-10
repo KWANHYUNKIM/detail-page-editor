@@ -206,21 +206,21 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
       <div className="flex items-center gap-1">
         <button
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            mode === 'creator'
+            mode === 'design'
               ? 'bg-blue-500/20 text-blue-400'
               : 'bg-green-500/20 text-green-400'
           }`}
-          onClick={() => setMode(mode === 'creator' ? 'consumer' : 'creator')}
+          onClick={() => setMode(mode === 'design' ? 'dev' : 'design')}
         >
-          {mode === 'creator' ? (
+          {mode === 'design' ? (
             <>
               <HiPencilSquare className="w-3.5 h-3.5" />
-              크리에이터
+              디자인
             </>
           ) : (
             <>
               <HiEye className="w-3.5 h-3.5" />
-              소비자
+              개발
             </>
           )}
         </button>

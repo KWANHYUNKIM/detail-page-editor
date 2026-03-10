@@ -442,7 +442,7 @@ export function createFigmaDesignProject(): Project {
   return {
     id: uuid(),
     name: '상세페이지 디자인 자료모음',
-    mode: 'creator',
+    mode: 'design',
     isTemplate: false,
     preset: 'figma-slide',
     canvas: {

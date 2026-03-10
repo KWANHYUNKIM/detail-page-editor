@@ -42,7 +42,7 @@ export function createProjectSlice(set: (fn: any) => void, get: () => any): Proj
     project: null,
     currentPageIndex: 0,
 
-    initProject: (name, preset, mode = 'creator', templateData) => {
+    initProject: (name, preset, mode = 'design', templateData) => {
       const presetConfig = CANVAS_PRESETS.find((p) => p.key === preset) ?? CANVAS_PRESETS[0];
 
       let page: Page;

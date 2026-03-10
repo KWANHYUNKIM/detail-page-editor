@@ -435,7 +435,7 @@ function ElementTree({
               }}
               onToggleVisible={() => updateElement(el.id, { visible: !el.visible })}
               onToggleLock={() => updateElement(el.id, { locked: !el.locked })}
-              showEditToggle={mode === 'creator'}
+              showEditToggle={mode === 'design'}
               onToggleEditable={() => toggleElementEditable(el.id)}
               isEditing={editingId === el.id}
               onStartRename={() => setEditingId(el.id)}
