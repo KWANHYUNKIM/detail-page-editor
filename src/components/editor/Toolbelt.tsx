@@ -367,18 +367,37 @@ function ToolDivider() {
 function DrawingToolsContainer({
   activeTool,
   onSelect,
+  brushWidths,
+  onSetBrushWidth,
 }: {
   activeTool: ToolType;
   onSelect: (tool: ToolType) => void;
+  brushWidths: { pen: number; brush: number; pencil: number };
+  onSetBrushWidth: (tool: 'pen' | 'brush' | 'pencil', width: number) => void;
 }) {
+  const [openTool, setOpenTool] = useState<'pen' | 'brush' | 'pencil' | null>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const drawingTools = [
-    { tool: 'line' as ToolType, icon: <PenToolIcon />, label: 'Pen' },
-    { tool: 'rectangle' as ToolType, icon: <BrushToolIcon />, label: 'Brush' },
-    { tool: 'circle' as ToolType, icon: <HighlighterToolIcon />, label: 'Pencil' },
+    { tool: 'pen' as const, icon: <PenToolIcon />, label: 'Pen' },
+    { tool: 'brush' as const, icon: <BrushToolIcon />, label: 'Brush' },
+    { tool: 'pencil' as const, icon: <HighlighterToolIcon />, label: 'Pencil' },
   ];
 
+  useEffect(() => {
+    if (!openTool) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setOpenTool(null);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [openTool]);
+
+  const currentWidth = openTool ? brushWidths[openTool] : 0;
+
   return (
-    <div className="flex items-center gap-0.5 bg-gray-50 rounded-lg px-1 py-0.5">
+    <div ref={popupRef} className="relative flex items-center gap-0.5 bg-gray-50 rounded-lg px-1 py-0.5">
       {drawingTools.map((dt) => (
         <button
           key={dt.label}
@@ -390,11 +409,44 @@ function DrawingToolsContainer({
               ? 'bg-blue-500/20 text-blue-400'
               : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
           }`}
-          onClick={() => onSelect(dt.tool)}
+          onClick={() => {
+            if (activeTool === dt.tool) {
+              setOpenTool((prev) => (prev === dt.tool ? null : dt.tool));
+              return;
+            }
+            onSelect(dt.tool);
+            setOpenTool(null);
+          }}
         >
           {dt.icon}
         </button>
       ))}
+
+      {openTool && (
+        <div className="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 w-44">
+          <p className="text-[11px] text-gray-600 mb-2">Stroke width</p>
+          <input
+            type="range"
+            min={1}
+            max={24}
+            step={1}
+            value={currentWidth}
+            className="w-full"
+            onChange={(e) => onSetBrushWidth(openTool, Number(e.target.value))}
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={24}
+              value={currentWidth}
+              className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md"
+              onChange={(e) => onSetBrushWidth(openTool, Number(e.target.value))}
+            />
+            <span className="text-[11px] text-gray-500">px</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -409,9 +461,11 @@ interface ToolRowProps {
   activeTool: ToolType;
   moveGroupTool: ToolType;
   shapeGroupTool: ToolType;
+  drawingBrushWidths: { pen: number; brush: number; pencil: number };
   onSelectMove: (tool: ToolType) => void;
   onSelectShape: (tool: ToolType) => void;
   onSetTool: (tool: ToolType) => void;
+  onSetDrawingBrushWidth: (tool: 'pen' | 'brush' | 'pencil', width: number) => void;
 }
 
 const moveSubTools: SubTool[] = [
@@ -421,8 +475,12 @@ const moveSubTools: SubTool[] = [
 
 const shapeSubTools: SubTool[] = [
   { tool: 'rectangle', icon: <RectangleIcon />, label: 'Rectangle', shortcut: 'R' },
-  { tool: 'circle', icon: <CircleIcon />, label: 'Circle', shortcut: 'O' },
   { tool: 'line', icon: <LineIcon />, label: 'Line', shortcut: 'L' },
+  { tool: 'arrow', icon: <LineIcon />, label: 'Arrow', shortcut: 'Shift+L' },
+  { tool: 'circle', icon: <CircleIcon />, label: 'Ellipse', shortcut: 'O' },
+  { tool: 'polygon', icon: <RectangleIcon />, label: 'Polygon', shortcut: 'G' },
+  { tool: 'star', icon: <CircleIcon />, label: 'Star', shortcut: 'Shift+S' },
+  { tool: 'image', icon: <ImageIcon />, label: 'Image', shortcut: 'Ctrl+Shift+K' },
 ];
 
 const sectionSubTools: SubTool[] = [
@@ -440,7 +498,12 @@ function DrawToolRow(props: ToolRowProps) {
         onSelect={props.onSelectMove}
       />
       <ToolDivider />
-      <DrawingToolsContainer activeTool={props.activeTool} onSelect={props.onSetTool} />
+      <DrawingToolsContainer
+        activeTool={props.activeTool}
+        onSelect={props.onSetTool}
+        brushWidths={props.drawingBrushWidths}
+        onSetBrushWidth={props.onSetDrawingBrushWidth}
+      />
       <ToolDivider />
       <ToolGroup
         subTools={sectionSubTools}
@@ -580,6 +643,8 @@ export default function Toolbelt() {
   const groupElements = useEditorStore((s) => s.groupElements);
   const ungroupElements = useEditorStore((s) => s.ungroupElements);
   const getElement = useEditorStore((s) => s.getElement);
+  const drawingBrushWidths = useEditorStore((s) => s.drawingBrushWidths);
+  const setDrawingBrushWidth = useEditorStore((s) => s.setDrawingBrushWidth);
 
   const [moveGroupTool, setMoveGroupTool] = useState<ToolType>('move');
   const [shapeGroupTool, setShapeGroupTool] = useState<ToolType>('rectangle');
@@ -645,7 +710,10 @@ export default function Toolbelt() {
           selectShapeTool('circle');
           break;
         case 'l':
-          selectShapeTool('line');
+          selectShapeTool(e.shiftKey ? 'arrow' : 'line');
+          break;
+        case 'g':
+          selectShapeTool('polygon');
           break;
         case 't':
           setActiveTool('text');
@@ -653,11 +721,17 @@ export default function Toolbelt() {
         case 'i':
           setActiveTool('image');
           break;
+        case 'b':
+          setActiveTool('brush');
+          break;
+        case 'p':
+          setActiveTool(e.shiftKey ? 'pencil' : 'pen');
+          break;
         case 'f':
           setActiveTool('frame');
           break;
         case 's':
-          setActiveTool('section');
+          setActiveTool(e.shiftKey ? 'star' : 'section');
           break;
       }
     };
@@ -669,9 +743,11 @@ export default function Toolbelt() {
     activeTool,
     moveGroupTool,
     shapeGroupTool,
+    drawingBrushWidths,
     onSelectMove: selectMoveTool,
     onSelectShape: selectShapeTool,
     onSetTool: setActiveTool,
+    onSetDrawingBrushWidth: setDrawingBrushWidth,
   };
 
   const modeIndex = MODE_ORDER.indexOf(mode);

@@ -21,6 +21,7 @@ export function useToolBehavior() {
 
   const activeTool = useEditorStore((s) => s.activeTool);
   const mode = useEditorStore((s) => s.mode);
+  const drawingBrushWidths = useEditorStore((s) => s.drawingBrushWidths);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -31,15 +32,17 @@ export function useToolBehavior() {
     let isPanning = false; let lastPanX = 0; let lastPanY = 0;
 
     const toolToShape: Partial<Record<ToolType, ShapeType>> = {
-      rectangle: 'rect', circle: 'circle', line: 'line',
+      rectangle: 'rect', circle: 'circle', line: 'line', arrow: 'arrow', polygon: 'polygon', star: 'star',
     };
 
     const isMoveTool = activeTool === 'move';
     const isHandTool = activeTool === 'hand';
-    const isPlacementTool = ['rectangle', 'circle', 'line', 'text', 'image', 'frame', 'section'].includes(activeTool);
+    const isDrawingTool = ['pen', 'brush', 'pencil'].includes(activeTool);
+    const isPlacementTool = ['rectangle', 'circle', 'line', 'arrow', 'polygon', 'star', 'text', 'image', 'frame', 'section'].includes(activeTool);
 
     canvas.selection = isMoveTool;
     canvas.defaultCursor = isHandTool ? 'grab' : isPlacementTool ? 'crosshair' : 'default';
+    canvas.isDrawingMode = false;
 
     canvas.getObjects().forEach((obj) => {
       if (isMoveTool) {
@@ -104,10 +107,46 @@ export function useToolBehavior() {
       }
     };
 
+    const onPathCreated = (e: { path?: import('fabric').FabricObject }) => {
+      const pathObj = e.path;
+      if (!pathObj || !(pathObj instanceof fabricModule.Path)) return;
+      const svgPath = pathObj.path?.map((seg) => seg.join(' ')).join(' ') ?? '';
+      const bounds = pathObj.getBoundingRect();
+      const store = useEditorStore.getState();
+      const page = store.getCurrentPage();
+      if (page) useHistoryStore.getState().pushState(page);
+
+      store.addDrawingPath(
+        svgPath,
+        {
+          x: bounds.left,
+          y: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+        },
+        canvas.freeDrawingBrush?.width ?? drawingBrushWidths.pen,
+        (canvas.freeDrawingBrush?.color as string | undefined) ?? '#000000',
+      );
+
+      canvas.remove(pathObj);
+      canvas.requestRenderAll();
+    };
+
     if (isHandTool) {
       canvas.on('mouse:down', onHandDown);
       canvas.on('mouse:move', onHandMove);
       canvas.on('mouse:up', onHandUp);
+    } else if (isDrawingTool) {
+      canvas.isDrawingMode = true;
+      const brush = new fabricModule.PencilBrush(canvas);
+      if (activeTool === 'pen') brush.width = drawingBrushWidths.pen;
+      if (activeTool === 'brush') brush.width = drawingBrushWidths.brush;
+      if (activeTool === 'pencil') brush.width = drawingBrushWidths.pencil;
+      brush.color = '#000000';
+      brush.strokeLineCap = 'round';
+      brush.strokeLineJoin = 'round';
+      canvas.freeDrawingBrush = brush;
+      canvas.on('path:created', onPathCreated as (e: unknown) => void);
     } else if (isPlacementTool) {
       canvas.on('mouse:down', onPlacementDown as (e: unknown) => void);
     }
@@ -117,7 +156,9 @@ export function useToolBehavior() {
       canvas.off('mouse:move', onHandMove);
       canvas.off('mouse:up', onHandUp);
       canvas.off('mouse:down', onPlacementDown as (e: unknown) => void);
+      canvas.off('path:created', onPathCreated as (e: unknown) => void);
+      canvas.isDrawingMode = false;
       canvas.defaultCursor = 'default';
     };
-  }, [activeTool, isReady, mode]);
+  }, [activeTool, drawingBrushWidths, isReady, mode]);
 }

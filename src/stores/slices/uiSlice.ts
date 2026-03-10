@@ -5,6 +5,7 @@ export interface UiSlice {
   zoom: number;
   mode: EditorMode;
   activeTool: ToolType;
+  drawingBrushWidths: { pen: number; brush: number; pencil: number };
   showGrid: boolean;
   gridSize: number;
   aiEnabled: boolean;
@@ -19,6 +20,7 @@ export interface UiSlice {
   selectElements: (ids: string[]) => void;
   clearSelection: () => void;
   setActiveTool: (tool: ToolType) => void;
+  setDrawingBrushWidth: (tool: 'pen' | 'brush' | 'pencil', width: number) => void;
   setEditingFrameId: (id: string | null) => void;
   setFocusedSectionId: (id: string | null) => void;
   toggleGrid: () => void;
@@ -34,6 +36,7 @@ export function createUiSlice(set: (fn: any) => void, get: () => any): UiSlice {
     zoom: 1,
     mode: 'design',
     activeTool: 'move',
+    drawingBrushWidths: { pen: 2, brush: 8, pencil: 4 },
     showGrid: false,
     gridSize: 50,
     aiEnabled: false,
@@ -56,6 +59,15 @@ export function createUiSlice(set: (fn: any) => void, get: () => any): UiSlice {
     selectElements: (ids) => set({ selectedElementIds: ids }),
     clearSelection: () => set({ selectedElementIds: [] }),
     setActiveTool: (tool) => set({ activeTool: tool }),
+    setDrawingBrushWidth: (tool, width) => {
+      const safeWidth = Math.max(1, Math.min(64, width));
+      set((s: UiSlice) => ({
+        drawingBrushWidths: {
+          ...s.drawingBrushWidths,
+          [tool]: safeWidth,
+        },
+      }));
+    },
     setEditingFrameId: (id) => set({ editingFrameId: id }),
     setFocusedSectionId: (id) => set({ focusedSectionId: id }),
     toggleGrid: () => set((s: { showGrid: boolean }) => ({ showGrid: !s.showGrid })),

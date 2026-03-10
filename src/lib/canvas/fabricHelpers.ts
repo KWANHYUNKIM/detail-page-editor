@@ -200,6 +200,93 @@ function createFabricShape(el: ShapeElement): fabric.FabricObject {
         stroke: el.stroke,
         strokeWidth: el.strokeWidth,
       });
+    case 'arrow': {
+      const shaftY = Math.max(1, el.height / 2);
+      const head = Math.min(Math.max(10, el.strokeWidth * 5), Math.max(12, el.width * 0.35));
+      const tipX = Math.max(0, el.width);
+      const baseX = Math.max(0, tipX - head);
+      const headHalf = Math.max(5, head * 0.38);
+      const arrowPath = [
+        `M 0 ${shaftY}`,
+        `L ${baseX} ${shaftY}`,
+        `M ${baseX} ${Math.max(0, shaftY - headHalf)}`,
+        `L ${tipX} ${shaftY}`,
+        `L ${baseX} ${Math.min(el.height, shaftY + headHalf)}`,
+      ].join(' ');
+      return new fabric.Path(arrowPath, {
+        ...commonProps,
+        fill: 'transparent',
+        stroke: el.stroke,
+        strokeWidth: el.strokeWidth,
+        strokeLineCap: 'round',
+        strokeLineJoin: 'round',
+      });
+    }
+    case 'polygon': {
+      const centerX = el.width / 2;
+      const centerY = el.height / 2;
+      const radius = Math.min(el.width, el.height) / 2;
+      const points = Array.from({ length: 6 }, (_, index) => {
+        const angle = (Math.PI * 2 * index) / 6 - Math.PI / 2;
+        return {
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+        };
+      });
+      return new fabric.Polygon(points, {
+        ...commonProps,
+        fill: toFabricFill(el.fill, el.width, el.height),
+        stroke: el.stroke,
+        strokeWidth: el.strokeWidth,
+      });
+    }
+    case 'star': {
+      const centerX = el.width / 2;
+      const centerY = el.height / 2;
+      const outerRadius = Math.min(el.width, el.height) / 2;
+      const innerRadius = outerRadius * 0.45;
+      const points = Array.from({ length: 10 }, (_, index) => {
+        const angle = (Math.PI * index) / 5 - Math.PI / 2;
+        const radius = index % 2 === 0 ? outerRadius : innerRadius;
+        return {
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+        };
+      });
+      return new fabric.Polygon(points, {
+        ...commonProps,
+        fill: toFabricFill(el.fill, el.width, el.height),
+        stroke: el.stroke,
+        strokeWidth: el.strokeWidth,
+      });
+    }
+    case 'triangle':
+      return new fabric.Triangle({
+        ...commonProps,
+        width: el.width,
+        height: el.height,
+        fill: toFabricFill(el.fill, el.width, el.height),
+        stroke: el.stroke,
+        strokeWidth: el.strokeWidth,
+      });
+    case 'path': {
+      if (!el.pathData) {
+        return new fabric.Rect({
+          ...commonProps,
+          width: 10,
+          height: 10,
+          fill: 'transparent',
+        });
+      }
+      return new fabric.Path(el.pathData, {
+        ...commonProps,
+        fill: 'transparent',
+        stroke: el.stroke,
+        strokeWidth: el.brushWidth ?? el.strokeWidth,
+        strokeLineCap: 'round',
+        strokeLineJoin: 'round',
+      });
+    }
     default:
       return new fabric.Rect({
         ...commonProps,

@@ -18,8 +18,8 @@ export interface CanvasPreset {
 
 export type EditorMode = 'draw' | 'design' | 'dev';
 export type ElementType = 'image' | 'text' | 'shape' | 'frame';
-export type ShapeType = 'rect' | 'circle' | 'line' | 'arrow';
-export type ToolType = 'move' | 'hand' | 'rectangle' | 'circle' | 'line' | 'text' | 'image' | 'frame' | 'section';
+export type ShapeType = 'rect' | 'circle' | 'line' | 'arrow' | 'path' | 'polygon' | 'star' | 'triangle';
+export type ToolType = 'move' | 'hand' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'polygon' | 'star' | 'pen' | 'brush' | 'pencil' | 'text' | 'image' | 'frame' | 'section';
 export type TextAlign = 'left' | 'center' | 'right';
 export type FontWeight = 'normal' | 'bold';
 export type FontStyle = 'normal' | 'italic';
@@ -194,6 +194,8 @@ export interface ShapeElement extends BaseElement {
   fill: FillValue;
   stroke: string;
   strokeWidth: number;
+  pathData?: string;
+  brushWidth?: number;
   borderRadius: number;
 }
 

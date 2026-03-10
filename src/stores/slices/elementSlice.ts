@@ -15,6 +15,7 @@ export interface ElementSlice {
   addImageElement: (src: string, name?: string) => string;
   addTextElement: (content?: string) => string;
   addShapeElement: (shape: ShapeType) => string;
+  addDrawingPath: (pathData: string, bounds: { x: number; y: number; width: number; height: number }, brushWidth: number, stroke: string) => string;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
   removeElements: (ids: string[]) => void;
   duplicateElements: (ids: string[], offset?: { x: number; y: number }) => void;
@@ -98,19 +99,48 @@ export function createElementSlice(set: SetFn, get: GetFn): ElementSlice {
 
     addShapeElement: (shape) => {
       const id = uuid();
+      const isLineLike = shape === 'line' || shape === 'arrow';
+      const isCircleLike = shape === 'circle';
+      const isPolygonLike = shape === 'polygon' || shape === 'star' || shape === 'triangle';
       const element: ShapeElement = {
         id,
         type: 'shape',
         x: 100, y: 100,
-        width: shape === 'line' ? 200 : 150,
-        height: shape === 'line' ? 4 : 150,
+        width: isLineLike ? 200 : isPolygonLike ? 160 : 150,
+        height: isLineLike ? 24 : isPolygonLike ? 160 : 150,
         rotation: 0, opacity: 1,
         locked: false, visible: true, editable: false,
         shape,
-        fill: shape === 'line' ? 'transparent' : '#e2e8f0',
+        fill: isLineLike ? 'transparent' : '#e2e8f0',
         stroke: '#94a3b8',
-        strokeWidth: shape === 'line' ? 2 : 0,
-        borderRadius: shape === 'circle' ? 9999 : 0,
+        strokeWidth: isLineLike ? 2 : isPolygonLike ? 2 : 0,
+        borderRadius: isCircleLike ? 9999 : 0,
+      };
+      set((s: any) => addToPage(s, element)); // eslint-disable-line @typescript-eslint/no-explicit-any
+      return id;
+    },
+
+    addDrawingPath: (pathData, bounds, brushWidth, stroke) => {
+      const id = uuid();
+      const element: ShapeElement = {
+        id,
+        type: 'shape',
+        shape: 'path',
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        editable: false,
+        fill: 'transparent',
+        stroke,
+        strokeWidth: brushWidth,
+        brushWidth,
+        pathData,
+        borderRadius: 0,
       };
       set((s: any) => addToPage(s, element)); // eslint-disable-line @typescript-eslint/no-explicit-any
       return id;
