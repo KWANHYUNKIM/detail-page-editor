@@ -220,8 +220,8 @@ function LayerRow({
     <div
       className={`group relative flex items-center h-7 cursor-pointer select-none transition-colors ${
         isSelected
-          ? 'bg-[#0d99ff]/20 text-white'
-          : 'hover:bg-white/5 text-[#e8e8e8]'
+          ? 'bg-blue-500/15 text-gray-900'
+          : 'hover:bg-gray-100 text-gray-700'
       } ${!el.visible ? 'opacity-40' : ''}`}
       onClick={onSelect}
       onContextMenu={onContextMenu}
@@ -232,7 +232,7 @@ function LayerRow({
       {/* Expand caret OR spacer */}
       {isContainer ? (
         <button
-          className="flex items-center justify-center w-4 h-4 shrink-0 text-[#b3b3b3] hover:text-white transition-colors"
+          className="flex items-center justify-center w-4 h-4 shrink-0 text-gray-400 hover:text-gray-900 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onToggleExpand();
@@ -249,7 +249,7 @@ function LayerRow({
       )}
 
       {/* Type icon */}
-      <span className="flex items-center justify-center w-4 h-4 shrink-0 ml-0.5 text-[#b3b3b3]">
+      <span className="flex items-center justify-center w-4 h-4 shrink-0 ml-0.5 text-gray-400">
         {getTypeIcon(el.type, shape)}
       </span>
 
@@ -257,7 +257,7 @@ function LayerRow({
       {isEditing ? (
         <input
           ref={inputRef}
-          className="flex-1 ml-1.5 bg-[#1a1a2e] text-white text-[11px] px-1 py-0 rounded border border-[#0d99ff] outline-none w-full"
+          className="flex-1 ml-1.5 bg-white text-gray-900 text-[11px] px-1 py-0 rounded border border-blue-500 outline-none w-full"
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={(e) => {
@@ -294,8 +294,8 @@ function LayerRow({
         <button
           className={`shrink-0 mr-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
             el.editable
-              ? 'bg-green-500/20 text-green-400'
-              : 'bg-[#2a2a3e] text-[#6e6e6e]'
+              ? 'bg-green-500/20 text-green-600'
+              : 'bg-gray-100 text-gray-400'
           }`}
           onClick={(e) => {
             e.stopPropagation();
@@ -309,7 +309,7 @@ function LayerRow({
       {/* Row actions — hover only (Lock + Visibility) */}
       <div className="flex items-center gap-0.5 pr-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/10 transition-colors"
+          className="flex items-center justify-center w-5 h-5 rounded hover:bg-gray-200 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onToggleLock();
@@ -318,24 +318,24 @@ function LayerRow({
           {el.locked ? (
             <HiLockClosed className="w-3.5 h-3.5 text-amber-400" />
           ) : (
-            <HiLockOpen className="w-3.5 h-3.5 text-[#b3b3b3]" />
+            <HiLockOpen className="w-3.5 h-3.5 text-gray-400" />
           )}
         </button>
 
         <button
-          className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/10 transition-colors"
+          className="flex items-center justify-center w-5 h-5 rounded hover:bg-gray-200 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onToggleVisible();
           }}
         >
           {el.visible ? (
-            <HiEye className="w-3.5 h-3.5 text-[#b3b3b3]" />
+            <HiEye className="w-3.5 h-3.5 text-gray-400" />
           ) : (
-            <HiEyeSlash className="w-3.5 h-3.5 text-[#6e6e6e]" />
+            <HiEyeSlash className="w-3.5 h-3.5 text-gray-300" />
           )}
-        </button>
-      </div>
+          </button>
+        </div>
 
       {/* Persistent lock indicator */}
       {el.locked && (
@@ -347,7 +347,7 @@ function LayerRow({
       {/* Persistent hidden indicator */}
       {!el.visible && !el.locked && (
         <span className="absolute right-2 flex items-center justify-center w-5 h-5 group-hover:hidden">
-          <HiEyeSlash className="w-3.5 h-3.5 text-[#6e6e6e]" />
+          <HiEyeSlash className="w-3.5 h-3.5 text-gray-300" />
         </span>
       )}
     </div>
@@ -504,7 +504,7 @@ export default function LayerPanel() {
 
   if (!page || !project) {
     return (
-      <div className="flex items-center justify-center h-20 text-[11px] text-[#6e6e6e]">
+      <div className="flex items-center justify-center h-20 text-[11px] text-gray-400">
         페이지가 없습니다
       </div>
     );
@@ -537,9 +537,9 @@ export default function LayerPanel() {
   return (
     <div>
       {/* Section header */}
-      <div className="flex items-center justify-between h-8 border-b border-[#3a3a3a]">
+      <div className="flex items-center justify-between h-8 border-b border-gray-200">
         <button
-          className="flex items-center gap-1 px-3 text-[11px] font-medium text-[#b3b3b3] hover:text-white transition-colors"
+          className="flex items-center gap-1 px-3 text-[11px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? (
@@ -551,7 +551,7 @@ export default function LayerPanel() {
         </button>
         <div className="flex items-center gap-1 mr-3">
           <button
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-white/10 text-[#6e6e6e] hover:text-white transition-colors"
+            className="flex items-center justify-center w-5 h-5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-900 transition-colors"
             onClick={(e) => { e.stopPropagation(); setExpandedIds(new Set()); }}
             title="모든 레이어 접기"
           >
@@ -560,7 +560,7 @@ export default function LayerPanel() {
               <path d="M4 13l4-3 4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span className="text-[10px] text-[#6e6e6e] tabular-nums">
+          <span className="text-[10px] text-gray-400 tabular-nums">
             {elementCount}
           </span>
         </div>
@@ -568,20 +568,20 @@ export default function LayerPanel() {
 
       {/* Search input */}
       {!collapsed && (
-        <div className="px-2 py-1.5 border-b border-[#3a3a3a]">
-          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#2a2a3e] rounded text-[11px] text-white">
-            <HiMagnifyingGlass className="w-3.5 h-3.5 text-[#b3b3b3] shrink-0" />
+        <div className="px-2 py-1.5 border-b border-gray-200">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100 rounded text-[11px] text-gray-900">
+            <HiMagnifyingGlass className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder="레이어 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-white placeholder-[#6e6e6e]"
+              className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-400"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="flex items-center justify-center w-4 h-4 text-[#b3b3b3] hover:text-white transition-colors shrink-0"
+                className="flex items-center justify-center w-4 h-4 text-gray-400 hover:text-gray-900 transition-colors shrink-0"
               >
                 <HiXMark className="w-3.5 h-3.5" />
               </button>
@@ -611,12 +611,12 @@ export default function LayerPanel() {
                 onContextMenu={(pos) => setContextMenu(pos)}
               />
             ) : (
-              <div className="flex items-center justify-center h-16 text-[10px] text-[#4e4e4e] italic">
+              <div className="flex items-center justify-center h-16 text-[10px] text-gray-400 italic">
                 {searchQuery ? '검색 결과가 없습니다' : '요소가 없습니다'}
               </div>
             )
           ) : (
-            <div className="flex items-center justify-center h-16 text-[10px] text-[#4e4e4e] italic">
+            <div className="flex items-center justify-center h-16 text-[10px] text-gray-400 italic">
               요소가 없습니다
             </div>
           )}

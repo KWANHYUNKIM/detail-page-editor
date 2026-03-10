@@ -152,7 +152,7 @@ function ToolButton({
       className={`p-2 rounded-md transition-colors ${
         active
           ? 'bg-blue-500/20 text-blue-400'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'
+          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
       }`}
       onClick={onClick}
     >
@@ -213,7 +213,7 @@ function ToolGroup({
         className={`p-2 rounded-l-md transition-colors ${
           isGroupActive
             ? 'bg-blue-500/20 text-blue-400'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
         }`}
         onClick={() => onSelect(current.tool)}
       >
@@ -229,7 +229,7 @@ function ToolGroup({
         className={`pr-1 pl-0 py-2 rounded-r-md transition-colors ${
           isGroupActive
             ? 'text-blue-400'
-            : 'text-gray-500 hover:text-gray-300'
+            : 'text-gray-400 hover:text-gray-600'
         }`}
         onClick={() => setOpen(!open)}
       >
@@ -238,7 +238,7 @@ function ToolGroup({
 
       {/* Dropdown menu */}
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-[#2a2a3e] rounded-lg shadow-xl border border-[#3a3a4e] py-1 z-50 min-w-[160px]">
+        <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[160px]">
           {subTools.map((sub) => (
             <button
               key={sub.tool}
@@ -246,7 +246,7 @@ function ToolGroup({
               className={`flex items-center gap-2.5 w-full px-3 py-2 text-xs transition-colors ${
                 activeTool === sub.tool
                   ? 'bg-blue-500/15 text-blue-400'
-                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
               onClick={() => {
                 onSelect(sub.tool);
@@ -385,7 +385,7 @@ export default function Toolbelt() {
         onSelect={selectMoveTool}
       />
 
-      <div className="w-px h-5 bg-[#3a3a4e] mx-0.5" />
+      <div className="w-px h-5 bg-gray-200 mx-0.5" />
 
       {/* Shape group (Rectangle / Circle / Line) */}
       <ToolGroup
@@ -395,7 +395,7 @@ export default function Toolbelt() {
         onSelect={selectShapeTool}
       />
 
-      <div className="w-px h-5 bg-[#3a3a4e] mx-0.5" />
+      <div className="w-px h-5 bg-gray-200 mx-0.5" />
 
       {/* Text */}
       <ToolButton
@@ -415,7 +415,7 @@ export default function Toolbelt() {
         onClick={() => setActiveTool('image')}
       />
 
-      <div className="w-px h-5 bg-[#3a3a4e] mx-0.5" />
+      <div className="w-px h-5 bg-gray-200 mx-0.5" />
 
       {/* Frame */}
       <ToolButton

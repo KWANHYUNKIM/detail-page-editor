@@ -47,11 +47,11 @@ export default function PagePanel() {
   };
 
   return (
-    <div className="border-b border-[#2a2a3e]">
+    <div className="border-b border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
-          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? (
@@ -62,7 +62,7 @@ export default function PagePanel() {
           <span>Pages</span>
         </button>
         <button
-          className="p-1.5 mr-2 text-gray-500 hover:text-gray-200 transition-colors"
+          className="p-1.5 mr-2 text-gray-400 hover:text-gray-900 transition-colors"
           onClick={() => addPage()}
           title="새 페이지 추가"
         >
@@ -82,8 +82,8 @@ export default function PagePanel() {
                 key={page.id}
                 className={`group flex items-center gap-1 px-3 py-1.5 mx-1 rounded cursor-pointer text-xs transition-colors ${
                   isActive
-                    ? 'bg-blue-500/20 text-white'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                    ? 'bg-blue-500/15 text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
                 onClick={() => setCurrentPageIndex(index)}
                 onDoubleClick={() => handleDoubleClick(page.id, page.name)}
@@ -91,7 +91,7 @@ export default function PagePanel() {
                 {isEditing ? (
                   <input
                     ref={inputRef}
-                    className="flex-1 bg-[#1a1a2e] text-white text-xs px-1.5 py-0.5 rounded border border-blue-500 outline-none"
+                    className="flex-1 bg-white text-gray-900 text-xs px-1.5 py-0.5 rounded border border-blue-500 outline-none"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onBlur={commitRename}

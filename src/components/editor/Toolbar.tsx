@@ -83,7 +83,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
   if (!project) return null;
 
   return (
-    <div className="h-12 bg-[#1e1e2e] border-b border-[#2a2a3e] flex items-center px-4 gap-2 shrink-0">
+    <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-2 shrink-0">
       <div className="flex items-center gap-2 mr-4">
         {editingName ? (
           <input
@@ -94,12 +94,12 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleNameSave();
             }}
-            className="bg-[#2a2a3e] text-white text-sm px-2 py-1 rounded border border-blue-500 outline-none w-48"
+            className="bg-gray-100 text-gray-900 text-sm px-2 py-1 rounded border border-blue-500 outline-none w-48"
             autoFocus
           />
         ) : (
           <button
-            className="text-white text-sm font-medium hover:text-blue-400 transition-colors truncate max-w-[200px]"
+            className="text-gray-900 text-sm font-medium hover:text-blue-500 transition-colors truncate max-w-[200px]"
             onClick={() => {
               setNameValue(project.name);
               setEditingName(true);
@@ -110,15 +110,15 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
         )}
       </div>
 
-      <div className="h-5 w-px bg-[#3a3a4e]" />
+      <div className="h-5 w-px bg-gray-200" />
 
       {/* ━━━ Figma-style Toolbelt ━━━ */}
       <Toolbelt />
 
-      <div className="h-5 w-px bg-[#3a3a4e]" />
+      <div className="h-5 w-px bg-gray-200" />
       <div className="flex items-center gap-1">
         <button
-          className="p-1.5 rounded hover:bg-[#2a2a3e] text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           onClick={handleUndo}
           disabled={!canUndo()}
           title="실행 취소"
@@ -126,7 +126,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
           <HiArrowUturnLeft className="w-4 h-4" />
         </button>
         <button
-          className="p-1.5 rounded hover:bg-[#2a2a3e] text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           onClick={handleRedo}
           disabled={!canRedo()}
           title="다시 실행"
@@ -135,21 +135,21 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
         </button>
       </div>
 
-      <div className="h-5 w-px bg-[#3a3a4e]" />
+      <div className="h-5 w-px bg-gray-200" />
 
       <div className="flex items-center gap-1">
         <button
-          className="p-1.5 rounded hover:bg-[#2a2a3e] text-gray-400 hover:text-white transition-colors"
+          className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
           onClick={() => setZoom(zoom - 0.1)}
           title="축소"
         >
           <HiMagnifyingGlassMinus className="w-4 h-4" />
         </button>
-        <span className="text-xs text-gray-300 w-12 text-center font-mono">
+        <span className="text-xs text-gray-600 w-12 text-center font-mono">
           {Math.round(zoom * 100)}%
         </span>
         <button
-          className="p-1.5 rounded hover:bg-[#2a2a3e] text-gray-400 hover:text-white transition-colors"
+          className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
           onClick={() => setZoom(zoom + 0.1)}
           title="확대"
         >
@@ -159,7 +159,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
 
       {/* Grid toggle */}
       <button
-        className={`p-1.5 rounded transition-colors ${showGrid ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:bg-[#2a2a3e] hover:text-white'}`}
+        className={`p-1.5 rounded transition-colors ${showGrid ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:bg-gray-100 hover:text-white'}`}
         onClick={toggleGrid}
         title="그리드 표시"
       >
@@ -176,7 +176,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
         return (
           <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/15 rounded-md">
             <HiViewfinderCircle className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-xs text-blue-300 font-medium">섹션 {idx + 1}</span>
+            <span className="text-xs text-blue-600 font-medium">섹션 {idx + 1}</span>
             <button
               className="p-0.5 text-blue-400 hover:text-blue-200 transition-colors"
               onClick={() => setFocusedSectionId(null)}
@@ -201,7 +201,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
         </button>
       </div>
 
-      <div className="h-5 w-px bg-[#3a3a4e]" />
+      <div className="h-5 w-px bg-gray-200" />
 
       <div className="flex items-center gap-1">
         <button
@@ -226,7 +226,7 @@ export default function Toolbar({ onExport, saveStatus }: ToolbarProps) {
         </button>
       </div>
 
-      <div className="h-5 w-px bg-[#3a3a4e]" />
+      <div className="h-5 w-px bg-gray-200" />
 
       {/* Auto-save status indicator */}
       <div className="flex items-center gap-1.5 px-2 py-1 text-xs">

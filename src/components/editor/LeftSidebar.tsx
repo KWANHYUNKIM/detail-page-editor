@@ -73,16 +73,16 @@ export default function LeftSidebar() {
   const templates = getTemplates();
 
   return (
-    <div className="w-[260px] bg-[#1e1e2e] border-r border-[#2a2a3e] flex flex-col shrink-0 overflow-hidden">
+    <div className="w-[260px] bg-white border-r border-gray-200 flex flex-col shrink-0 overflow-hidden">
       {/* Tabs */}
-      <div className="flex border-b border-[#2a2a3e]">
+      <div className="flex border-b border-gray-200">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
               activeTab === tab.key
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'text-blue-500 border-b-2 border-blue-500'
+                : 'text-gray-500 hover:text-gray-900'
             }`}
             onClick={() => setActiveTab(tab.key)}
           >
@@ -112,7 +112,7 @@ export default function LeftSidebar() {
               aria-orientation="vertical"
               tabIndex={0}
             >
-              <div className="w-8 h-0.5 rounded-full bg-[#3a3a3a] group-hover:bg-[#0d99ff] transition-colors" />
+              <div className="w-8 h-0.5 rounded-full bg-gray-300 group-hover:bg-[#0d99ff] transition-colors" />
             </div>
 
             {/* Bottom: Layers (fills remaining) */}
@@ -136,7 +136,7 @@ export default function LeftSidebar() {
             />
 
             <button
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg bg-[#2a2a3e] text-gray-200 text-sm hover:bg-[#3a3a4e] transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
               <HiPhoto className="w-5 h-5 text-purple-400" />
@@ -144,7 +144,7 @@ export default function LeftSidebar() {
             </button>
 
             <button
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg bg-[#2a2a3e] text-gray-200 text-sm hover:bg-[#3a3a4e] transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 transition-colors"
               onClick={() => addTextElement()}
             >
               <HiDocumentText className="w-5 h-5 text-sky-400" />
@@ -155,7 +155,7 @@ export default function LeftSidebar() {
 
             <div className="grid grid-cols-2 gap-2">
               <button
-                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-[#2a2a3e] text-gray-200 text-xs hover:bg-[#3a3a4e] transition-colors"
+                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-gray-100 text-gray-700 text-xs hover:bg-gray-200 transition-colors"
                 onClick={() => addShapeElement('rect')}
               >
                 <div className="w-8 h-6 rounded-sm border-2 border-amber-400" />
@@ -163,7 +163,7 @@ export default function LeftSidebar() {
               </button>
 
               <button
-                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-[#2a2a3e] text-gray-200 text-xs hover:bg-[#3a3a4e] transition-colors"
+                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-gray-100 text-gray-700 text-xs hover:bg-gray-200 transition-colors"
                 onClick={() => addShapeElement('circle')}
               >
                 <div className="w-7 h-7 rounded-full border-2 border-emerald-400" />
@@ -171,7 +171,7 @@ export default function LeftSidebar() {
               </button>
 
               <button
-                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-[#2a2a3e] text-gray-200 text-xs hover:bg-[#3a3a4e] transition-colors"
+                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-gray-100 text-gray-700 text-xs hover:bg-gray-200 transition-colors"
                 onClick={() => addShapeElement('line')}
               >
                 <HiMinus className="w-8 h-8 text-rose-400" />
@@ -179,7 +179,7 @@ export default function LeftSidebar() {
               </button>
 
               <button
-                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-[#2a2a3e] text-gray-200 text-xs hover:bg-[#3a3a4e] transition-colors"
+                className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg bg-gray-100 text-gray-700 text-xs hover:bg-gray-200 transition-colors"
                 onClick={() => addShapeElement('rect')}
               >
                 <HiCube className="w-6 h-6 text-indigo-400" />
@@ -201,10 +201,10 @@ export default function LeftSidebar() {
               templates.map((template) => (
                 <button
                   key={template.id}
-                  className="flex flex-col items-start gap-1 w-full px-3 py-2.5 rounded-lg bg-[#2a2a3e] text-left hover:bg-[#3a3a4e] transition-colors"
+                  className="flex flex-col items-start gap-1 w-full px-3 py-2.5 rounded-lg bg-gray-100 text-left hover:bg-gray-200 transition-colors"
                   onClick={() => loadProject(template)}
                 >
-                  <span className="text-sm text-gray-200 truncate w-full">
+                  <span className="text-sm text-gray-700 truncate w-full">
                     {template.name}
                   </span>
                   <span className="text-xs text-gray-500">

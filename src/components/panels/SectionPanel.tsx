@@ -112,11 +112,11 @@ export default function SectionPanel() {
   };
 
   return (
-    <div className="border-b border-[#2a2a3e]">
+    <div className="border-b border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
-          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? (
@@ -138,7 +138,7 @@ export default function SectionPanel() {
             </button>
           )}
           <button
-            className="p-1.5 text-gray-500 hover:text-gray-200 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-900 transition-colors"
             onClick={handleAddSection}
             title="새 섹션 추가"
           >
@@ -164,17 +164,17 @@ export default function SectionPanel() {
                     key={section.id}
                     className={`group flex items-center gap-2 px-3 py-1.5 mx-1 rounded cursor-pointer text-xs transition-all ${
                       isFocused
-                        ? 'bg-blue-500/30 text-white ring-1 ring-blue-500/50'
+                        ? 'bg-blue-500/15 text-gray-900 ring-1 ring-blue-500/50'
                         : isSelected
-                          ? 'bg-blue-500/20 text-white'
-                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                          ? 'bg-blue-500/10 text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                     }`}
                     onClick={() => handleFocusSection(section.id)}
                   >
                     {/* Focus indicator + Color swatch */}
                     <div className="relative shrink-0">
                       <div
-                        className="w-5 h-5 rounded-sm border border-gray-600"
+                        className="w-5 h-5 rounded-sm border border-gray-300"
                         style={{
                           background: fillToCss(section.fill || '#ffffff'),
                         }}
@@ -195,7 +195,7 @@ export default function SectionPanel() {
                     {/* Action buttons */}
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        className="p-0.5 text-gray-500 hover:text-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-0.5 text-gray-400 hover:text-gray-900 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleMoveUp(index);
@@ -206,7 +206,7 @@ export default function SectionPanel() {
                         <HiChevronUp className="w-3 h-3" />
                       </button>
                       <button
-                        className="p-0.5 text-gray-500 hover:text-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-0.5 text-gray-400 hover:text-gray-900 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleMoveDown(index);
