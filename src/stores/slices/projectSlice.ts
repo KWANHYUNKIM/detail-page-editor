@@ -99,13 +99,17 @@ export function createProjectSlice(set: (fn: any) => void, get: () => any): Proj
 
     loadProject: (project) => {
       const migratedPages = project.pages.map(migratePageLayers);
-      const migratedProject = { ...project, pages: migratedPages };
+      const validModes = ['draw', 'design', 'dev'] as const;
+      const migratedMode = validModes.includes(project.mode as typeof validModes[number])
+        ? project.mode
+        : 'design';
+      const migratedProject = { ...project, pages: migratedPages, mode: migratedMode };
       const firstPage = migratedPages[0];
       set({
         project: migratedProject,
         currentPageIndex: 0,
         selectedElementIds: [],
-        mode: project.mode,
+        mode: migratedMode,
         activeLayerId: firstPage?.layers[0]?.id ?? null,
       });
     },

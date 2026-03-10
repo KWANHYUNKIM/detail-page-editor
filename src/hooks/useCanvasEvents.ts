@@ -38,12 +38,47 @@ export function useCanvasEvents(
 ) {
   const {
     fabricRef, fabricModuleRef, helpersRef,
-    isSyncingRef, fabricUpdateRef, updateOverlayRef, isReady,
+    isSyncingRef, fabricUpdateRef, updateOverlayRef, scrollContainerRef, isReady,
   } = useCanvasContext();
 
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !isReady) return;
+
+    const expandCanvasLive = () => {
+      const store = useEditorStore.getState();
+      const project = store.project;
+      if (!project) return;
+      const prevExtent = { ...store.canvasExtent };
+      store.expandCanvasToFitElements();
+      const newExtent = store.canvasExtent;
+
+      const extentChanged =
+        newExtent.top !== prevExtent.top ||
+        newExtent.right !== prevExtent.right ||
+        newExtent.bottom !== prevExtent.bottom ||
+        newExtent.left !== prevExtent.left;
+
+      if (!extentChanged) return;
+
+      const z = store.zoom;
+      canvas.setDimensions({
+        width: (newExtent.left + project.canvas.width + newExtent.right) * z,
+        height: (newExtent.top + project.canvas.height + newExtent.bottom) * z,
+      });
+      canvas.setViewportTransform([z, 0, 0, z, newExtent.left * z, newExtent.top * z]);
+
+      const scrollEl = scrollContainerRef.current;
+      if (scrollEl) {
+        if (newExtent.left !== prevExtent.left) {
+          scrollEl.scrollLeft += (newExtent.left - prevExtent.left) * z;
+        }
+        if (newExtent.top !== prevExtent.top) {
+          scrollEl.scrollTop += (newExtent.top - prevExtent.top) * z;
+        }
+      }
+      canvas.renderAll();
+    };
 
     // 1. Selection sync
     const onSelectionCreated = () => {
@@ -148,6 +183,7 @@ export function useCanvasEvents(
           const cid = getElementId(obj);
           if (cid) store.updateElement(cid, { x: gLeft + (obj.left ?? 0), y: gTop + (obj.top ?? 0) });
         }
+        expandCanvasLive();
         return;
       }
 
@@ -183,6 +219,7 @@ export function useCanvasEvents(
         }
       }
       store.updateElement(elementId, update);
+      expandCanvasLive();
     };
 
     // 2c. text:editing:exited

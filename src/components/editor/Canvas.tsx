@@ -322,7 +322,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto bg-[#f0f0f0]"
+        className="absolute inset-0 overflow-auto bg-[#f0f0f0]"
         onMouseDown={handleGrayAreaMouseDown}
         onContextMenu={(e) => e.preventDefault()}
       >
@@ -334,7 +334,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
           className="hidden"
           onChange={handleImageFileChange}
         />
-        <div className="flex justify-center p-8" style={{ minHeight: '100%' }}>
+        <div className="flex justify-center p-8" style={{ minHeight: '100%', minWidth: '100%' }}>
           <div className="relative shrink-0 self-start">
             <div ref={containerRef} />
             <CanvasEdgeHandles />

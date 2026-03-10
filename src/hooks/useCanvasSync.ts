@@ -179,7 +179,7 @@ export function useCanvasSync() {
 
     syncCanvas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId, showGrid, gridSize, canvasExtent]);
+  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId, showGrid, gridSize]);
 
   // 2. Zoom / canvas dimension sync
   useEffect(() => {
@@ -205,13 +205,36 @@ export function useCanvasSync() {
     const ext = useEditorStore.getState().canvasExtent;
 
     if (!focusedSectionId) {
-      const viewW = scrollEl.clientWidth - 64;
-      const viewH = scrollEl.clientHeight - 64;
-      const newZoom = Math.round(Math.min(viewW / project.canvas.width, viewH / project.canvas.height, 1) * 10) / 10;
+      useEditorStore.getState().expandCanvasToFitElements();
+      const freshExt = useEditorStore.getState().canvasExtent;
+
+      const page = useEditorStore.getState().getCurrentPage();
+      const els = page?.elements ?? [];
+
+      let minX = 0, minY = 0;
+      let maxX = project.canvas.width, maxY = project.canvas.height;
+      for (const el of els) {
+        if (el.x < minX) minX = el.x;
+        if (el.y < minY) minY = el.y;
+        if (el.x + el.width > maxX) maxX = el.x + el.width;
+        if (el.y + el.height > maxY) maxY = el.y + el.height;
+      }
+
+      const contentW = maxX - minX;
+      const contentH = maxY - minY;
+      const contentCenterX = (minX + maxX) / 2;
+      const contentCenterY = (minY + maxY) / 2;
+
+      const PADDING = 80;
+      const viewW = scrollEl.clientWidth - PADDING;
+      const viewH = scrollEl.clientHeight - PADDING;
+      const newZoom = Math.round(Math.min(viewW / contentW, viewH / contentH, 1) * 10) / 10;
       setZoom(newZoom);
+
       requestAnimationFrame(() => {
-        scrollEl.scrollTop = Math.max(0, ext.top * newZoom - 32);
-        scrollEl.scrollLeft = Math.max(0, (scrollEl.scrollWidth - scrollEl.clientWidth) / 2);
+        const cssPad = 32;
+        scrollEl.scrollTop = (contentCenterY + freshExt.top) * newZoom + cssPad - scrollEl.clientHeight / 2;
+        scrollEl.scrollLeft = Math.max(0, (contentCenterX + freshExt.left) * newZoom + cssPad - scrollEl.clientWidth / 2);
       });
       return;
     }
