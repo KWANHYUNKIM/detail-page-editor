@@ -92,13 +92,15 @@ export function useToolBehavior() {
       if (shapeType) {
         const id = store.addShapeElement(shapeType);
         store.updateElement(id, { x, y });
+        store.expandCanvasToFitElements();
         store.setActiveTool('move'); return;
       }
-      if (activeTool === 'frame') { store.addFrameElement(x, y); store.setActiveTool('move'); return; }
-      if (activeTool === 'section') { store.addSectionElement(y); store.setActiveTool('move'); return; }
+      if (activeTool === 'frame') { store.addFrameElement(x, y); store.expandCanvasToFitElements(); store.setActiveTool('move'); return; }
+      if (activeTool === 'section') { store.addSectionElement(y); store.expandCanvasToFitElements(); store.setActiveTool('move'); return; }
       if (activeTool === 'text') {
         const id = store.addTextElement();
         store.updateElement(id, { x, y });
+        store.expandCanvasToFitElements();
         store.setActiveTool('move'); return;
       }
       if (activeTool === 'image') {
@@ -127,6 +129,7 @@ export function useToolBehavior() {
         canvas.freeDrawingBrush?.width ?? drawingBrushWidths.pen,
         (canvas.freeDrawingBrush?.color as string | undefined) ?? '#000000',
       );
+      store.expandCanvasToFitElements();
 
       canvas.remove(pathObj);
       canvas.requestRenderAll();

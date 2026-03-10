@@ -16,8 +16,8 @@ import { isGradient } from '@/types/editor';
 import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { initAligningGuidelines } from '@/lib/canvas/alignmentGuides';
 import ContextMenu from '@/components/editor/ContextMenu';
+import CanvasEdgeHandles from '@/components/editor/CanvasEdgeHandles';
 import { CanvasProvider, type CanvasContextValue, type FabricHelpers, type FabricExporter } from '@/contexts/CanvasContext';
-import { CANVAS_MARGIN } from '@/constants/canvas';
 
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCanvasEvents } from '@/hooks/useCanvasEvents';
@@ -201,9 +201,10 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
       containerRef.current.innerHTML = '';
       containerRef.current.appendChild(canvasEl);
 
+      const initExtent = useEditorStore.getState().canvasExtent;
       const canvas = new fabricModule.Canvas(canvasEl, {
-        width: currentProject.canvas.width + CANVAS_MARGIN * 2,
-        height: currentProject.canvas.height + CANVAS_MARGIN * 2,
+        width: initExtent.left + currentProject.canvas.width + initExtent.right,
+        height: initExtent.top + currentProject.canvas.height + initExtent.bottom,
         backgroundColor: '#f0f0f0',
         selection: true,
         selectionColor: 'rgba(59, 130, 246, 0.1)',
@@ -218,7 +219,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
       fabricRef.current = canvas;
 
-      canvas.setViewportTransform([1, 0, 0, 1, CANVAS_MARGIN, CANVAS_MARGIN]);
+      canvas.setViewportTransform([1, 0, 0, 1, initExtent.left, initExtent.top]);
       canvas.renderAll();
 
       disposeGuidelines = initAligningGuidelines(canvas, fabricModule, {
@@ -336,7 +337,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         <div className="flex justify-center p-8" style={{ minHeight: '100%' }}>
           <div className="relative shrink-0 self-start">
             <div ref={containerRef} />
-            {/* Dimension overlay badge */}
+            <CanvasEdgeHandles />
             {selectionInfo && (
               <div
                 className="absolute pointer-events-none z-10"

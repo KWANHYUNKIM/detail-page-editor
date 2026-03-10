@@ -77,6 +77,7 @@ export function useCanvasEvents(
           const cid = getElementId(obj);
           if (cid) store.updateElement(cid, helpers.fabricObjectToElementUpdate(obj));
         }
+        store.expandCanvasToFitElements();
         isSyncingRef.current = true;
         const sel = new fabricModuleRef.current.ActiveSelection(objects, { canvas });
         canvas.setActiveObject(sel);
@@ -90,6 +91,10 @@ export function useCanvasEvents(
       fabricUpdateRef.current = true;
       const update = helpers.fabricObjectToElementUpdate(e.target);
       store.updateElement(elementId, update);
+
+      // Auto-expand canvas if element approaches edge
+      store.expandCanvasToFitElements();
+
       const el = store.getElement(elementId);
 
       // Propagate frame drag delta to children

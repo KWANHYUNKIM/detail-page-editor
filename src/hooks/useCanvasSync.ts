@@ -19,8 +19,6 @@ import type { CanvasElement, FrameElement, ImageElement } from '@/types/editor';
 import { isGradient } from '@/types/editor';
 import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { ensureFontLoaded } from '@/lib/fonts/fontLoader';
-import { CANVAS_MARGIN } from '@/constants/canvas';
-
 export function useCanvasSync() {
   const {
     fabricRef, fabricModuleRef, helpersRef,
@@ -43,6 +41,7 @@ export function useCanvasSync() {
   const scrollToElementId = useEditorStore((s) => s.scrollToElementId);
   const scrollToElement = useEditorStore((s) => s.scrollToElement);
   const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
+  const canvasExtent = useEditorStore((s) => s.canvasExtent);
 
   // 1. Element render loop
   // selectedElementIds intentionally EXCLUDED — avoids clear→selection:cleared→rerender loop
@@ -61,7 +60,8 @@ export function useCanvasSync() {
       canvas.backgroundColor = '#f0f0f0';
 
       const currentZoom = useEditorStore.getState().zoom;
-      canvas.setViewportTransform([currentZoom, 0, 0, currentZoom, CANVAS_MARGIN * currentZoom, CANVAS_MARGIN * currentZoom]);
+      const extent = useEditorStore.getState().canvasExtent;
+      canvas.setViewportTransform([currentZoom, 0, 0, currentZoom, extent.left * currentZoom, extent.top * currentZoom]);
 
       if (fabricModuleRef.current && project) {
         const bgFill = project.canvas.backgroundColor ?? '#ffffff';
@@ -179,21 +179,22 @@ export function useCanvasSync() {
 
     syncCanvas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId, showGrid, gridSize]);
+  }, [isReady, elements, layerOrder, mode, canvasBgColor, focusedSectionId, showGrid, gridSize, canvasExtent]);
 
   // 2. Zoom / canvas dimension sync
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !project) return;
+    const ext = useEditorStore.getState().canvasExtent;
     canvas.setDimensions({
-      width: (project.canvas.width + CANVAS_MARGIN * 2) * zoom,
-      height: (project.canvas.height + CANVAS_MARGIN * 2) * zoom,
+      width: (ext.left + project.canvas.width + ext.right) * zoom,
+      height: (ext.top + project.canvas.height + ext.bottom) * zoom,
     });
-    canvas.setViewportTransform([zoom, 0, 0, zoom, CANVAS_MARGIN * zoom, CANVAS_MARGIN * zoom]);
+    canvas.setViewportTransform([zoom, 0, 0, zoom, ext.left * zoom, ext.top * zoom]);
     canvas.renderAll();
     updateOverlayRef.current?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoom, canvasWidth, canvasHeight]);
+  }, [zoom, canvasWidth, canvasHeight, canvasExtent]);
 
   // 3. Section focus: auto-zoom + scroll
   useEffect(() => {
@@ -201,13 +202,15 @@ export function useCanvasSync() {
     const scrollEl = scrollContainerRef.current;
     if (!canvas || !project || !scrollEl || !isReady) return;
 
+    const ext = useEditorStore.getState().canvasExtent;
+
     if (!focusedSectionId) {
       const viewW = scrollEl.clientWidth - 64;
       const viewH = scrollEl.clientHeight - 64;
       const newZoom = Math.round(Math.min(viewW / project.canvas.width, viewH / project.canvas.height, 1) * 10) / 10;
       setZoom(newZoom);
       requestAnimationFrame(() => {
-        scrollEl.scrollTop = Math.max(0, CANVAS_MARGIN * newZoom - 32);
+        scrollEl.scrollTop = Math.max(0, ext.top * newZoom - 32);
         scrollEl.scrollLeft = Math.max(0, (scrollEl.scrollWidth - scrollEl.clientWidth) / 2);
       });
       return;
@@ -226,8 +229,8 @@ export function useCanvasSync() {
     setZoom(newZoom);
     requestAnimationFrame(() => {
       const cssPad = 32;
-      scrollEl.scrollTop = (section.y + section.height / 2 + CANVAS_MARGIN) * newZoom + cssPad - scrollEl.clientHeight / 2;
-      scrollEl.scrollLeft = Math.max(0, (section.x + section.width / 2 + CANVAS_MARGIN) * newZoom + cssPad - scrollEl.clientWidth / 2);
+      scrollEl.scrollTop = (section.y + section.height / 2 + ext.top) * newZoom + cssPad - scrollEl.clientHeight / 2;
+      scrollEl.scrollLeft = Math.max(0, (section.x + section.width / 2 + ext.left) * newZoom + cssPad - scrollEl.clientWidth / 2);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusedSectionId, isReady]);
@@ -243,10 +246,11 @@ export function useCanvasSync() {
     if (!el) { scrollToElement(null); return; }
 
     const scrollZoom = useEditorStore.getState().zoom;
+    const scrollExt = useEditorStore.getState().canvasExtent;
     const cssPad = 32;
     requestAnimationFrame(() => {
-      const centerX = (el.x + el.width / 2 + CANVAS_MARGIN) * scrollZoom + cssPad;
-      const centerY = (el.y + el.height / 2 + CANVAS_MARGIN) * scrollZoom + cssPad;
+      const centerX = (el.x + el.width / 2 + scrollExt.left) * scrollZoom + cssPad;
+      const centerY = (el.y + el.height / 2 + scrollExt.top) * scrollZoom + cssPad;
       scrollEl.scrollTo({
         top: centerY - scrollEl.clientHeight / 2,
         left: Math.max(0, centerX - scrollEl.clientWidth / 2),
