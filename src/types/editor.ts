@@ -201,17 +201,24 @@ export interface ShapeElement extends BaseElement {
 
 export interface FrameElement extends BaseElement {
   type: 'frame';
-  /** 프레임 배경색 */
   fill: FillValue;
+  fills?: FillItem[];
   stroke: string;
   strokeWidth: number;
+  strokes?: StrokeItem[];
+  strokePosition?: StrokePosition;
+  strokeJoin?: StrokeJoin;
+  strokeEndCap?: StrokeEndCap;
   borderRadius: number;
-  /** 콘텐츠 클리핑 여부 */
+  individualCorners?: IndividualCorners;
+  individualStrokes?: IndividualStrokes;
   clipContent: boolean;
-  /** 자식 요소 z-order (bottom → top) */
   childOrder: string[];
-  /** 섹션 여부 — true이면 캔버스 전체 너비 섹션으로 동작 */
   isSection?: boolean;
+  effects?: EffectItem[];
+  exportSettings?: ExportSetting[];
+  layoutGuides?: LayoutGuide[];
+  showFillInExports?: boolean;
 }
 
 export type CanvasElement = ImageElement | TextElement | ShapeElement | FrameElement;
@@ -266,7 +273,69 @@ export interface AIDesignResponse {
   suggestions?: string[];
 }
 
-export type ExportFormat = 'png' | 'jpeg';
+export type ExportFormat = 'png' | 'jpeg' | 'svg' | 'pdf';
+
+export type StrokePosition = 'inside' | 'center' | 'outside';
+export type StrokeJoin = 'miter' | 'bevel' | 'round';
+export type StrokeEndCap = 'none' | 'square' | 'round';
+
+export interface IndividualCorners {
+  topLeft: number;
+  topRight: number;
+  bottomRight: number;
+  bottomLeft: number;
+}
+
+export interface IndividualStrokes {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export interface FillItem {
+  id: string;
+  color: FillValue;
+  opacity: number;
+  visible: boolean;
+}
+
+export interface StrokeItem {
+  id: string;
+  color: string;
+  width: number;
+  opacity: number;
+  visible: boolean;
+  position: StrokePosition;
+  join: StrokeJoin;
+  endCap: StrokeEndCap;
+}
+
+export interface EffectItem {
+  id: string;
+  type: 'drop-shadow' | 'inner-shadow' | 'layer-blur' | 'background-blur';
+  visible: boolean;
+  color?: string;
+  offsetX?: number;
+  offsetY?: number;
+  blur?: number;
+  spread?: number;
+}
+
+export interface ExportSetting {
+  id: string;
+  scale: string;
+  format: ExportFormat;
+  suffix?: string;
+}
+
+export interface LayoutGuide {
+  id: string;
+  type: 'grid' | 'columns' | 'rows';
+  size: number;
+  color: string;
+  visible: boolean;
+}
 
 export interface ExportOptions {
   format: ExportFormat;
