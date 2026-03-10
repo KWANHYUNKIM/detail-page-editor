@@ -48,10 +48,19 @@ export function createProjectSlice(set: (fn: any) => void, get: () => any): Proj
       let page: Page;
       if (templateData?.elements && templateData.elements.length > 0) {
         const idMap = new Map<string, string>();
+        templateData.elements.forEach((el) => {
+          idMap.set(el.id, uuid());
+        });
         const newElements = templateData.elements.map((el) => {
-          const newId = uuid();
-          idMap.set(el.id, newId);
-          return { ...el, id: newId } as CanvasElement;
+          const clone = { ...el, id: idMap.get(el.id)! };
+          if (clone.parentId && idMap.has(clone.parentId)) {
+            clone.parentId = idMap.get(clone.parentId);
+          }
+          if (el.type === 'frame') {
+            const frame = clone as import('@/types/editor').FrameElement;
+            frame.childOrder = frame.childOrder.map((cid) => idMap.get(cid) ?? cid);
+          }
+          return clone;
         });
         const elementIds = templateData.elements.map((el) => idMap.get(el.id)!);
         const layer = createDefaultLayer();

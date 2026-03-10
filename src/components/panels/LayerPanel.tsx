@@ -385,12 +385,12 @@ function ElementTree({
   setEditingId: (id: string | null) => void;
   onContextMenu: (pos: { x: number; y: number; elementId: string }) => void;
 }) {
-  // Reverse so topmost element (last in array) renders first — like Figma
-  const reversed = [...elementIds].reverse();
+  // Display in natural order — first element in array appears at top of panel
+  const ordered = elementIds;
 
   return (
     <>
-      {reversed.map((id) => {
+      {ordered.map((id) => {
         const el = allElements.find((e) => e.id === id);
         if (!el) return null;
 
@@ -417,7 +417,7 @@ function ElementTree({
                   }
                 } else if (e.shiftKey && selectedElementIds.length > 0) {
                   // Range select: from last selected to clicked
-                  const flatIds = reversed;
+                  const flatIds = ordered;
                   const lastSelectedIdx = flatIds.findIndex((fid) => selectedElementIds.includes(fid));
                   const clickedIdx = flatIds.indexOf(el.id);
                   if (lastSelectedIdx >= 0 && clickedIdx >= 0) {

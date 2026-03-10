@@ -41,6 +41,10 @@ import {
   HiArrowUpTray,
   HiLockClosed,
   HiLockOpen,
+  HiEye,
+  HiEyeSlash,
+  HiPlus,
+  HiMinus,
 } from 'react-icons/hi2';
 
 /* ── Reusable small components ── */
@@ -153,10 +157,12 @@ function ToggleSwitch({
 function SectionAccordion({
   title,
   defaultOpen = false,
+  headerExtra,
   children,
 }: {
   title: string;
   defaultOpen?: boolean;
+  headerExtra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -167,7 +173,10 @@ function SectionAccordion({
         className="flex items-center justify-between w-full p-4 hover:bg-gray-50/50 transition-colors"
         onClick={() => setOpen(!open)}
       >
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+          {!open && headerExtra}
+        </div>
         {open ? (
           <HiChevronDown className="w-4 h-4 text-gray-400" />
         ) : (
@@ -234,6 +243,103 @@ function PillButton({
   );
 }
 
+/* ── Stroke Advanced sub-section (shape & frame) ── */
+
+function StrokeAdvancedSection({
+  strokeAlign,
+  strokeDashArray,
+  onUpdate,
+}: {
+  strokeAlign: 'inside' | 'center' | 'outside';
+  strokeDashArray: number[] | undefined;
+  onUpdate: (u: Record<string, unknown>) => void;
+}) {
+  const dashValue = (() => {
+    if (!strokeDashArray || strokeDashArray.length === 0) return 'solid';
+    if (strokeDashArray[0] === 5 && strokeDashArray[1] === 5) return 'dashed';
+    if (strokeDashArray[0] === 2 && strokeDashArray[1] === 2) return 'dotted';
+    return 'solid';
+  })();
+
+  return (
+    <>
+      <div className="mb-3">
+        <label className="block text-xs text-gray-500 mb-1">테두리 정렬</label>
+        <select
+          value={strokeAlign}
+          onChange={(e) => onUpdate({ strokeAlign: e.target.value })}
+          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+        >
+          <option value="inside">Inside</option>
+          <option value="center">Center</option>
+          <option value="outside">Outside</option>
+        </select>
+      </div>
+      <div className="mb-3">
+        <label className="block text-xs text-gray-500 mb-1">테두리 스타일</label>
+        <select
+          value={dashValue}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === 'dashed') onUpdate({ strokeDashArray: [5, 5] });
+            else if (v === 'dotted') onUpdate({ strokeDashArray: [2, 2] });
+            else onUpdate({ strokeDashArray: [] });
+          }}
+          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+        >
+          <option value="solid">Solid</option>
+          <option value="dashed">Dashed</option>
+          <option value="dotted">Dotted</option>
+        </select>
+      </div>
+    </>
+  );
+}
+
+/* ── Fill row with visibility toggle & remove ── */
+
+function FillRowControls({
+  fill,
+  label,
+  onChangeFill,
+  onUpdate,
+}: {
+  fill: FillValue;
+  label: string;
+  onChangeFill: (c: FillValue) => void;
+  onUpdate: (u: Record<string, unknown>) => void;
+}) {
+  const isFillHidden = typeof fill === 'string' && fill === 'transparent';
+  return (
+    <div className="flex items-start gap-1">
+      <div className="flex-1">
+        <GradientPicker label={label} value={fill} onChange={onChangeFill} />
+      </div>
+      <div className="flex gap-0.5 mt-5">
+        <button
+          type="button"
+          title={isFillHidden ? '채우기 표시' : '채우기 숨김'}
+          onClick={() => {
+            if (isFillHidden) onUpdate({ fill: '#cccccc' });
+            else onUpdate({ fill: 'transparent' });
+          }}
+          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+        >
+          {isFillHidden ? <HiEyeSlash className="w-3.5 h-3.5" /> : <HiEye className="w-3.5 h-3.5" />}
+        </button>
+        <button
+          type="button"
+          title="채우기 제거"
+          onClick={() => onUpdate({ fill: 'transparent' })}
+          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500"
+        >
+          <HiMinus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Panel ── */
 
 export default function RightPanel() {
@@ -246,7 +352,9 @@ export default function RightPanel() {
   const setCanvasSize = useEditorStore((s) => s.setCanvasSize);
   const alignElements = useEditorStore((s) => s.alignElements);
   const distributeElements = useEditorStore((s) => s.distributeElements);
+  const getChildElements = useEditorStore((s) => s.getChildElements);
   const [aspectLocked, setAspectLocked] = useState(false);
+  const [showIndividualCorners, setShowIndividualCorners] = useState(false);
 
   // Subscribe to selectedElementIds to trigger re-render on selection change
   // (getSelectedElements alone is a stable function ref that won't re-trigger)
@@ -480,6 +588,38 @@ export default function RightPanel() {
   };
 
   const textEl = el.type === 'text' ? (el as TextElement) : null;
+  const isShapeRect = el.type === 'shape' && (el as ShapeElement).shape === 'rect';
+  const isFrame = el.type === 'frame';
+  const hasCornerRadius = isShapeRect || isFrame;
+  const hasFillStroke = el.type === 'shape' || el.type === 'frame';
+
+  const borderRadius = hasCornerRadius ? (el as ShapeElement | FrameElement).borderRadius : 0;
+  const hasIndividualCorners =
+    el.borderRadiusTopLeft !== undefined ||
+    el.borderRadiusTopRight !== undefined ||
+    el.borderRadiusBottomLeft !== undefined ||
+    el.borderRadiusBottomRight !== undefined;
+
+  /* Collect selection colors */
+  const selectionColors: string[] = [];
+  const addColor = (c: string) => {
+    if (c && c !== 'transparent' && c !== 'rgba(0,0,0,0)' && c !== 'rgba(255,255,255,0)' && !selectionColors.includes(c)) {
+      selectionColors.push(c);
+    }
+  };
+  if ('fill' in el) {
+    const fill = (el as ShapeElement | FrameElement).fill;
+    if (typeof fill === 'string') addColor(fill);
+    else if (fill && typeof fill === 'object' && 'stops' in fill) fill.stops.forEach((s) => addColor(s.color));
+  }
+  if ('stroke' in el && hasFillStroke) addColor((el as ShapeElement | FrameElement).stroke);
+  if ('color' in el) {
+    const color = (el as TextElement).color;
+    if (typeof color === 'string') addColor(color);
+    else if (color && typeof color === 'object' && 'stops' in color) color.stops.forEach((s) => addColor(s.color));
+  }
+
+  const exportSettings = el.exportSettings ?? [];
 
   /* ━━━━━━━━━━ FRAME / SECTION — Figma-style panel ━━━━━━━━━━ */
   if (el.type === 'frame') {
@@ -490,125 +630,95 @@ export default function RightPanel() {
 
   return (
     <div className="w-[280px] bg-white border-l border-gray-200 shrink-0 overflow-y-auto">
-      {/* ── 공통 속성 ── */}
+      {/* ━━━━━━━━━━ 1. HEADER + LOCK ━━━━━━━━━━ */}
       <div className="p-4 border-b border-gray-100">
-        <h3 className="text-sm font-semibold mb-3">속성</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">
+            {el.type === 'text' ? '텍스트' : el.type === 'shape' ? '도형' : el.type === 'frame' ? '프레임' : '이미지'}
+            {el.name ? ` · ${el.name}` : ''}
+          </h3>
+        </div>
+        <button
+          type="button"
+          onClick={() => handleUpdate({ locked: !el.locked })}
+          className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs transition-colors ${
+            el.locked ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
+          }`}
+        >
+          {el.locked ? <HiLockClosed className="w-3.5 h-3.5" /> : <HiLockOpen className="w-3.5 h-3.5" />}
+          {el.locked ? '잠금 해제' : '잠금'}
+        </button>
+      </div>
 
-        {/* Lock toggle */}
-        <div className="mb-3">
-          <button
-            type="button"
-            onClick={() => handleUpdate({ locked: !el.locked })}
-            className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs transition-colors ${
-              el.locked ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
-            }`}
-          >
-            {el.locked ? <HiLockClosed className="w-3.5 h-3.5" /> : <HiLockOpen className="w-3.5 h-3.5" />}
-            {el.locked ? '잠금 해제' : '잠금'}
+      {/* ━━━━━━━━━━ 2. ALIGNMENT ━━━━━━━━━━ */}
+      <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+        <label className="block text-xs text-gray-500 mb-1.5">정렬</label>
+        <div className="grid grid-cols-6 gap-1">
+          <button type="button" title="왼쪽 정렬" onClick={() => alignElements([el.id], 'left')}
+            className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1v12M4 3h7v3H4zM4 8h5v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+          </button>
+          <button type="button" title="가로 가운데" onClick={() => alignElements([el.id], 'centerH')}
+            className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M3 3h8v3H3zM4 8h6v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+          </button>
+          <button type="button" title="오른쪽 정렬" onClick={() => alignElements([el.id], 'right')}
+            className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M13 1v12M3 3h7v3H3zM5 8h5v3H5z" stroke="currentColor" strokeWidth="1.2"/></svg>
+          </button>
+          <button type="button" title="위쪽 정렬" onClick={() => alignElements([el.id], 'top')}
+            className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1h12M3 4v7h3V4zM8 4v5h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+          </button>
+          <button type="button" title="세로 가운데" onClick={() => alignElements([el.id], 'centerV')}
+            className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M3 3v8h3V3zM8 4v6h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
+          </button>
+          <button type="button" title="아래쪽 정렬" onClick={() => alignElements([el.id], 'bottom')}
+            className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 13h12M3 3v7h3V3zM8 5v5h3V5z" stroke="currentColor" strokeWidth="1.2"/></svg>
           </button>
         </div>
+      </div>
 
-        {/* Alignment (align to canvas for single element) */}
-        <div className="mb-3">
-          <label className="block text-xs text-gray-500 mb-1.5">정렬</label>
-          <div className="grid grid-cols-6 gap-1">
-            <button type="button" title="왼쪽 정렬" onClick={() => alignElements([el.id], 'left')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1v12M4 3h7v3H4zM4 8h5v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="가로 가운데" onClick={() => alignElements([el.id], 'centerH')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M3 3h8v3H3zM4 8h6v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="오른쪽 정렬" onClick={() => alignElements([el.id], 'right')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M13 1v12M3 3h7v3H3zM5 8h5v3H5z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="위쪽 정렬" onClick={() => alignElements([el.id], 'top')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1h12M3 4v7h3V4zM8 4v5h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="세로 가운데" onClick={() => alignElements([el.id], 'centerV')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M3 3v8h3V3zM8 4v6h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="아래쪽 정렬" onClick={() => alignElements([el.id], 'bottom')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 13h12M3 3v7h3V3zM8 5v5h3V5z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-          </div>
-        </div>
-
-        {canEdit('position') && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
+      {/* ━━━━━━━━━━ 3. POSITION ━━━━━━━━━━ */}
+      {canEdit('position') && (
+        <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+          <div className="grid grid-cols-2 gap-2">
             <NumberInput label="X" value={el.x} onChange={(v) => handleUpdate({ x: v })} />
             <NumberInput label="Y" value={el.y} onChange={(v) => handleUpdate({ y: v })} />
           </div>
-        )}
+        </div>
+      )}
 
-        {canEdit('size') && (
+      {/* ━━━━━━━━━━ 4. ROTATION + 90° + FLIP ━━━━━━━━━━ */}
+      <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+        {canEdit('rotation') && (
           <div className="mb-3">
-            <div className="grid grid-cols-[1fr_24px_1fr] gap-1 items-end">
-              <NumberInput
-                label="W"
-                value={el.width}
-                onChange={(v) => {
-                  if (aspectLocked && el.width > 0) {
-                    const ratio = el.height / el.width;
-                    handleUpdate({ width: v, height: Math.round(v * ratio) });
-                  } else {
-                    handleUpdate({ width: v });
-                  }
-                }}
-                min={1}
-              />
+            <div className="flex items-end gap-1">
+              <div className="flex-1">
+                <NumberInput
+                  label="회전 (°)"
+                  value={el.rotation}
+                  onChange={(v) => handleUpdate({ rotation: v })}
+                  min={-360}
+                  max={360}
+                />
+              </div>
               <button
                 type="button"
-                title="비율 잠금"
-                onClick={() => setAspectLocked(!aspectLocked)}
-                className={`flex items-center justify-center w-6 h-6 rounded transition-colors mb-0.5 ${
-                  aspectLocked ? 'text-blue-500' : 'text-gray-300 hover:text-gray-500'
-                }`}
+                onClick={() => handleUpdate({ rotation: (el.rotation + 90) % 360 })}
+                className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors mb-0.5"
+                title="90° 회전"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  {aspectLocked ? (
-                    <path d="M3 6h8M3 8h8M1 7h2M11 7h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  ) : (
-                    <path d="M3 6h8M3 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
-                  )}
-                </svg>
+                <HiArrowPath className="w-4 h-4" />
               </button>
-              <NumberInput
-                label="H"
-                value={el.height}
-                onChange={(v) => {
-                  if (aspectLocked && el.height > 0) {
-                    const ratio = el.width / el.height;
-                    handleUpdate({ height: v, width: Math.round(v * ratio) });
-                  } else {
-                    handleUpdate({ height: v });
-                  }
-                }}
-                min={1}
-              />
             </div>
           </div>
         )}
 
-        {canEdit('rotation') && (
-          <div className="mb-3">
-            <NumberInput
-              label="회전 (°)"
-              value={el.rotation}
-              onChange={(v) => handleUpdate({ rotation: v })}
-              min={-360}
-              max={360}
-            />
-          </div>
-        )}
-
         {/* Flip buttons */}
-        <div className="mb-3">
+        <div>
           <label className="block text-xs text-gray-500 mb-1">반전</label>
           <div className="flex gap-1">
             <button
@@ -635,20 +745,183 @@ export default function RightPanel() {
             </button>
           </div>
         </div>
+      </div>
 
-        {canEdit('opacity') && (
-          <div className="mb-3">
-            <SliderInput
-              label="불투명도"
-              value={el.opacity}
-              onChange={(v) => handleUpdate({ opacity: v })}
-              min={0}
-              max={1}
-              step={0.01}
-              suffix={` (${Math.round(el.opacity * 100)}%)`}
+      {/* ━━━━━━━━━━ 5. AUTO LAYOUT (Frame only) ━━━━━━━━━━ */}
+      {isFrame && (() => {
+        const frameEl = el as FrameElement;
+        const layoutMode = frameEl.layoutMode ?? 'NONE';
+        return (
+          <SectionAccordion title="레이아웃" defaultOpen={false}>
+            <div className="mb-3">
+              <label className="block text-xs text-gray-500 mb-1.5">배치 모드</label>
+              <div className="grid grid-cols-4 gap-1">
+                {([
+                  { value: 'NONE', label: '자유', icon: (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="8" y="6" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/></svg>
+                  )},
+                  { value: 'VERTICAL', label: '세로', icon: (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3" y="1" width="8" height="3" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="3" y="5.5" width="8" height="3" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="3" y="10" width="8" height="3" rx="1" stroke="currentColor" strokeWidth="1.2"/></svg>
+                  )},
+                  { value: 'HORIZONTAL', label: '가로', icon: (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="3" height="8" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="5.5" y="3" width="3" height="8" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="10" y="3" width="3" height="8" rx="1" stroke="currentColor" strokeWidth="1.2"/></svg>
+                  )},
+                  { value: 'GRID', label: '그리드', icon: (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/><rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/></svg>
+                  )},
+                ] as { value: string; label: string; icon: React.ReactNode }[]).map(({ value, label, icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleUpdate({ layoutMode: value })}
+                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-md border text-[10px] transition-colors ${
+                      layoutMode === value
+                        ? 'border-blue-500 bg-blue-50 text-blue-600'
+                        : 'border-gray-200 hover:border-gray-400 text-gray-500'
+                    }`}
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {layoutMode !== 'NONE' && (
+              <div className="space-y-3">
+                <NumberInput label="간격 (Gap)" value={frameEl.layoutGap ?? 0} onChange={(v) => handleUpdate({ layoutGap: v })} min={0} />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">패딩</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <NumberInput label="상" value={frameEl.layoutPaddingTop ?? 0} onChange={(v) => handleUpdate({ layoutPaddingTop: v })} min={0} />
+                    <NumberInput label="우" value={frameEl.layoutPaddingRight ?? 0} onChange={(v) => handleUpdate({ layoutPaddingRight: v })} min={0} />
+                    <NumberInput label="하" value={frameEl.layoutPaddingBottom ?? 0} onChange={(v) => handleUpdate({ layoutPaddingBottom: v })} min={0} />
+                    <NumberInput label="좌" value={frameEl.layoutPaddingLeft ?? 0} onChange={(v) => handleUpdate({ layoutPaddingLeft: v })} min={0} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">정렬</label>
+                  <select
+                    value={frameEl.layoutAlignItems ?? 'start'}
+                    onChange={(e) => handleUpdate({ layoutAlignItems: e.target.value })}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white"
+                  >
+                    <option value="start">Start</option>
+                    <option value="center">Center</option>
+                    <option value="end">End</option>
+                    <option value="stretch">Stretch</option>
+                  </select>
+                </div>
+                {layoutMode === 'GRID' && (
+                  <NumberInput label="열 (Columns)" value={frameEl.layoutGridColumns ?? 2} onChange={(v) => handleUpdate({ layoutGridColumns: v })} min={1} max={12} />
+                )}
+              </div>
+            )}
+
+            {/* Resize to fit */}
+            <button
+              type="button"
+              onClick={() => {
+                const children = getChildElements(el.id);
+                if (children.length === 0) return;
+                const minX = Math.min(...children.map((c) => c.x));
+                const minY = Math.min(...children.map((c) => c.y));
+                const maxX = Math.max(...children.map((c) => c.x + c.width));
+                const maxY = Math.max(...children.map((c) => c.y + c.height));
+                const pad = 10;
+                handleUpdate({ x: minX - pad, y: minY - pad, width: maxX - minX + pad * 2, height: maxY - minY + pad * 2 });
+              }}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 5V1h4M13 5V1H9M1 9v4h4M13 9v4H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              콘텐츠에 맞추기
+            </button>
+          </SectionAccordion>
+        );
+      })()}
+
+      {/* ━━━━━━━━━━ 6. DIMENSIONS ━━━━━━━━━━ */}
+      {canEdit('size') && (
+        <div className="px-4 pt-3 pb-3 border-b border-gray-100">
+          <div className="grid grid-cols-[1fr_24px_1fr] gap-1 items-end">
+            <NumberInput
+              label="W"
+              value={el.width}
+              onChange={(v) => {
+                if (aspectLocked && el.width > 0) {
+                  const ratio = el.height / el.width;
+                  handleUpdate({ width: v, height: Math.round(v * ratio) });
+                } else {
+                  handleUpdate({ width: v });
+                }
+              }}
+              min={1}
+            />
+            <button
+              type="button"
+              title="비율 잠금"
+              onClick={() => setAspectLocked(!aspectLocked)}
+              className={`flex items-center justify-center w-6 h-6 rounded transition-colors mb-0.5 ${
+                aspectLocked ? 'text-blue-500' : 'text-gray-300 hover:text-gray-500'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                {aspectLocked ? (
+                  <path d="M3 6h8M3 8h8M1 7h2M11 7h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                ) : (
+                  <path d="M3 6h8M3 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                )}
+              </svg>
+            </button>
+            <NumberInput
+              label="H"
+              value={el.height}
+              onChange={(v) => {
+                if (aspectLocked && el.height > 0) {
+                  const ratio = el.width / el.height;
+                  handleUpdate({ height: v, width: Math.round(v * ratio) });
+                } else {
+                  handleUpdate({ height: v });
+                }
+              }}
+              min={1}
             />
           </div>
-        )}
+        </div>
+      )}
+
+      {/* ━━━━━━━━━━ 7. CLIP CONTENT (Frame only) ━━━━━━━━━━ */}
+      {isFrame && (
+        <div className="px-4 py-3 border-b border-gray-100">
+          <ToggleSwitch
+            label="콘텐츠 자르기 (Clip)"
+            checked={(el as FrameElement).clipContent}
+            onChange={(v) => handleUpdate({ clipContent: v })}
+          />
+        </div>
+      )}
+
+      {/* ━━━━━━━━━━ 8. APPEARANCE ━━━━━━━━━━ */}
+      <div className="p-4 border-b border-gray-100">
+        <h3 className="text-sm font-semibold mb-3">외관</h3>
+
+        {/* A. Visibility toggle */}
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => handleUpdate({ visible: !el.visible })}
+            className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs transition-colors ${
+              el.visible
+                ? 'border-gray-300 hover:border-gray-400 text-gray-600'
+                : 'border-orange-400 bg-orange-50 text-orange-600'
+            }`}
+          >
+            {el.visible ? <HiEye className="w-3.5 h-3.5" /> : <HiEyeSlash className="w-3.5 h-3.5" />}
+            {el.visible ? '표시 중' : '숨김'}
+          </button>
+        </div>
 
         {/* Blend Mode */}
         {canEdit('blendMode') && (
@@ -678,9 +951,75 @@ export default function RightPanel() {
             </select>
           </div>
         )}
+
+        {/* Opacity */}
+        {canEdit('opacity') && (
+          <div className="mb-3">
+            <SliderInput
+              label="불투명도"
+              value={el.opacity}
+              onChange={(v) => handleUpdate({ opacity: v })}
+              min={0}
+              max={1}
+              step={0.01}
+              suffix={` (${Math.round(el.opacity * 100)}%)`}
+            />
+          </div>
+        )}
+
+        {/* C. Corner radius + individual corners */}
+        {hasCornerRadius && canEdit('borderRadius') && (
+          <div className="mb-3">
+            <div className="flex items-end gap-1">
+              <div className="flex-1">
+                <NumberInput
+                  label={hasIndividualCorners ? '모서리 둥글기 (개별)' : '모서리 둥글기'}
+                  value={borderRadius}
+                  onChange={(v) =>
+                    handleUpdate({
+                      borderRadius: v,
+                      borderRadiusTopLeft: v,
+                      borderRadiusTopRight: v,
+                      borderRadiusBottomLeft: v,
+                      borderRadiusBottomRight: v,
+                    })
+                  }
+                  min={0}
+                />
+              </div>
+              <button
+                type="button"
+                title="개별 모서리 설정"
+                onClick={() => setShowIndividualCorners(!showIndividualCorners)}
+                className={`p-1.5 rounded-md border transition-colors mb-0.5 ${
+                  showIndividualCorners
+                    ? 'border-blue-500 bg-blue-50 text-blue-600'
+                    : 'border-gray-300 hover:border-gray-400 text-gray-500'
+                }`}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 4V1h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M13 4V1h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M1 10v3h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M13 10v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            {showIndividualCorners && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <NumberInput label="↖ TL" value={el.borderRadiusTopLeft ?? borderRadius} onChange={(v) => handleUpdate({ borderRadiusTopLeft: v })} min={0} />
+                <NumberInput label="↗ TR" value={el.borderRadiusTopRight ?? borderRadius} onChange={(v) => handleUpdate({ borderRadiusTopRight: v })} min={0} />
+                <NumberInput label="↙ BL" value={el.borderRadiusBottomLeft ?? borderRadius} onChange={(v) => handleUpdate({ borderRadiusBottomLeft: v })} min={0} />
+                <NumberInput label="↘ BR" value={el.borderRadiusBottomRight ?? borderRadius} onChange={(v) => handleUpdate({ borderRadiusBottomRight: v })} min={0} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ━━━━━━━━━━ TEXT ELEMENT ━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━ 9. TYPE-SPECIFIC SECTIONS ━━━━━━━━━━ */}
+
+      {/* ── TEXT ── */}
       {textEl && (
         <>
           {/* ── 텍스트 기본 ── */}
@@ -968,17 +1307,19 @@ export default function RightPanel() {
         </>
       )}
 
-      {/* ━━━━━━━━━━ SHAPE ELEMENT ━━━━━━━━━━ */}
+      {/* ── SHAPE ── */}
       {el.type === 'shape' && (
         <div className="p-4 border-b border-gray-100">
           <h3 className="text-sm font-semibold mb-3">도형</h3>
 
+          {/* D. Fill with per-item controls */}
           {canEdit('fill') && (
             <div className="mb-3">
-              <GradientPicker
+              <FillRowControls
+                fill={(el as ShapeElement).fill}
                 label="채우기"
-                value={(el as ShapeElement).fill}
-                onChange={(c) => handleUpdate({ fill: c })}
+                onChangeFill={(c) => handleUpdate({ fill: c })}
+                onUpdate={handleUpdate}
               />
             </div>
           )}
@@ -1005,15 +1346,63 @@ export default function RightPanel() {
             </div>
           )}
 
-          {canEdit('borderRadius') && (el as ShapeElement).shape === 'rect' && (
+          {/* E. Stroke Advanced */}
+          {canEdit('stroke') && (
+            <StrokeAdvancedSection
+              strokeAlign={el.strokeAlign ?? 'center'}
+              strokeDashArray={el.strokeDashArray}
+              onUpdate={handleUpdate}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── FRAME ── */}
+      {el.type === 'frame' && (
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="text-sm font-semibold mb-3">프레임</h3>
+
+          {/* D. Fill with per-item controls */}
+          {canEdit('fill') && (
             <div className="mb-3">
-              <NumberInput
-                label="모서리 둥글기"
-                value={(el as ShapeElement).borderRadius}
-                onChange={(v) => handleUpdate({ borderRadius: v })}
-                min={0}
+              <FillRowControls
+                fill={(el as FrameElement).fill || 'rgba(255,255,255,0)'}
+                label="배경"
+                onChangeFill={(c) => handleUpdate({ fill: c })}
+                onUpdate={handleUpdate}
               />
             </div>
+          )}
+
+          {canEdit('stroke') && (
+            <div className="mb-3">
+              <ColorPicker
+                label="테두리 색상"
+                color={(el as FrameElement).stroke}
+                onChange={(c) => handleUpdate({ stroke: c })}
+              />
+            </div>
+          )}
+
+          {canEdit('strokeWidth') && (
+            <div className="mb-3">
+              <NumberInput
+                label="테두리 두께"
+                value={(el as FrameElement).strokeWidth}
+                onChange={(v) => handleUpdate({ strokeWidth: v })}
+                min={0}
+                max={50}
+              />
+            </div>
+          )}
+
+          {/* E. Stroke Advanced */}
+          {canEdit('stroke') && (
+            <StrokeAdvancedSection
+              strokeAlign={el.strokeAlign ?? 'center'}
+              strokeDashArray={el.strokeDashArray}
+              onUpdate={handleUpdate}
+            />
           )}
         </div>
       )}
@@ -1025,17 +1414,7 @@ export default function RightPanel() {
         return (
           <>
             <div className="p-4 border-b border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold">이미지</h3>
-                <button
-                  type="button"
-                  onClick={() => handleUpdate({ rotation: (el.rotation + 90) % 360 })}
-                  className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-                  title="90° 회전"
-                >
-                  <HiArrowPath className="w-4 h-4" />
-                </button>
-              </div>
+              <h3 className="text-sm font-semibold mb-3">이미지</h3>
 
               {/* Scale mode */}
               <div className="mb-3">
@@ -1136,7 +1515,7 @@ export default function RightPanel() {
         );
       })()}
 
-      {/* ━━━━━━━━━━ EFFECTS (all element types) ━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━ 10. EFFECTS (all element types) ━━━━━━━━━━ */}
       <SectionAccordion title="효과" defaultOpen={false}>
         <div className="space-y-4">
           {/* Drop Shadow */}
@@ -1303,6 +1682,275 @@ export default function RightPanel() {
             suffix="px"
           />
         </div>
+      </SectionAccordion>
+
+      {/* ━━━━━━━━━━ 11. SELECTION COLORS ━━━━━━━━━━ */}
+      <SectionAccordion
+        title="선택 색상"
+        defaultOpen={false}
+        headerExtra={
+          selectionColors.length > 0 ? (
+            <div className="flex gap-0.5">
+              {selectionColors.slice(0, 5).map((c, i) => (
+                <div
+                  key={i}
+                  className="w-3.5 h-3.5 rounded-sm border border-gray-200"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+              {selectionColors.length > 5 && (
+                <span className="text-[10px] text-gray-400 ml-0.5">+{selectionColors.length - 5}</span>
+              )}
+            </div>
+          ) : undefined
+        }
+      >
+        {selectionColors.length === 0 ? (
+          <p className="text-xs text-gray-400">색상 없음</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {selectionColors.map((c, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-200 bg-gray-50">
+                <div
+                  className="w-4 h-4 rounded-sm border border-gray-300"
+                  style={{ backgroundColor: c }}
+                />
+                <span className="text-[10px] font-mono text-gray-500">{c}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionAccordion>
+
+      {/* ━━━━━━━━━━ 12. LAYOUT GUIDE (Frame only) ━━━━━━━━━━ */}
+      {isFrame && (() => {
+        const frameEl = el as FrameElement;
+        const guides = frameEl.layoutGuides ?? [];
+        return (
+          <SectionAccordion title="레이아웃 가이드" defaultOpen={false}>
+            {guides.map((guide, idx) => (
+              <div key={idx} className="mb-3 p-2 rounded-md border border-gray-200 bg-gray-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <select
+                    value={guide.type}
+                    onChange={(e) => {
+                      const newGuides = [...guides];
+                      newGuides[idx] = { ...guide, type: e.target.value as 'columns' | 'rows' | 'grid' };
+                      handleUpdate({ layoutGuides: newGuides });
+                    }}
+                    className="px-1.5 py-1 text-xs border border-gray-300 rounded bg-white"
+                  >
+                    <option value="columns">Columns</option>
+                    <option value="rows">Rows</option>
+                    <option value="grid">Grid</option>
+                  </select>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      title={guide.visible ? '숨기기' : '표시'}
+                      onClick={() => {
+                        const newGuides = [...guides];
+                        newGuides[idx] = { ...guide, visible: !guide.visible };
+                        handleUpdate({ layoutGuides: newGuides });
+                      }}
+                      className="p-0.5 rounded hover:bg-gray-200 text-gray-400"
+                    >
+                      {guide.visible ? <HiEye className="w-3 h-3" /> : <HiEyeSlash className="w-3 h-3" />}
+                    </button>
+                    <button
+                      type="button"
+                      title="제거"
+                      onClick={() => {
+                        const newGuides = guides.filter((_, i) => i !== idx);
+                        handleUpdate({ layoutGuides: newGuides });
+                      }}
+                      className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-red-500"
+                    >
+                      <HiMinus className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <NumberInput
+                    label="개수"
+                    value={guide.count}
+                    onChange={(v) => {
+                      const newGuides = [...guides];
+                      newGuides[idx] = { ...guide, count: v };
+                      handleUpdate({ layoutGuides: newGuides });
+                    }}
+                    min={1}
+                    max={24}
+                  />
+                  <NumberInput
+                    label="간격"
+                    value={guide.gutterSize}
+                    onChange={(v) => {
+                      const newGuides = [...guides];
+                      newGuides[idx] = { ...guide, gutterSize: v };
+                      handleUpdate({ layoutGuides: newGuides });
+                    }}
+                    min={0}
+                  />
+                  <NumberInput
+                    label="여백"
+                    value={guide.margin}
+                    onChange={(v) => {
+                      const newGuides = [...guides];
+                      newGuides[idx] = { ...guide, margin: v };
+                      handleUpdate({ layoutGuides: newGuides });
+                    }}
+                    min={0}
+                  />
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">색상</label>
+                    <input
+                      type="color"
+                      value={guide.color.startsWith('rgba') ? '#ff0000' : guide.color}
+                      onChange={(e) => {
+                        const newGuides = [...guides];
+                        newGuides[idx] = { ...guide, color: e.target.value + '1a' };
+                        handleUpdate({ layoutGuides: newGuides });
+                      }}
+                      className="w-full h-[30px] rounded border border-gray-300 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                const newGuide = {
+                  type: 'columns' as const,
+                  count: 12,
+                  gutterSize: 20,
+                  margin: 0,
+                  color: 'rgba(255,0,0,0.1)',
+                  visible: true,
+                };
+                handleUpdate({ layoutGuides: [...guides, newGuide] });
+              }}
+              className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-gray-500 border border-dashed border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            >
+              <HiPlus className="w-3.5 h-3.5" />
+              가이드 추가
+            </button>
+          </SectionAccordion>
+        );
+      })()}
+
+      {/* ━━━━━━━━━━ 13. EXPORT ━━━━━━━━━━ */}
+      <SectionAccordion title="내보내기" defaultOpen={false}>
+        {exportSettings.map((setting, idx) => (
+          <div key={idx} className="mb-2 flex items-end gap-1.5">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">배율</label>
+              <select
+                value={setting.scale}
+                onChange={(e) => {
+                  const newSettings = [...exportSettings];
+                  newSettings[idx] = { ...setting, scale: parseFloat(e.target.value) };
+                  handleUpdate({ exportSettings: newSettings });
+                }}
+                className="w-full px-1.5 py-1 text-xs border border-gray-300 rounded bg-white"
+              >
+                <option value={0.5}>0.5x</option>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+                <option value={3}>3x</option>
+                <option value={4}>4x</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">형식</label>
+              <select
+                value={setting.format}
+                onChange={(e) => {
+                  const newSettings = [...exportSettings];
+                  newSettings[idx] = { ...setting, format: e.target.value as 'png' | 'jpeg' | 'svg' | 'pdf' };
+                  handleUpdate({ exportSettings: newSettings });
+                }}
+                className="w-full px-1.5 py-1 text-xs border border-gray-300 rounded bg-white"
+              >
+                <option value="png">PNG</option>
+                <option value="jpeg">JPG</option>
+                <option value="svg">SVG</option>
+                <option value="pdf">PDF</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">접미사</label>
+              <input
+                type="text"
+                value={setting.suffix ?? ''}
+                onChange={(e) => {
+                  const newSettings = [...exportSettings];
+                  newSettings[idx] = { ...setting, suffix: e.target.value };
+                  handleUpdate({ exportSettings: newSettings });
+                }}
+                placeholder="@2x"
+                className="w-full px-1.5 py-1 text-xs border border-gray-300 rounded bg-white"
+              />
+            </div>
+            <button
+              type="button"
+              title="제거"
+              onClick={() => {
+                const newSettings = exportSettings.filter((_, i) => i !== idx);
+                handleUpdate({ exportSettings: newSettings });
+              }}
+              className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-500 mb-0.5"
+            >
+              <HiMinus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => {
+            const newSetting = { format: 'png' as const, scale: 1, suffix: '' };
+            handleUpdate({ exportSettings: [...exportSettings, newSetting] });
+          }}
+          className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-gray-500 border border-dashed border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors mb-3"
+        >
+          <HiPlus className="w-3.5 h-3.5" />
+          내보내기 설정 추가
+        </button>
+
+        {exportSettings.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              exportSettings.forEach((setting) => {
+                const canvas = document.querySelector('canvas');
+                if (!canvas) return;
+                const multiplier = setting.scale;
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width * multiplier;
+                tempCanvas.height = canvas.height * multiplier;
+                const ctx = tempCanvas.getContext('2d');
+                if (!ctx) return;
+                ctx.scale(multiplier, multiplier);
+                ctx.drawImage(canvas, 0, 0);
+                const mimeType = setting.format === 'jpeg' ? 'image/jpeg' : 'image/png';
+                const dataURL = tempCanvas.toDataURL(mimeType, 0.95);
+                const ext = setting.format === 'jpeg' ? 'jpg' : setting.format;
+                const suffix = setting.suffix || '';
+                const link = document.createElement('a');
+                link.download = `export${suffix}.${ext}`;
+                link.href = dataURL;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              });
+            }}
+            className="w-full py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            내보내기 ({exportSettings.length})
+          </button>
+        )}
       </SectionAccordion>
     </div>
   );

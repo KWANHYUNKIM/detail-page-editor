@@ -26,12 +26,16 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
 
   const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
   const clipboardElements = useEditorStore((s) => s.clipboardElements);
+  const styleClipboard = useEditorStore((s) => s.styleClipboard);
   const getElement = useEditorStore((s) => s.getElement);
+  const getSelectedElements = useEditorStore((s) => s.getSelectedElements);
   const copyElements = useEditorStore((s) => s.copyElements);
   const cutElements = useEditorStore((s) => s.cutElements);
   const pasteElements = useEditorStore((s) => s.pasteElements);
   const duplicateElements = useEditorStore((s) => s.duplicateElements);
   const removeElements = useEditorStore((s) => s.removeElements);
+  const copyStyle = useEditorStore((s) => s.copyStyle);
+  const pasteStyle = useEditorStore((s) => s.pasteStyle);
   const moveLayerToTop = useEditorStore((s) => s.moveLayerToTop);
   const moveLayerUp = useEditorStore((s) => s.moveLayerUp);
   const moveLayerDown = useEditorStore((s) => s.moveLayerDown);
@@ -52,6 +56,12 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
   const selectedElement = singleSelected ? getElement(selectedElementIds[0]) : null;
   const isFrame = selectedElement?.type === 'frame';
   const isLocked = selectedElement?.locked ?? false;
+  const isHidden = selectedElement ? !selectedElement.visible : false;
+
+  // Multi-select: check if ALL are locked / ALL are hidden
+  const allSelected = hasSelection ? selectedElementIds.map((id) => getElement(id)).filter(Boolean) : [];
+  const allLocked = allSelected.length > 0 && allSelected.every((el) => el!.locked);
+  const allHidden = allSelected.length > 0 && allSelected.every((el) => !el!.visible);
 
   const saveState = () => {
     const page = getCurrentPage();
@@ -75,6 +85,19 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
   if (hasSelection) {
     items.push(
       { label: '복제', shortcut: '⌘D', action: () => { saveState(); duplicateElements(selectedElementIds); onClose(); } },
+    );
+  }
+
+  // Style copy/paste
+  if (singleSelected) {
+    items.push('separator');
+    items.push(
+      { label: '스타일 복사', shortcut: '⌥⌘C', action: () => { copyStyle(); onClose(); } },
+    );
+  }
+  if (hasSelection) {
+    items.push(
+      { label: '스타일 붙여넣기', shortcut: '⌥⌘V', action: () => { pasteStyle(); onClose(); }, disabled: !styleClipboard },
     );
   }
 
@@ -130,11 +153,29 @@ export default function ContextMenu({ x, y, onClose }: ContextMenuProps) {
     );
   }
 
-  if (singleSelected) {
+  // Lock / Unlock (single + multi)
+  if (hasSelection) {
     if (items[items.length - 1] !== 'separator') items.push('separator');
-    items.push(
-      { label: isLocked ? '잠금 해제' : '잠금', action: () => { updateElement(selectedElementIds[0], { locked: !isLocked }); onClose(); } },
-    );
+    if (singleSelected) {
+      items.push(
+        { label: isLocked ? '잠금 해제' : '잠금', action: () => { updateElement(selectedElementIds[0], { locked: !isLocked }); onClose(); } },
+      );
+    } else {
+      items.push(
+        { label: allLocked ? '모두 잠금 해제' : '모두 잠금', action: () => { selectedElementIds.forEach((id) => updateElement(id, { locked: !allLocked })); onClose(); } },
+      );
+    }
+
+    // Show / Hide
+    if (singleSelected) {
+      items.push(
+        { label: isHidden ? '표시' : '숨기기', action: () => { updateElement(selectedElementIds[0], { visible: !selectedElement!.visible }); onClose(); } },
+      );
+    } else {
+      items.push(
+        { label: allHidden ? '모두 표시' : '모두 숨기기', action: () => { selectedElementIds.forEach((id) => { const el = getElement(id); if (el) updateElement(id, { visible: allHidden }); }); onClose(); } },
+      );
+    }
   }
 
   // Remove trailing separators

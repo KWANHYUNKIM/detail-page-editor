@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/projectStore';
+import { useAuth } from '@/hooks/useAuth';
+import { signOut } from '@/lib/supabase/auth';
+import { togglePublish } from '@/lib/supabase/projects';
 import { type Project, fillToCss } from '@/types/editor';
 import {
   HiSparkles,
@@ -13,6 +16,9 @@ import {
   HiPlusCircle,
   HiClock,
   HiDocument,
+  HiGlobeAlt,
+  HiLockClosed,
+  HiArrowRightOnRectangle,
 } from 'react-icons/hi2';
 
 function formatDate(iso: string): string {
@@ -37,13 +43,16 @@ function ProjectCard({
   onOpen,
   onDelete,
   onDuplicate,
+  onTogglePublish,
 }: {
   project: Project;
   onOpen: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  onTogglePublish: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const isPublic = project.isPublic ?? false;
   const pageCount = project.pages.length;
   const elementCount = project.pages.reduce(
     (sum, p) => sum + p.elements.length,
@@ -52,6 +61,14 @@ function ProjectCard({
 
   return (
     <div className="group relative bg-white rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+      {/* Public badge */}
+      {isPublic && (
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/90 text-white text-xs font-medium backdrop-blur-sm">
+          <HiGlobeAlt className="w-3 h-3" />
+          공개
+        </div>
+      )}
+
       {/* Preview area */}
       <button
         type="button"
@@ -85,13 +102,25 @@ function ProjectCard({
             {formatDate(project.updatedAt)}
           </span>
           <span>
-            {project.canvas.width} × {project.canvas.height}
+            {project.canvas.width} x {project.canvas.height}
           </span>
         </div>
       </div>
 
       {/* Hover actions */}
       <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={onTogglePublish}
+          className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-md text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+          title={isPublic ? '비공개로 전환' : '공개하기'}
+        >
+          {isPublic ? (
+            <HiLockClosed className="w-4 h-4" />
+          ) : (
+            <HiGlobeAlt className="w-4 h-4" />
+          )}
+        </button>
         <button
           type="button"
           onClick={onDuplicate}
@@ -133,6 +162,7 @@ function ProjectCard({
 
 export default function ProjectsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const projects = useProjectStore((s) => s.projects);
   const isLoaded = useProjectStore((s) => s.isLoaded);
   const loadProjects = useProjectStore((s) => s.loadProjects);
@@ -143,7 +173,6 @@ export default function ProjectsPage() {
     loadProjects();
   }, [loadProjects]);
 
-  // Sort by most recently updated
   const sorted = [...projects].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
   );
@@ -158,6 +187,22 @@ export default function ProjectsPage() {
       updatedAt: new Date().toISOString(),
     };
     saveProject(duplicated);
+  };
+
+  const handleTogglePublish = async (project: Project) => {
+    const isPublic = project.isPublic ?? false;
+    try {
+      await togglePublish(project.id, !isPublic);
+      loadProjects(); // Reload to get updated state
+    } catch (err) {
+      console.error('Failed to toggle publish:', err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/');
+    router.refresh();
   };
 
   return (
@@ -182,18 +227,35 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#1e1e2e] text-white rounded-xl text-sm font-semibold hover:bg-[#2d2d44] transition-all hover:shadow-lg hover:shadow-[#1e1e2e]/20"
-          >
-            <HiPlusCircle className="w-4 h-4" />
-            새로 만들기
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/gallery')}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+            >
+              <HiGlobeAlt className="w-4 h-4" />
+              갤러리
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#1e1e2e] text-white rounded-xl text-sm font-semibold hover:bg-[#2d2d44] transition-all hover:shadow-lg hover:shadow-[#1e1e2e]/20"
+            >
+              <HiPlusCircle className="w-4 h-4" />
+              새로 만들기
+            </button>
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                title="로그아웃"
+              >
+                <HiArrowRightOnRectangle className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-10">
-        {/* Loading state */}
         {!isLoaded && (
           <div className="flex items-center justify-center py-32">
             <div className="text-center">
@@ -203,7 +265,6 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Empty state */}
         {isLoaded && sorted.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32">
             <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
@@ -225,7 +286,6 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* Project grid */}
         {isLoaded && sorted.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-6">
@@ -242,6 +302,7 @@ export default function ProjectsPage() {
                   onOpen={() => router.push(`/editor/${project.id}`)}
                   onDelete={() => deleteProject(project.id)}
                   onDuplicate={() => handleDuplicate(project)}
+                  onTogglePublish={() => handleTogglePublish(project)}
                 />
               ))}
             </div>
