@@ -19,6 +19,7 @@ import type { CanvasElement, FrameElement, ImageElement } from '@/types/editor';
 import { isGradient } from '@/types/editor';
 import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { ensureFontLoaded } from '@/lib/fonts/fontLoader';
+import { CANVAS_MARGIN } from '@/constants/canvas';
 
 export function useCanvasSync() {
   const {
@@ -57,12 +58,22 @@ export function useCanvasSync() {
       const currentSelectedIds = useEditorStore.getState().selectedElementIds;
 
       canvas.clear();
+      canvas.backgroundColor = '#f0f0f0';
 
-      const bgFill = project?.canvas.backgroundColor ?? '#ffffff';
-      if (isGradient(bgFill)) {
-        canvas.backgroundColor = toFabricFill(bgFill, project!.canvas.width, project!.canvas.height) as string;
-      } else {
-        canvas.backgroundColor = bgFill;
+      const currentZoom = useEditorStore.getState().zoom;
+      canvas.setViewportTransform([currentZoom, 0, 0, currentZoom, CANVAS_MARGIN * currentZoom, CANVAS_MARGIN * currentZoom]);
+
+      if (fabricModuleRef.current && project) {
+        const bgFill = project.canvas.backgroundColor ?? '#ffffff';
+        const pageRect = new fabricModuleRef.current.Rect({
+          left: 0, top: 0,
+          width: project.canvas.width, height: project.canvas.height,
+          fill: isGradient(bgFill) ? toFabricFill(bgFill, project.canvas.width, project.canvas.height) : bgFill,
+          selectable: false, evented: false,
+          data: { isPageBackground: true },
+          shadow: new fabricModuleRef.current.Shadow({ color: 'rgba(0,0,0,0.12)', blur: 16, offsetX: 0, offsetY: 4 }),
+        });
+        canvas.add(pageRect);
       }
 
       const latestPage = useEditorStore.getState().getCurrentPage();
@@ -174,8 +185,11 @@ export function useCanvasSync() {
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !project) return;
-    canvas.setDimensions({ width: project.canvas.width * zoom, height: project.canvas.height * zoom });
-    canvas.setZoom(zoom);
+    canvas.setDimensions({
+      width: (project.canvas.width + CANVAS_MARGIN * 2) * zoom,
+      height: (project.canvas.height + CANVAS_MARGIN * 2) * zoom,
+    });
+    canvas.setViewportTransform([zoom, 0, 0, zoom, CANVAS_MARGIN * zoom, CANVAS_MARGIN * zoom]);
     canvas.renderAll();
     updateOverlayRef.current?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -193,7 +207,7 @@ export function useCanvasSync() {
       const newZoom = Math.round(Math.min(viewW / project.canvas.width, viewH / project.canvas.height, 1) * 10) / 10;
       setZoom(newZoom);
       requestAnimationFrame(() => {
-        scrollEl.scrollTop = 0;
+        scrollEl.scrollTop = Math.max(0, CANVAS_MARGIN * newZoom - 32);
         scrollEl.scrollLeft = Math.max(0, (scrollEl.scrollWidth - scrollEl.clientWidth) / 2);
       });
       return;
@@ -211,9 +225,9 @@ export function useCanvasSync() {
     const newZoom = Math.round(Math.min(viewW / section.width, viewH / section.height, 2) * 10) / 10;
     setZoom(newZoom);
     requestAnimationFrame(() => {
-      const padding = 32;
-      scrollEl.scrollTop = (section.y + section.height / 2) * newZoom + padding - scrollEl.clientHeight / 2;
-      scrollEl.scrollLeft = Math.max(0, (section.x + section.width / 2) * newZoom + padding - scrollEl.clientWidth / 2);
+      const cssPad = 32;
+      scrollEl.scrollTop = (section.y + section.height / 2 + CANVAS_MARGIN) * newZoom + cssPad - scrollEl.clientHeight / 2;
+      scrollEl.scrollLeft = Math.max(0, (section.x + section.width / 2 + CANVAS_MARGIN) * newZoom + cssPad - scrollEl.clientWidth / 2);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusedSectionId, isReady]);
@@ -228,11 +242,11 @@ export function useCanvasSync() {
     const el = page.elements.find((e) => e.id === scrollToElementId);
     if (!el) { scrollToElement(null); return; }
 
-    const currentZoom = useEditorStore.getState().zoom;
-    const padding = 32; // p-8 padding in the canvas wrapper
+    const scrollZoom = useEditorStore.getState().zoom;
+    const cssPad = 32;
     requestAnimationFrame(() => {
-      const centerX = (el.x + el.width / 2) * currentZoom + padding;
-      const centerY = (el.y + el.height / 2) * currentZoom + padding;
+      const centerX = (el.x + el.width / 2 + CANVAS_MARGIN) * scrollZoom + cssPad;
+      const centerY = (el.y + el.height / 2 + CANVAS_MARGIN) * scrollZoom + cssPad;
       scrollEl.scrollTo({
         top: centerY - scrollEl.clientHeight / 2,
         left: Math.max(0, centerX - scrollEl.clientWidth / 2),

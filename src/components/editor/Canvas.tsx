@@ -17,6 +17,7 @@ import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { initAligningGuidelines } from '@/lib/canvas/alignmentGuides';
 import ContextMenu from '@/components/editor/ContextMenu';
 import { CanvasProvider, type CanvasContextValue, type FabricHelpers, type FabricExporter } from '@/contexts/CanvasContext';
+import { CANVAS_MARGIN } from '@/constants/canvas';
 
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCanvasEvents } from '@/hooks/useCanvasEvents';
@@ -201,9 +202,9 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
       containerRef.current.appendChild(canvasEl);
 
       const canvas = new fabricModule.Canvas(canvasEl, {
-        width: currentProject.canvas.width,
-        height: currentProject.canvas.height,
-        backgroundColor: '#ffffff',
+        width: currentProject.canvas.width + CANVAS_MARGIN * 2,
+        height: currentProject.canvas.height + CANVAS_MARGIN * 2,
+        backgroundColor: '#f0f0f0',
         selection: true,
         selectionColor: 'rgba(59, 130, 246, 0.1)',
         selectionBorderColor: 'rgba(59, 130, 246, 0.8)',
@@ -217,16 +218,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
 
       fabricRef.current = canvas;
 
-      const initBg = currentProject.canvas.backgroundColor;
-      if (isGradient(initBg)) {
-        canvas.backgroundColor = toFabricFill(
-          initBg,
-          currentProject.canvas.width,
-          currentProject.canvas.height,
-        ) as string;
-      } else {
-        canvas.backgroundColor = (initBg as string) || '#ffffff';
-      }
+      canvas.setViewportTransform([1, 0, 0, 1, CANVAS_MARGIN, CANVAS_MARGIN]);
       canvas.renderAll();
 
       disposeGuidelines = initAligningGuidelines(canvas, fabricModule, {
@@ -343,7 +335,7 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         />
         <div className="flex justify-center p-8" style={{ minHeight: '100%' }}>
           <div className="relative shrink-0 self-start">
-            <div ref={containerRef} className="shadow-lg" />
+            <div ref={containerRef} />
             {/* Dimension overlay badge */}
             {selectionInfo && (
               <div
