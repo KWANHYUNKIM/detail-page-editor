@@ -159,35 +159,45 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     canvas.renderAll();
   }, []);
 
-  const getContentBounds = useCallback(() => {
-    const state = useEditorStore.getState();
-    const project = state.project;
+  const withExportViewport = useCallback(<T,>(fn: () => T): T => {
+    const canvas = fabricRef.current;
+    if (!canvas) throw new Error('Canvas not ready');
+    const savedVP = [...canvas.viewportTransform] as typeof canvas.viewportTransform;
+    canvas.viewportTransform = [1, 0, 0, 1, 0, 0];
+    try {
+      return fn();
+    } finally {
+      canvas.viewportTransform = savedVP;
+      canvas.requestRenderAll();
+    }
+  }, []);
+
+  const getPageBounds = useCallback(() => {
+    const project = useEditorStore.getState().project;
     if (!project) return undefined;
-    const extent = state.canvasExtent;
-    return {
-      left: extent.left,
-      top: extent.top,
-      width: project.canvas.width,
-      height: project.canvas.height,
-    };
+    return { left: 0, top: 0, width: project.canvas.width, height: project.canvas.height };
   }, []);
 
   useImperativeHandle(ref, () => ({
     exportCanvas: (filename, options) => {
       if (fabricRef.current && exporterRef.current) {
-        const bounds = getContentBounds();
-        applyExportClipPaths();
-        exporterRef.current.exportAndDownload(fabricRef.current, filename, options, bounds);
-        removeExportClipPaths();
+        const bounds = getPageBounds();
+        withExportViewport(() => {
+          applyExportClipPaths();
+          exporterRef.current!.exportAndDownload(fabricRef.current!, filename, options, bounds);
+          removeExportClipPaths();
+        });
       }
     },
     getDataURL: (options) => {
       if (fabricRef.current && exporterRef.current) {
-        const bounds = getContentBounds();
-        applyExportClipPaths();
-        const result = exporterRef.current.exportCanvasToDataURL(fabricRef.current, options, bounds);
-        removeExportClipPaths();
-        return result;
+        const bounds = getPageBounds();
+        return withExportViewport(() => {
+          applyExportClipPaths();
+          const result = exporterRef.current!.exportCanvasToDataURL(fabricRef.current!, options, bounds);
+          removeExportClipPaths();
+          return result;
+        });
       }
       return '';
     },
