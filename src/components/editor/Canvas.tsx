@@ -159,18 +159,33 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     canvas.renderAll();
   }, []);
 
+  const getContentBounds = useCallback(() => {
+    const state = useEditorStore.getState();
+    const project = state.project;
+    if (!project) return undefined;
+    const extent = state.canvasExtent;
+    return {
+      left: extent.left,
+      top: extent.top,
+      width: project.canvas.width,
+      height: project.canvas.height,
+    };
+  }, []);
+
   useImperativeHandle(ref, () => ({
     exportCanvas: (filename, options) => {
       if (fabricRef.current && exporterRef.current) {
+        const bounds = getContentBounds();
         applyExportClipPaths();
-        exporterRef.current.exportAndDownload(fabricRef.current, filename, options);
+        exporterRef.current.exportAndDownload(fabricRef.current, filename, options, bounds);
         removeExportClipPaths();
       }
     },
     getDataURL: (options) => {
       if (fabricRef.current && exporterRef.current) {
+        const bounds = getContentBounds();
         applyExportClipPaths();
-        const result = exporterRef.current.exportCanvasToDataURL(fabricRef.current, options);
+        const result = exporterRef.current.exportCanvasToDataURL(fabricRef.current, options, bounds);
         removeExportClipPaths();
         return result;
       }

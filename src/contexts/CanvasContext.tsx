@@ -21,8 +21,8 @@ export type FabricHelpers = {
 };
 
 export type FabricExporter = {
-  exportAndDownload: (canvas: fabricTypes.Canvas, filename: string, options: import('@/types/editor').ExportOptions) => void;
-  exportCanvasToDataURL: (canvas: fabricTypes.Canvas, options: import('@/types/editor').ExportOptions) => string;
+  exportAndDownload: (canvas: fabricTypes.Canvas, filename: string, options: import('@/types/editor').ExportOptions, bounds?: import('@/lib/canvas/exporter').ContentBounds) => void;
+  exportCanvasToDataURL: (canvas: fabricTypes.Canvas, options: import('@/types/editor').ExportOptions, bounds?: import('@/lib/canvas/exporter').ContentBounds) => string;
 };
 
 export interface CanvasContextValue {
