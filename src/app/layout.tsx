@@ -10,8 +10,8 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "상세페이지 에디터",
-  description: "Figma-like detail page editor",
+  title: "크리에이티브 스튜디오",
+  description: "상세페이지 · 폰트 디자인 · 사진 콘텐츠를 한곳에서",
 };
 
 export default function RootLayout({

@@ -16,7 +16,6 @@ import { useEffect } from 'react';
 import { useCanvasContext } from '@/contexts/CanvasContext';
 import { useEditorStore } from '@/stores/editorStore';
 import type { CanvasElement, FrameElement, ImageElement } from '@/types/editor';
-import { isGradient } from '@/types/editor';
 import { toFabricFill } from '@/lib/canvas/fabricHelpers';
 import { ensureFontLoaded } from '@/lib/fonts/fontLoader';
 export function useCanvasSync() {
@@ -63,18 +62,7 @@ export function useCanvasSync() {
       const extent = useEditorStore.getState().canvasExtent;
       canvas.setViewportTransform([currentZoom, 0, 0, currentZoom, extent.left * currentZoom, extent.top * currentZoom]);
 
-      if (fabricModuleRef.current && project) {
-        const bgFill = project.canvas.backgroundColor ?? '#ffffff';
-        const pageRect = new fabricModuleRef.current.Rect({
-          left: 0, top: 0,
-          width: project.canvas.width, height: project.canvas.height,
-          fill: isGradient(bgFill) ? toFabricFill(bgFill, project.canvas.width, project.canvas.height) : bgFill,
-          selectable: false, evented: false,
-          data: { isPageBackground: true },
-          shadow: new fabricModuleRef.current.Shadow({ color: 'rgba(0,0,0,0.12)', blur: 16, offsetX: 0, offsetY: 4 }),
-        });
-        canvas.add(pageRect);
-      }
+      
 
       const latestPage = useEditorStore.getState().getCurrentPage();
       const latestElements = latestPage?.elements;

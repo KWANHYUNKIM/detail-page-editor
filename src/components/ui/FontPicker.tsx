@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { FONT_LIST, FONT_CATEGORIES, type FontCategory, type FontOption } from '@/constants/fonts';
+import { FONT_LIST, FONT_CATEGORIES, FONT_TAGS, type FontCategory, type FontOption, type FontTag } from '@/constants/fonts';
 import { ensureFontLoaded, isFontLoaded } from '@/lib/fonts/fontLoader';
 import { HiChevronDown, HiMagnifyingGlass, HiCheck } from 'react-icons/hi2';
 
@@ -14,6 +14,7 @@ export default function FontPicker({ value, onChange }: FontPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<FontCategory>('all');
+  const [activeTag, setActiveTag] = useState<FontTag | null>(null);
   const [loadingFont, setLoadingFont] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -40,6 +41,7 @@ export default function FontPicker({ value, onChange }: FontPickerProps) {
   // Filter fonts
   const filtered = FONT_LIST.filter((f) => {
     if (category !== 'all' && f.category !== category) return false;
+    if (activeTag && (!f.tags || !f.tags.includes(activeTag))) return false;
     if (search) {
       const q = search.toLowerCase();
       return f.label.toLowerCase().includes(q) || f.family.toLowerCase().includes(q);
@@ -123,6 +125,23 @@ export default function FontPicker({ value, onChange }: FontPickerProps) {
             ))}
           </div>
 
+          <div className="flex gap-1 px-2 py-1 border-b border-gray-100 overflow-x-auto hide-scrollbar">
+            {FONT_TAGS.map((tag) => (
+              <button
+                key={tag.key}
+                type="button"
+                className={`px-2 py-0.5 rounded-full text-[9px] font-medium whitespace-nowrap transition-colors border ${
+                  activeTag === tag.key
+                    ? 'bg-violet-50 text-violet-600 border-violet-200'
+                    : 'text-gray-400 border-gray-200 hover:bg-gray-50 hover:text-gray-600'
+                }`}
+                onClick={() => setActiveTag(activeTag === tag.key ? null : tag.key)}
+              >
+                {tag.label}
+              </button>
+            ))}
+          </div>
+
           {/* Font list */}
           <div className="max-h-[260px] overflow-y-auto">
             {filtered.length === 0 && (
@@ -159,6 +178,12 @@ export default function FontPicker({ value, onChange }: FontPickerProps) {
                   <span className="text-[9px] text-gray-400 uppercase tracking-wider shrink-0">
                     {font.category}
                   </span>
+
+                  {!activeTag && font.tags && font.tags.length > 0 && (
+                    <span className="text-[8px] text-violet-400 bg-violet-50 px-1 rounded shrink-0">
+                      추천
+                    </span>
+                  )}
 
                   {/* Status */}
                   {isLoading && (
