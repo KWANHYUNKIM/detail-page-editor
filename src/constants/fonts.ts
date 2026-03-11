@@ -6,7 +6,10 @@ export interface FontOption {
   googleFamily?: string;
   /** External CDN stylesheet URL for fonts NOT on Google Fonts */
   cdnUrl?: string;
+  tags?: FontTag[];
 }
+
+export type FontTag = 'instagram' | 'marketing' | 'thumbnail' | 'minimal' | 'premium' | 'emotional';
 
 /* ─────────────────────────────────────────
    Google Fonts + CDN + 시스템 폰트 (85+개)
@@ -15,23 +18,38 @@ export interface FontOption {
 
 export const FONT_LIST: FontOption[] = [
   // ━━━ 한국어 고딕 (Korean Sans-serif) ━━━
-  { family: 'Noto Sans KR', label: 'Noto Sans KR', category: 'sans', googleFamily: 'Noto+Sans+KR' },
-  { family: 'Pretendard', label: 'Pretendard', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css' },
-  { family: 'Gothic A1', label: 'Gothic A1', category: 'sans', googleFamily: 'Gothic+A1' },
+  { family: 'Noto Sans KR', label: 'Noto Sans KR', category: 'sans', googleFamily: 'Noto+Sans+KR', tags: ['instagram', 'marketing', 'minimal'] },
+  { family: 'Pretendard', label: 'Pretendard', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css', tags: ['instagram', 'marketing', 'minimal', 'premium'] },
+  { family: 'Gothic A1', label: 'Gothic A1', category: 'sans', googleFamily: 'Gothic+A1', tags: ['marketing', 'minimal'] },
   { family: 'Nanum Gothic', label: '나눔고딕', category: 'sans', googleFamily: 'Nanum+Gothic' },
-  { family: 'IBM Plex Sans KR', label: 'IBM Plex Sans KR', category: 'sans', googleFamily: 'IBM+Plex+Sans+KR' },
-  { family: 'Spoqa Han Sans Neo', label: '스포카 한 산스', category: 'sans', cdnUrl: 'https://spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css' },
-  { family: 'Gowun Dodum', label: '고운돋움', category: 'sans', googleFamily: 'Gowun+Dodum' },
-  { family: 'Hahmlet', label: '함렛', category: 'sans', googleFamily: 'Hahmlet' },
-  { family: 'Dongle', label: '동글', category: 'sans', googleFamily: 'Dongle' },
-  { family: 'Jua', label: '주아', category: 'sans', googleFamily: 'Jua' },
+  { family: 'IBM Plex Sans KR', label: 'IBM Plex Sans KR', category: 'sans', googleFamily: 'IBM+Plex+Sans+KR', tags: ['marketing', 'premium', 'minimal'] },
+  { family: 'Spoqa Han Sans Neo', label: '스포카 한 산스', category: 'sans', cdnUrl: 'https://spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css', tags: ['instagram', 'marketing', 'premium'] },
+  { family: 'Gowun Dodum', label: '고운돋움', category: 'sans', googleFamily: 'Gowun+Dodum', tags: ['instagram', 'minimal', 'emotional'] },
+  { family: 'Hahmlet', label: '함렛', category: 'sans', googleFamily: 'Hahmlet', tags: ['premium', 'emotional'] },
+  { family: 'Dongle', label: '동글', category: 'sans', googleFamily: 'Dongle', tags: ['instagram', 'emotional'] },
+  { family: 'Jua', label: '주아', category: 'sans', googleFamily: 'Jua', tags: ['instagram', 'thumbnail', 'emotional'] },
   { family: 'Single Day', label: '싱글데이', category: 'sans', googleFamily: 'Single+Day' },
-  { family: 'Sunflower', label: '해바라기', category: 'sans', googleFamily: 'Sunflower' },
+  { family: 'Sunflower', label: '해바라기', category: 'sans', googleFamily: 'Sunflower', tags: ['instagram', 'emotional', 'minimal'] },
   { family: 'Orbit', label: 'Orbit', category: 'sans', googleFamily: 'Orbit' },
+  { family: 'SUIT', label: 'SUIT', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css', tags: ['instagram', 'marketing', 'premium', 'minimal'] },
+  { family: 'Wanted Sans', label: 'Wanted Sans', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Wanted-Sans@main/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.min.css', tags: ['marketing', 'premium', 'minimal'] },
+  { family: 'GmarketSans', label: '지마켓 산스', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.css', tags: ['marketing', 'thumbnail', 'premium'] },
+  { family: 'Happiness Sans', label: '행복고딕', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/HappinessSans@main/dist/HappinessSansVF.css', tags: ['marketing', 'premium'] },
+  { family: 'Paperlogy', label: '페이퍼로지', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Paperlogy/fonts/Paperlogy.css', tags: ['instagram', 'marketing', 'premium', 'minimal'] },
+  { family: 'LINESeed KR', label: '라인시드', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/LINESeedKR@main/dist/LINESeedKR.css', tags: ['instagram', 'minimal', 'premium'] },
+  { family: 'Nanumbarungothic', label: '나눔바른고딕', category: 'sans', googleFamily: 'Nanumbarungothic', tags: ['marketing', 'minimal'] },
+  { family: 'Hakgyoansim Dunggeunmiso', label: '학교안심 둥근미소', category: 'sans', googleFamily: 'Hakgyoansim+Dunggeunmiso', tags: ['instagram', 'emotional'] },
+  { family: 'S-Core Dream', label: '에스코어 드림', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/S-CoreDream@main/dist/SCoreDream.css', tags: ['marketing', 'premium', 'minimal'] },
+  { family: 'NanumSquare Neo', label: '나눔스퀘어 네오', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/NanumSquareNeo@main/dist/NanumSquareNeo.css', tags: ['instagram', 'marketing', 'minimal'] },
+  { family: 'NanumSquare Round', label: '나눔스퀘어 라운드', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/NanumSquareRound@main/dist/NanumSquareRound.css', tags: ['instagram', 'emotional', 'minimal'] },
+  { family: 'NEXON Lv1 Gothic', label: '넥슨 Lv1 고딕', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/NEXONLv1Gothic@main/dist/NEXONLv1Gothic.css', tags: ['marketing', 'thumbnail', 'premium'] },
+  { family: 'NEXON Lv2 Gothic', label: '넥슨 Lv2 고딕', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/NEXONLv2Gothic@main/dist/NEXONLv2Gothic.css', tags: ['marketing', 'premium'] },
+  { family: 'KOTRA Hope', label: '코트라 희망체', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/KOTRAHope@main/dist/KOTRAHope.css', tags: ['marketing', 'minimal'] },
+  { family: 'ONE Mobile', label: '원모바일', category: 'sans', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/ONEMobile@main/dist/ONEMobile.css', tags: ['instagram', 'marketing'] },
 
   // ━━━ 영문 고딕 (International Sans-serif) ━━━
-  { family: 'Montserrat', label: 'Montserrat', category: 'sans', googleFamily: 'Montserrat' },
-  { family: 'Poppins', label: 'Poppins', category: 'sans', googleFamily: 'Poppins' },
+  { family: 'Montserrat', label: 'Montserrat', category: 'sans', googleFamily: 'Montserrat', tags: ['instagram', 'marketing', 'premium'] },
+  { family: 'Poppins', label: 'Poppins', category: 'sans', googleFamily: 'Poppins', tags: ['instagram', 'marketing'] },
   { family: 'Inter', label: 'Inter', category: 'sans', googleFamily: 'Inter' },
   { family: 'Roboto', label: 'Roboto', category: 'sans', googleFamily: 'Roboto' },
   { family: 'Open Sans', label: 'Open Sans', category: 'sans', googleFamily: 'Open+Sans' },
@@ -48,14 +66,17 @@ export const FONT_LIST: FontOption[] = [
   { family: 'Figtree', label: 'Figtree', category: 'sans', googleFamily: 'Figtree' },
 
   // ━━━ 한국어 명조 (Korean Serif) ━━━
-  { family: 'Noto Serif KR', label: 'Noto Serif KR', category: 'serif', googleFamily: 'Noto+Serif+KR' },
-  { family: 'Nanum Myeongjo', label: '나눔명조', category: 'serif', googleFamily: 'Nanum+Myeongjo' },
-  { family: 'Gowun Batang', label: '고운바탕', category: 'serif', googleFamily: 'Gowun+Batang' },
+  { family: 'Noto Serif KR', label: 'Noto Serif KR', category: 'serif', googleFamily: 'Noto+Serif+KR', tags: ['premium', 'emotional'] },
+  { family: 'Nanum Myeongjo', label: '나눔명조', category: 'serif', googleFamily: 'Nanum+Myeongjo', tags: ['emotional', 'premium'] },
+  { family: 'Gowun Batang', label: '고운바탕', category: 'serif', googleFamily: 'Gowun+Batang', tags: ['emotional', 'premium', 'minimal'] },
   { family: 'Song Myung', label: '송명', category: 'serif', googleFamily: 'Song+Myung' },
   { family: 'Gamja Flower', label: '감자꽃', category: 'serif', googleFamily: 'Gamja+Flower' },
+  { family: 'Chosunilbo Myungjo', label: '조선일보 명조', category: 'serif', googleFamily: 'Chosunilbo+Myungjo', tags: ['premium', 'emotional'] },
+  { family: 'MaruBuri', label: '마루부리', category: 'serif', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/MaruBuri@main/dist/MaruBuri.css', tags: ['premium', 'minimal'] },
+  { family: 'RIDIBatang', label: '리디바탕', category: 'serif', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/RIDIBatang@main/dist/RIDIBatang.css', tags: ['premium', 'emotional'] },
 
   // ━━━ 영문 명조 (International Serif) ━━━
-  { family: 'Playfair Display', label: 'Playfair Display', category: 'serif', googleFamily: 'Playfair+Display' },
+  { family: 'Playfair Display', label: 'Playfair Display', category: 'serif', googleFamily: 'Playfair+Display', tags: ['premium', 'emotional'] },
   { family: 'Merriweather', label: 'Merriweather', category: 'serif', googleFamily: 'Merriweather' },
   { family: 'Lora', label: 'Lora', category: 'serif', googleFamily: 'Lora' },
   { family: 'EB Garamond', label: 'EB Garamond', category: 'serif', googleFamily: 'EB+Garamond' },
@@ -66,23 +87,35 @@ export const FONT_LIST: FontOption[] = [
   { family: 'Cinzel', label: 'Cinzel', category: 'serif', googleFamily: 'Cinzel' },
 
   // ━━━ 한국어 디스플레이 (Korean Display) ━━━
-  { family: 'Black Han Sans', label: '블랙한산스', category: 'display', googleFamily: 'Black+Han+Sans' },
-  { family: 'Do Hyeon', label: '도현체', category: 'display', googleFamily: 'Do+Hyeon' },
-  { family: 'Gugi', label: '구기', category: 'display', googleFamily: 'Gugi' },
+  { family: 'Black Han Sans', label: '블랙한산스', category: 'display', googleFamily: 'Black+Han+Sans', tags: ['instagram', 'thumbnail', 'marketing'] },
+  { family: 'Do Hyeon', label: '도현체', category: 'display', googleFamily: 'Do+Hyeon', tags: ['instagram', 'thumbnail'] },
+  { family: 'Gugi', label: '구기', category: 'display', googleFamily: 'Gugi', tags: ['thumbnail'] },
   { family: 'Black And White Picture', label: '흑백사진', category: 'display', googleFamily: 'Black+And+White+Picture' },
   { family: 'Dokdo', label: '독도', category: 'display', googleFamily: 'Dokdo' },
   { family: 'East Sea Dokdo', label: '동해독도', category: 'display', googleFamily: 'East+Sea+Dokdo' },
   { family: 'Kirang Haerang', label: '기랑해랑', category: 'display', googleFamily: 'Kirang+Haerang' },
-  { family: 'Yeon Sung', label: '연성', category: 'display', googleFamily: 'Yeon+Sung' },
-  { family: 'Poor Story', label: '푸어스토리', category: 'display', googleFamily: 'Poor+Story' },
+  { family: 'Yeon Sung', label: '연성', category: 'display', googleFamily: 'Yeon+Sung', tags: ['emotional'] },
+  { family: 'Poor Story', label: '푸어스토리', category: 'display', googleFamily: 'Poor+Story', tags: ['instagram', 'emotional'] },
   { family: 'Stylish', label: '스타일리시', category: 'display', googleFamily: 'Stylish' },
   { family: 'Hi Melody', label: '하이멜로디', category: 'display', googleFamily: 'Hi+Melody' },
   { family: 'Cute Font', label: '큐트', category: 'display', googleFamily: 'Cute+Font' },
+  { family: 'Bagel Fat One', label: '베이글 팻 원', category: 'display', googleFamily: 'Bagel+Fat+One', tags: ['instagram', 'thumbnail'] },
+  { family: 'Jalnan', label: '잘난체', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_231029@1.1/JalnanGothic.css', tags: ['instagram', 'thumbnail', 'marketing'] },
+  { family: 'Cafe24 Ssurround', label: '카페24 써라운드', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.css', tags: ['instagram', 'thumbnail', 'emotional'] },
+  { family: 'Tenada', label: '테나다', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Tenada@main/dist/Tenada.css', tags: ['thumbnail', 'marketing'] },
+  { family: 'Galmuri11', label: '갈무리11', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Galmuri/dist/Galmuri11.css', tags: ['instagram', 'emotional'] },
+  { family: 'Aggro', label: 'SB 어그로체', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Aggro@main/dist/SBAggro.css', tags: ['thumbnail', 'marketing'] },
+  { family: 'Maplestory', label: '메이플스토리', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Maplestory@main/dist/Maplestory.css', tags: ['instagram', 'emotional', 'thumbnail'] },
+  { family: 'Giants', label: '자이언츠', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/Giants@main/dist/Giants.css', tags: ['thumbnail', 'marketing'] },
+  { family: 'Tway Air', label: '티웨이항공체', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/TwayAir@main/dist/TwayAir.css', tags: ['marketing', 'minimal'] },
+  { family: 'KCC-Ganpan', label: 'KCC 간판체', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/KCCGanpan@main/dist/KCCGanpan.css', tags: ['thumbnail', 'marketing'] },
+  { family: 'Jalpullineun Haru', label: '잘풀리는하루', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/JalpullineunHaru@main/dist/JalpullineunHaru.css', tags: ['instagram', 'emotional'] },
+  { family: 'KIMM Bold', label: '김밥체', category: 'display', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/KIMMBold@main/dist/KIMMBold.css', tags: ['thumbnail', 'marketing'] },
 
   // ━━━ 영문 디스플레이 & 임팩트 (International Display & Impact) ━━━
-  { family: 'Bebas Neue', label: 'Bebas Neue', category: 'display', googleFamily: 'Bebas+Neue' },
-  { family: 'Oswald', label: 'Oswald', category: 'display', googleFamily: 'Oswald' },
-  { family: 'Anton', label: 'Anton', category: 'display', googleFamily: 'Anton' },
+  { family: 'Bebas Neue', label: 'Bebas Neue', category: 'display', googleFamily: 'Bebas+Neue', tags: ['thumbnail', 'marketing'] },
+  { family: 'Oswald', label: 'Oswald', category: 'display', googleFamily: 'Oswald', tags: ['thumbnail', 'marketing'] },
+  { family: 'Anton', label: 'Anton', category: 'display', googleFamily: 'Anton', tags: ['thumbnail'] },
   { family: 'Barlow Condensed', label: 'Barlow Condensed', category: 'display', googleFamily: 'Barlow+Condensed' },
   { family: 'Saira Condensed', label: 'Saira Condensed', category: 'display', googleFamily: 'Saira+Condensed' },
   { family: 'Fjalla One', label: 'Fjalla One', category: 'display', googleFamily: 'Fjalla+One' },
@@ -98,12 +131,16 @@ export const FONT_LIST: FontOption[] = [
   { family: 'Pathway Gothic One', label: 'Pathway Gothic One', category: 'display', googleFamily: 'Pathway+Gothic+One' },
 
   // ━━━ 손글씨 (Handwriting) ━━━
-  { family: 'Gaegu', label: '개구', category: 'handwriting', googleFamily: 'Gaegu' },
-  { family: 'Nanum Pen Script', label: '나눔펜스크립트', category: 'handwriting', googleFamily: 'Nanum+Pen+Script' },
-  { family: 'Nanum Brush Script', label: '나눔붓스크립트', category: 'handwriting', googleFamily: 'Nanum+Brush+Script' },
+  { family: 'Gaegu', label: '개구', category: 'handwriting', googleFamily: 'Gaegu', tags: ['instagram', 'emotional'] },
+  { family: 'Nanum Pen Script', label: '나눔펜스크립트', category: 'handwriting', googleFamily: 'Nanum+Pen+Script', tags: ['emotional'] },
+  { family: 'Nanum Brush Script', label: '나눔붓스크립트', category: 'handwriting', googleFamily: 'Nanum+Brush+Script', tags: ['emotional', 'thumbnail'] },
   { family: 'Nanum Gothic Coding', label: '나눔고딕코딩', category: 'handwriting', googleFamily: 'Nanum+Gothic+Coding' },
   { family: 'Gasoek One', label: '가석원', category: 'handwriting', googleFamily: 'Gasoek+One' },
   { family: 'Grandiflora One', label: '그란디플로라', category: 'handwriting', googleFamily: 'Grandiflora+One' },
+  { family: 'Cafe24 Shiningstar', label: '카페24 빛나는별', category: 'handwriting', cdnUrl: 'https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.1/Cafe24Shiningstar.css', tags: ['instagram', 'emotional'] },
+  { family: 'Ownglyph Ryuji', label: '오운글립 류지', category: 'handwriting', googleFamily: 'Ownglyph+Ryuji', tags: ['instagram', 'emotional'] },
+  { family: 'UhBee Se_hyun', label: '어비 세현체', category: 'handwriting', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/UhBeeSehyun@main/dist/UhBeeSehyun.css', tags: ['instagram', 'emotional'] },
+  { family: 'KCCMurukmuruk', label: 'KCC 무럭무럭', category: 'handwriting', cdnUrl: 'https://cdn.jsdelivr.net/gh/niceplugin/KCCMurukmuruk@main/dist/KCCMurukmuruk.css', tags: ['emotional'] },
 
   // ━━━ 모노 (Monospace) ━━━
   { family: 'IBM Plex Mono', label: 'IBM Plex Mono', category: 'mono', googleFamily: 'IBM+Plex+Mono' },
@@ -124,6 +161,15 @@ export const FONT_CATEGORIES = [
   { key: 'display' as const, label: '디스플레이' },
   { key: 'handwriting' as const, label: '손글씨' },
   { key: 'mono' as const, label: '모노' },
+];
+
+export const FONT_TAGS: { key: FontTag; label: string }[] = [
+  { key: 'instagram', label: '인스타용' },
+  { key: 'marketing', label: '마케팅' },
+  { key: 'thumbnail', label: '썸네일' },
+  { key: 'minimal', label: '미니멀' },
+  { key: 'premium', label: '프리미엄' },
+  { key: 'emotional', label: '감성' },
 ];
 
 export type FontCategory = (typeof FONT_CATEGORIES)[number]['key'];

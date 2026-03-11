@@ -7,7 +7,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import { CANVAS_PRESETS } from '@/constants/presets';
 import { BUILT_IN_TEMPLATES, TEMPLATE_CATEGORIES } from '@/constants/templates';
 import { createFigmaDesignProject } from '@/constants/figmaDesign';
-import type { PresetKey, TemplateCategory, BuiltInTemplate } from '@/types/editor';
+import type { PresetKey, TemplateCategory, BuiltInTemplate, CanvasElement, ImageElement, TextElement, ShapeElement } from '@/types/editor';
 import Modal from '@/components/ui/Modal';
 import {
   HiMagnifyingGlass,
@@ -32,6 +32,94 @@ const CATEGORY_VISUALS: Record<
   kids: { gradient: 'from-purple-400 to-pink-300', icon: '🧸' },
   promotion: { gradient: 'from-red-500 to-orange-400', icon: '🔥' },
 };
+
+function uid() {
+  return crypto.randomUUID();
+}
+
+function makeInstagramPostElements(): {
+  elements: CanvasElement[];
+  backgroundColor: string;
+} {
+  const W = 1080;
+  const H = 1080;
+  const imgH = 650;
+  const bottomY = imgH;
+  const bottomH = H - imgH;
+
+  const bgRect: ShapeElement = {
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: 0, width: W, height: H, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: '#111111', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  };
+
+  const imgPlaceholder: ImageElement = {
+    id: uid(), type: 'image',
+    x: 0, y: 0, width: W, height: imgH, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    editableProps: ['src'],
+    placeholder: '여기에 사진을 드래그하거나 교체하세요',
+    src: '', scaleMode: 'fill', crop: null,
+    filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0, temperature: 0, tint: 0, highlights: 0, shadows: 0 },
+    filterPreset: null,
+    gradientOverlay: {
+      enabled: true,
+      gradient: { type: 'linear', angle: 180, stops: [{ color: 'rgba(0, 0, 0, 0)', offset: 0.5 }, { color: 'rgba(17, 17, 17, 1)', offset: 1 }] },
+      opacity: 1,
+    },
+  };
+
+  const darkOverlay: ShapeElement = {
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: bottomY, width: W, height: bottomH, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: '#111111', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  };
+
+  const badge: TextElement = {
+    id: uid(), type: 'text',
+    x: 60, y: bottomY + 20, width: 200, height: 36, rotation: 0, opacity: 0.7,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content', 'color'],
+    content: '@username', fontFamily: 'Pretendard', fontSize: 18, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#aaaaaa', textAlign: 'left', lineHeight: 1.3, letterSpacing: 0.5, textDecoration: 'none',
+    textShadow: { enabled: false, color: '#000', offsetX: 0, offsetY: 0, blur: 0 },
+    textStroke: { enabled: false, color: '#000', width: 0 },
+    textBackground: '',
+  };
+
+  const mainText: TextElement = {
+    id: uid(), type: 'text',
+    x: 60, y: bottomY + 65, width: W - 120, height: 300, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content', 'fontFamily', 'fontSize', 'color'],
+    content: '한 사람만 사랑하는\nMBTI 1위는 \'ISTJ\'\n해바라기 같은 사람',
+    fontFamily: 'Pretendard', fontSize: 58, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ffffff', textAlign: 'left', lineHeight: 1.25, letterSpacing: -1, textDecoration: 'none',
+    textShadow: { enabled: false, color: '#000', offsetX: 0, offsetY: 0, blur: 0 },
+    textStroke: { enabled: false, color: '#000', width: 0 },
+    textBackground: '',
+  };
+
+  const subText: TextElement = {
+    id: uid(), type: 'text',
+    x: 60, y: H - 80, width: W - 120, height: 30, rotation: 0, opacity: 0.4,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content'],
+    content: '#MBTI #ISTJ #연애 #해바라기',
+    fontFamily: 'Pretendard', fontSize: 16, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#ffffff', textAlign: 'left', lineHeight: 1.4, letterSpacing: 0, textDecoration: 'none',
+    textShadow: { enabled: false, color: '#000', offsetX: 0, offsetY: 0, blur: 0 },
+    textStroke: { enabled: false, color: '#000', width: 0 },
+    textBackground: '',
+  };
+
+  return {
+    elements: [bgRect, imgPlaceholder, darkOverlay, badge, mainText, subText],
+    backgroundColor: '#111111',
+  };
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -99,6 +187,19 @@ export default function HomePage() {
     }
     setCreateOpen(false);
     setNewName('');
+  };
+
+  const handleCreateInstagramPost = () => {
+    const { elements, backgroundColor } = makeInstagramPostElements();
+    initProject('인스타 포스트', 'instagram-feed', 'design', {
+      elements,
+      backgroundColor,
+    });
+    const project = useEditorStore.getState().project;
+    if (project) {
+      saveProject(project);
+      router.push(`/editor/${project.id}`);
+    }
   };
 
   const scrollToTemplates = (cat: TemplateCategory) => {
@@ -311,6 +412,45 @@ export default function HomePage() {
               </button>
               <p className="mt-3 text-sm font-medium text-gray-700 truncate">피그마 디자인 자료모음</p>
               <p className="text-xs text-gray-400 mt-0.5 truncate">온라인셀러를 위한 상세페이지 만들기 가이드</p>
+            </div>
+
+            {/* Instagram Post Quick-Create */}
+            <div className="group/card">
+              <button
+                onClick={handleCreateInstagramPost}
+                className="aspect-[3/4] w-full rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-pink-900/20"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045]" />
+                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm">
+                      <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                      </svg>
+                      <span className="text-[11px] font-semibold text-white">INSTAGRAM</span>
+                    </div>
+                    <div className="mt-2 text-[11px] text-white/60">1080×1080 · 피드 포스트</div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white leading-tight">인스타 포스트<br />바로 만들기</div>
+                      <div className="mt-1.5 text-xs text-white/60">사진 + 텍스트 템플릿</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    <span className="text-[10px] text-white/70">클릭하면 바로 편집</span>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 opacity-0 group-hover/card:opacity-100 translate-y-2 group-hover/card:translate-y-0 transition-all duration-300">
+                    인스타 포스트 만들기
+                  </span>
+                </div>
+              </button>
+              <p className="mt-3 text-sm font-medium text-gray-700 truncate">인스타그램 피드 포스트</p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">사진 + 텍스트 마케팅 포스트 템플릿</p>
             </div>
 
             {/* Template cards */}
