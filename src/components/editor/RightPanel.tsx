@@ -1,47 +1,19 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import type {
   TextElement,
   ShapeElement,
   ImageElement,
-  ImageScaleMode,
-  TextAlign,
-  FontWeight,
-  FontStyle,
-  TextDecoration,
   FrameElement,
   FillValue,
-  DropShadow,
-  InnerShadow,
-  FillItem,
-  StrokeItem,
-  EffectItem,
-  ExportSetting,
-  LayoutGuide,
-  StrokePosition,
-  StrokeJoin,
-  StrokeEndCap,
-  IndividualCorners,
-  ExportFormat,
 } from '@/types/editor';
-import { FONT_SIZE_OPTIONS } from '@/constants/fonts';
-import ColorPicker from '@/components/ui/ColorPicker';
 import GradientPicker from '@/components/ui/GradientPicker';
-import FontPicker from '@/components/ui/FontPicker';
 import FramePropertiesPanel from './FramePropertiesPanel';
-import {
-  HiBars3BottomLeft,
-  HiBars3,
-  HiBars3BottomRight,
-  HiChevronDown,
-  HiChevronRight,
-  HiArrowPath,
-  HiArrowUpTray,
-  HiLockClosed,
-  HiLockOpen,
-} from 'react-icons/hi2';
+import ImagePropertiesPanel from './ImagePropertiesPanel';
+import TextPropertiesPanel from './TextPropertiesPanel';
+import ShapePropertiesPanel from './ShapePropertiesPanel';
 
 /* ── Reusable small components ── */
 
@@ -117,120 +89,221 @@ function SliderInput({
   );
 }
 
-function ToggleSwitch({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
+const F_IC = 'flex items-center justify-center';
+const F_ICON_BTN = `${F_IC} w-7 h-7 rounded-sm hover:bg-[#e8e8e8] transition-colors`;
+const F_SECTION_BORDER = 'border-b border-[#e5e5e5]';
+const F_INPUT_BASE = 'w-full h-full bg-transparent text-[11px] text-gray-700 outline-none pr-1.5 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const F_LABEL_INPUT = 'flex-1 flex items-center h-7 rounded bg-transparent hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors';
+const F_PLUS_PATH = 'M12 6a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 12 6';
+const F_MINUS_PATH = 'M6 12a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11A.5.5 0 0 1 6 12';
+const F_EYE_PATH = 'M6 12c0-.066.054-.358.313-.825a5.9 5.9 0 0 1 1.12-1.414C8.443 8.816 9.956 8 12 8s3.558.816 4.566 1.76c.508.477.88.98 1.121 1.415.258.467.313.76.313.825 0 .066-.055.358-.313.825-.24.435-.613.938-1.12 1.414C15.557 15.184 14.044 16 12 16s-3.558-.816-4.566-1.76a5.9 5.9 0 0 1-1.121-1.415C6.055 12.358 6 12.065 6 12m-1 0c0-1.25 2.333-5 7-5s7 3.75 7 5-2.333 5-7 5-7-3.75-7-5m8 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0';
+
+function FPlusSvg({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d={F_PLUS_PATH} /></svg>;
+}
+function FMinusSvg({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d={F_MINUS_PATH} /></svg>;
+}
+function FEyeSvg({ visible, size = 16 }: { visible: boolean; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path fill={visible ? '#b3b3b3' : '#e5e5e5'} fillRule="evenodd" clipRule="evenodd" d={F_EYE_PATH} /></svg>;
+}
+
+function fillToHex(fill: FillValue): string {
+  if (typeof fill === 'string') {
+    if (fill.startsWith('#')) return fill.replace('#', '').toUpperCase().slice(0, 6);
+    if (fill.startsWith('rgb')) {
+      const m = fill.match(/\d+/g);
+      if (m && m.length >= 3) return m.slice(0, 3).map(n => parseInt(n).toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+    return 'FFFFFF';
+  }
+  return 'Gradient';
+}
+
+function FColorChit({ color, size = 16 }: { color: string; size?: number }) {
   return (
-    <button
-      type="button"
-      className="flex items-center justify-between w-full group"
-      onClick={() => onChange(!checked)}
-    >
-      <span className="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors">
-        {label}
-      </span>
-      <div
-        className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
-          checked ? 'bg-blue-500' : 'bg-gray-300'
-        }`}
-      >
-        <div
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-            checked ? 'translate-x-4' : 'translate-x-0.5'
-          }`}
-        />
+    <span className="inline-block rounded-sm border border-gray-300 shrink-0" style={{ width: size, height: size, backgroundColor: color }} />
+  );
+}
+
+function CanvasSettingsPanel({
+  project,
+  setCanvasBackground,
+  setCanvasSize,
+}: {
+  project: { canvas: { width: number; height: number; backgroundColor: FillValue } };
+  setCanvasBackground: (color: FillValue) => void;
+  setCanvasSize: (width: number, height: number) => void;
+}) {
+  const [bgVisible, setBgVisible] = useState(true);
+  const [showInExports, setShowInExports] = useState(true);
+  const [exports, setExports] = useState<{ id: string; scale: string; format: string }[]>([]);
+  const [variablesOpen, setVariablesOpen] = useState(false);
+  const [stylesOpen, setStylesOpen] = useState(false);
+
+  const bgColor = project.canvas.backgroundColor;
+  const hexStr = fillToHex(bgColor);
+  const isGradientBg = typeof bgColor !== 'string';
+
+  return (
+    <div className="w-[280px] bg-white border-l border-gray-200 shrink-0 overflow-y-auto text-[11px]">
+      <div className={`flex items-center h-8 px-2 ${F_SECTION_BORDER}`}>
+        <span className="text-xs font-medium text-gray-700 px-1">Page</span>
       </div>
-    </button>
-  );
-}
 
-function SectionAccordion({
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border-b border-gray-100">
-      <button
-        type="button"
-        className="flex items-center justify-between w-full p-4 hover:bg-gray-50/50 transition-colors"
-        onClick={() => setOpen(!open)}
-      >
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-        {open ? (
-          <HiChevronDown className="w-4 h-4 text-gray-400" />
-        ) : (
-          <HiChevronRight className="w-4 h-4 text-gray-400" />
+      <div className={`px-2 py-1 ${F_SECTION_BORDER}`}>
+        <div className="flex gap-1">
+          <label className={F_LABEL_INPUT}>
+            <span className="pl-1.5 pr-1 text-gray-400 select-none cursor-ew-resize font-medium">W</span>
+            <input
+              type="number"
+              value={Math.round(project.canvas.width)}
+              min={100}
+              onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v) && v >= 100) setCanvasSize(v, project.canvas.height); }}
+              className={F_INPUT_BASE}
+            />
+          </label>
+          <label className={F_LABEL_INPUT}>
+            <span className="pl-1.5 pr-1 text-gray-400 select-none cursor-ew-resize font-medium">H</span>
+            <input
+              type="number"
+              value={Math.round(project.canvas.height)}
+              min={100}
+              onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v) && v >= 100) setCanvasSize(project.canvas.width, v); }}
+              className={F_INPUT_BASE}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className={F_SECTION_BORDER}>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <h2 className="text-[11px] font-medium text-gray-800">Page background</h2>
+        </div>
+
+        <div className="group px-2 py-1 flex items-center gap-1.5 hover:bg-gray-50">
+          <FColorChit color={typeof bgColor === 'string' ? bgColor : '#ccc'} />
+          <span className="flex-1 text-[11px] text-gray-700 font-mono truncate">{hexStr}</span>
+          <span className="text-gray-400 text-[10px]">100%</span>
+          <button
+            type="button"
+            title="Toggle visibility"
+            onClick={() => setBgVisible(!bgVisible)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <FEyeSvg visible={bgVisible} size={14} />
+          </button>
+        </div>
+
+        <div className="px-2 pb-2 pt-1">
+          <GradientPicker label="" value={bgColor} onChange={setCanvasBackground} />
+        </div>
+
+        <div className="px-2 py-1 pb-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInExports}
+              onChange={(e) => setShowInExports(e.target.checked)}
+              className="w-3 h-3 rounded border-gray-300 text-blue-500 focus:ring-blue-500 focus:ring-1 cursor-pointer"
+            />
+            <span className="text-gray-500 text-[10px]">Show in exports</span>
+          </label>
+        </div>
+      </div>
+
+      <div className={F_SECTION_BORDER}>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <h2 className="text-[11px] font-medium text-gray-800">Variables</h2>
+          <button
+            type="button"
+            onClick={() => setVariablesOpen(!variablesOpen)}
+            className={`${F_IC} w-5 h-5 rounded-sm hover:bg-[#e8e8e8] transition-colors text-gray-400`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M7 6.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0 4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m.5 3.5a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1zm-.5 4.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5" />
+            </svg>
+          </button>
+        </div>
+        {variablesOpen && (
+          <div className="px-2 pb-2">
+            <span className="text-[10px] text-gray-400">No variables defined</span>
+          </div>
         )}
-      </button>
-      {open && <div className="px-4 pb-4 -mt-1">{children}</div>}
+      </div>
+
+      <div className={F_SECTION_BORDER}>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <h2 className="text-[11px] font-medium text-gray-800">Styles</h2>
+          <button
+            type="button"
+            onClick={() => setStylesOpen(!stylesOpen)}
+            className={`${F_IC} w-5 h-5 rounded-sm hover:bg-[#e8e8e8] transition-colors text-gray-400`}
+          >
+            <FPlusSvg />
+          </button>
+        </div>
+        {stylesOpen && (
+          <div className="px-2 pb-2 space-y-1">
+            <div className="text-[10px] text-gray-400 font-medium">Color styles</div>
+            <div className="text-[10px] text-gray-400 font-medium">Layout guide styles</div>
+          </div>
+        )}
+      </div>
+
+      <div className={F_SECTION_BORDER}>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <h2 className="text-[11px] font-medium text-gray-800">Export</h2>
+          <button
+            type="button"
+            title="Add export"
+            onClick={() => setExports([...exports, { id: crypto.randomUUID(), scale: '1x', format: 'png' }])}
+            className={`${F_IC} w-5 h-5 rounded-sm hover:bg-[#e8e8e8] transition-colors text-gray-400`}
+          >
+            <FPlusSvg />
+          </button>
+        </div>
+        {exports.map((ex, i) => (
+          <div key={ex.id} className="group px-2 py-1 flex items-center gap-1">
+            <span className="text-gray-400 cursor-grab shrink-0">
+              <svg width="10" height="16" viewBox="0 0 16 32" fill="none"><path fill="currentColor" fillRule="evenodd" d="M5 12.5h6v1H5zm0 3h6v1H5zm0 3h6v1H5z" /></svg>
+            </span>
+            <select
+              value={ex.scale}
+              onChange={(e) => { const ne = [...exports]; ne[i] = { ...ex, scale: e.target.value }; setExports(ne); }}
+              className="w-12 h-6 text-[10px] bg-transparent border border-gray-200 rounded outline-none cursor-pointer"
+            >
+              {['0.5x', '1x', '1.5x', '2x', '3x', '4x'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select
+              value={ex.format}
+              onChange={(e) => { const ne = [...exports]; ne[i] = { ...ex, format: e.target.value }; setExports(ne); }}
+              className="flex-1 h-6 text-[10px] bg-transparent border border-gray-200 rounded outline-none cursor-pointer"
+            >
+              {['png', 'jpeg', 'svg', 'pdf'].map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+            </select>
+            <button
+              type="button"
+              title="Remove"
+              onClick={() => setExports(exports.filter((_, j) => j !== i))}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500"
+            >
+              <FMinusSvg size={14} />
+            </button>
+          </div>
+        ))}
+        {exports.length > 0 && (
+          <div className="px-2 pb-2 pt-1">
+            <button
+              type="button"
+              className="w-full py-1.5 text-[11px] font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+            >
+              Export Page
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  );
-}
-
-/* ── Image upload button ── */
-
-function ImageUploadButton({ onUpload }: { onUpload: (dataUrl: string) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onUpload(reader.result as string);
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-  return (
-    <>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleChange} />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
-      >
-        <HiArrowUpTray className="w-4 h-4" />
-        이미지 교체
-      </button>
-    </>
-  );
-}
-
-/* ── Pill button for style toggles ── */
-
-function PillButton({
-  active,
-  onClick,
-  children,
-  className = '',
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-md border text-xs transition-colors ${
-        active
-          ? 'border-blue-500 bg-blue-50 text-blue-600'
-          : 'border-gray-300 hover:border-gray-400 text-gray-600'
-      } ${className}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -255,36 +328,9 @@ export default function RightPanel() {
 
   if (!project) return null;
 
-  /* ── No selection: canvas settings ── */
+  /* ── No selection: canvas settings (Figma style) ── */
   if (selected.length === 0) {
-    return (
-      <div className="w-[280px] bg-white border-l border-gray-200 shrink-0 overflow-y-auto">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold mb-3">캔버스 설정</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <NumberInput
-              label="너비"
-              value={project.canvas.width}
-              onChange={(w) => setCanvasSize(w, project.canvas.height)}
-              min={100}
-            />
-            <NumberInput
-              label="높이"
-              value={project.canvas.height}
-              onChange={(h) => setCanvasSize(project.canvas.width, h)}
-              min={100}
-            />
-          </div>
-          <div className="mt-3">
-            <GradientPicker
-              label="배경 색상"
-              value={project.canvas.backgroundColor}
-              onChange={setCanvasBackground}
-            />
-          </div>
-        </div>
-      </div>
-    );
+    return <CanvasSettingsPanel project={project} setCanvasBackground={setCanvasBackground} setCanvasSize={setCanvasSize} />;
   }
 
   /* ── Multi selection: alignment & distribution tools ── */
@@ -467,843 +513,21 @@ export default function RightPanel() {
     );
   }
 
-  const isConsumerLimited = mode === 'dev' && el.editable;
-  const editableProps = el.editableProps ?? [];
-
-  const canEdit = (prop: string) => {
-    if (!isConsumerLimited) return true;
-    return editableProps.includes(prop);
-  };
-
   const handleUpdate = (updates: Record<string, unknown>) => {
     updateElement(el.id, updates);
   };
 
-  const textEl = el.type === 'text' ? (el as TextElement) : null;
-
-  /* ━━━━━━━━━━ FRAME / SECTION — Figma-style panel ━━━━━━━━━━ */
   if (el.type === 'frame') {
     return <FramePropertiesPanel frame={el as FrameElement} handleUpdate={handleUpdate} alignElements={alignElements} distributeElements={distributeElements} aspectLocked={aspectLocked} setAspectLocked={setAspectLocked} />;
   }
 
-  /* ━━━━━━━━━━ NON-FRAME ELEMENTS — original layout ━━━━━━━━━━ */
+  if (el.type === 'image') {
+    return <ImagePropertiesPanel image={el as ImageElement} handleUpdate={handleUpdate} alignElements={alignElements} distributeElements={distributeElements} aspectLocked={aspectLocked} setAspectLocked={setAspectLocked} />;
+  }
 
-  return (
-    <div className="w-[280px] bg-white border-l border-gray-200 shrink-0 overflow-y-auto">
-      {/* ── 공통 속성 ── */}
-      <div className="p-4 border-b border-gray-100">
-        <h3 className="text-sm font-semibold mb-3">속성</h3>
+  if (el.type === 'text') {
+    return <TextPropertiesPanel text={el as TextElement} handleUpdate={handleUpdate} alignElements={alignElements} distributeElements={distributeElements} aspectLocked={aspectLocked} setAspectLocked={setAspectLocked} />;
+  }
 
-        {/* Lock toggle */}
-        <div className="mb-3">
-          <button
-            type="button"
-            onClick={() => handleUpdate({ locked: !el.locked })}
-            className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border text-xs transition-colors ${
-              el.locked ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
-            }`}
-          >
-            {el.locked ? <HiLockClosed className="w-3.5 h-3.5" /> : <HiLockOpen className="w-3.5 h-3.5" />}
-            {el.locked ? '잠금 해제' : '잠금'}
-          </button>
-        </div>
-
-        {/* Alignment (align to canvas for single element) */}
-        <div className="mb-3">
-          <label className="block text-xs text-gray-500 mb-1.5">정렬</label>
-          <div className="grid grid-cols-6 gap-1">
-            <button type="button" title="왼쪽 정렬" onClick={() => alignElements([el.id], 'left')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1v12M4 3h7v3H4zM4 8h5v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="가로 가운데" onClick={() => alignElements([el.id], 'centerH')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M3 3h8v3H3zM4 8h6v3H4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="오른쪽 정렬" onClick={() => alignElements([el.id], 'right')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M13 1v12M3 3h7v3H3zM5 8h5v3H5z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="위쪽 정렬" onClick={() => alignElements([el.id], 'top')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1h12M3 4v7h3V4zM8 4v5h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="세로 가운데" onClick={() => alignElements([el.id], 'centerV')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M3 3v8h3V3zM8 4v6h3V4z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-            <button type="button" title="아래쪽 정렬" onClick={() => alignElements([el.id], 'bottom')}
-              className="flex items-center justify-center p-1.5 rounded hover:bg-gray-100 border border-gray-200 text-gray-500">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 13h12M3 3v7h3V3zM8 5v5h3V5z" stroke="currentColor" strokeWidth="1.2"/></svg>
-            </button>
-          </div>
-        </div>
-
-        {canEdit('position') && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <NumberInput label="X" value={el.x} onChange={(v) => handleUpdate({ x: v })} />
-            <NumberInput label="Y" value={el.y} onChange={(v) => handleUpdate({ y: v })} />
-          </div>
-        )}
-
-        {canEdit('size') && (
-          <div className="mb-3">
-            <div className="grid grid-cols-[1fr_24px_1fr] gap-1 items-end">
-              <NumberInput
-                label="W"
-                value={el.width}
-                onChange={(v) => {
-                  if (aspectLocked && el.width > 0) {
-                    const ratio = el.height / el.width;
-                    handleUpdate({ width: v, height: Math.round(v * ratio) });
-                  } else {
-                    handleUpdate({ width: v });
-                  }
-                }}
-                min={1}
-              />
-              <button
-                type="button"
-                title="비율 잠금"
-                onClick={() => setAspectLocked(!aspectLocked)}
-                className={`flex items-center justify-center w-6 h-6 rounded transition-colors mb-0.5 ${
-                  aspectLocked ? 'text-blue-500' : 'text-gray-300 hover:text-gray-500'
-                }`}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  {aspectLocked ? (
-                    <path d="M3 6h8M3 8h8M1 7h2M11 7h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  ) : (
-                    <path d="M3 6h8M3 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
-                  )}
-                </svg>
-              </button>
-              <NumberInput
-                label="H"
-                value={el.height}
-                onChange={(v) => {
-                  if (aspectLocked && el.height > 0) {
-                    const ratio = el.width / el.height;
-                    handleUpdate({ height: v, width: Math.round(v * ratio) });
-                  } else {
-                    handleUpdate({ height: v });
-                  }
-                }}
-                min={1}
-              />
-            </div>
-          </div>
-        )}
-
-        {canEdit('rotation') && (
-          <div className="mb-3">
-            <NumberInput
-              label="회전 (°)"
-              value={el.rotation}
-              onChange={(v) => handleUpdate({ rotation: v })}
-              min={-360}
-              max={360}
-            />
-          </div>
-        )}
-
-        {/* Flip buttons */}
-        <div className="mb-3">
-          <label className="block text-xs text-gray-500 mb-1">반전</label>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              title="가로 반전"
-              onClick={() => handleUpdate({ flipX: !(el.flipX ?? false) })}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md border text-xs transition-colors ${
-                (el.flipX ?? false) ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12" stroke="currentColor" strokeWidth="1" strokeDasharray="2 1"/><path d="M5 4L2 7l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 4l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              가로
-            </button>
-            <button
-              type="button"
-              title="세로 반전"
-              onClick={() => handleUpdate({ flipY: !(el.flipY ?? false) })}
-              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md border text-xs transition-colors ${
-                (el.flipY ?? false) ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-300 hover:border-gray-400 text-gray-600'
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12" stroke="currentColor" strokeWidth="1" strokeDasharray="2 1"/><path d="M4 5L7 2l3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 9l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              세로
-            </button>
-          </div>
-        </div>
-
-        {canEdit('opacity') && (
-          <div className="mb-3">
-            <SliderInput
-              label="불투명도"
-              value={el.opacity}
-              onChange={(v) => handleUpdate({ opacity: v })}
-              min={0}
-              max={1}
-              step={0.01}
-              suffix={` (${Math.round(el.opacity * 100)}%)`}
-            />
-          </div>
-        )}
-
-        {/* Blend Mode */}
-        {canEdit('blendMode') && (
-          <div className="mb-3">
-            <label className="block text-xs text-gray-500 mb-1">블렌드 모드</label>
-            <select
-              value={el.blendMode ?? 'normal'}
-              onChange={(e) => handleUpdate({ blendMode: e.target.value })}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 bg-white"
-            >
-              <option value="normal">Normal</option>
-              <option value="multiply">Multiply</option>
-              <option value="screen">Screen</option>
-              <option value="overlay">Overlay</option>
-              <option value="darken">Darken</option>
-              <option value="lighten">Lighten</option>
-              <option value="color-dodge">Color Dodge</option>
-              <option value="color-burn">Color Burn</option>
-              <option value="hard-light">Hard Light</option>
-              <option value="soft-light">Soft Light</option>
-              <option value="difference">Difference</option>
-              <option value="exclusion">Exclusion</option>
-              <option value="hue">Hue</option>
-              <option value="saturation">Saturation</option>
-              <option value="color">Color</option>
-              <option value="luminosity">Luminosity</option>
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* ━━━━━━━━━━ TEXT ELEMENT ━━━━━━━━━━ */}
-      {textEl && (
-        <>
-          {/* ── 텍스트 기본 ── */}
-          <SectionAccordion title="텍스트" defaultOpen>
-            {canEdit('content') && (
-              <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">내용</label>
-                <textarea
-                  value={textEl.content}
-                  onChange={(e) => handleUpdate({ content: e.target.value })}
-                  rows={3}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 resize-none"
-                />
-              </div>
-            )}
-
-            {canEdit('fontFamily') && (
-              <div className="mb-3">
-                <FontPicker
-                  value={textEl.fontFamily}
-                  onChange={(f) => handleUpdate({ fontFamily: f })}
-                />
-              </div>
-            )}
-
-            {canEdit('fontSize') && (
-              <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">글자 크기</label>
-                <select
-                  value={textEl.fontSize}
-                  onChange={(e) => handleUpdate({ fontSize: parseInt(e.target.value) })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 bg-white"
-                >
-                  {FONT_SIZE_OPTIONS.map((size) => (
-                    <option key={size} value={size}>
-                      {size}px
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {canEdit('color') && (
-              <div className="mb-3">
-                <GradientPicker
-                  label="글자 색상"
-                  value={textEl.color}
-                  onChange={(c) => handleUpdate({ color: c })}
-                />
-              </div>
-            )}
-          </SectionAccordion>
-
-          {/* ── 스타일 (굵기·기울임·정렬·장식) ── */}
-          <SectionAccordion title="스타일" defaultOpen>
-            {/* 굵기 + 기울임 */}
-            {(canEdit('fontWeight') || canEdit('fontStyle')) && (
-              <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">글꼴 스타일</label>
-                <div className="flex gap-1">
-                  {canEdit('fontWeight') &&
-                    (['normal', 'bold'] as FontWeight[]).map((w) => (
-                      <PillButton
-                        key={w}
-                        active={textEl.fontWeight === w}
-                        onClick={() => handleUpdate({ fontWeight: w })}
-                      >
-                        {w === 'normal' ? '보통' : <span className="font-bold">굵게</span>}
-                      </PillButton>
-                    ))}
-                  {canEdit('fontStyle') &&
-                    (['normal', 'italic'] as FontStyle[]).map((s) => (
-                      <PillButton
-                        key={s}
-                        active={textEl.fontStyle === s}
-                        onClick={() => handleUpdate({ fontStyle: s })}
-                      >
-                        {s === 'normal' ? '보통' : <span className="italic">기울임</span>}
-                      </PillButton>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* 밑줄·취소선 */}
-            {canEdit('textDecoration') && (
-              <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">텍스트 장식</label>
-                <div className="flex gap-1">
-                  {(
-                    [
-                      { value: 'none', label: '없음' },
-                      { value: 'underline', label: '밑줄' },
-                      { value: 'line-through', label: '취소선' },
-                    ] as { value: TextDecoration; label: string }[]
-                  ).map(({ value, label }) => (
-                    <PillButton
-                      key={value}
-                      active={textEl.textDecoration === value}
-                      onClick={() => handleUpdate({ textDecoration: value })}
-                    >
-                      {value === 'none' ? (
-                        label
-                      ) : value === 'underline' ? (
-                        <span className="underline">{label}</span>
-                      ) : (
-                        <span className="line-through">{label}</span>
-                      )}
-                    </PillButton>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 정렬 */}
-            {canEdit('textAlign') && (
-              <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">정렬</label>
-                <div className="flex gap-1">
-                  {([
-                    { value: 'left', icon: <HiBars3BottomLeft className="w-4 h-4" /> },
-                    { value: 'center', icon: <HiBars3 className="w-4 h-4" /> },
-                    { value: 'right', icon: <HiBars3BottomRight className="w-4 h-4" /> },
-                  ] as { value: TextAlign; icon: React.ReactNode }[]).map(({ value, icon }) => (
-                    <PillButton
-                      key={value}
-                      active={textEl.textAlign === value}
-                      onClick={() => handleUpdate({ textAlign: value })}
-                    >
-                      {icon}
-                    </PillButton>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 자간 */}
-            {canEdit('letterSpacing') && (
-              <div className="mb-3">
-                <SliderInput
-                  label="자간"
-                  value={textEl.letterSpacing}
-                  onChange={(v) => handleUpdate({ letterSpacing: v })}
-                  min={-20}
-                  max={100}
-                  step={1}
-                  suffix="px"
-                />
-              </div>
-            )}
-
-            {/* 줄간격 */}
-            {canEdit('lineHeight') && (
-              <div className="mb-3">
-                <SliderInput
-                  label="줄 간격"
-                  value={textEl.lineHeight}
-                  onChange={(v) => handleUpdate({ lineHeight: v })}
-                  min={0.5}
-                  max={3}
-                  step={0.1}
-                />
-              </div>
-            )}
-          </SectionAccordion>
-
-          {/* ── 텍스트 효과 ── */}
-          <SectionAccordion title="텍스트 효과" defaultOpen={false}>
-            {/* --- 그림자 --- */}
-            {canEdit('textShadow') && (
-              <div className="mb-4">
-                <ToggleSwitch
-                  label="그림자"
-                  checked={textEl.textShadow?.enabled ?? false}
-                  onChange={(v) =>
-                    handleUpdate({
-                      textShadow: { ...(textEl.textShadow ?? { color: 'rgba(0,0,0,0.5)', offsetX: 2, offsetY: 2, blur: 4 }), enabled: v },
-                    })
-                  }
-                />
-                {textEl.textShadow?.enabled && (
-                  <div className="mt-2.5 ml-1 pl-3 border-l-2 border-blue-200 space-y-2.5">
-                    <ColorPicker
-                      label="그림자 색상"
-                      color={textEl.textShadow.color}
-                      onChange={(c) =>
-                        handleUpdate({ textShadow: { ...textEl.textShadow, color: c } })
-                      }
-                    />
-                    <SliderInput
-                      label="X 오프셋"
-                      value={textEl.textShadow.offsetX}
-                      onChange={(v) =>
-                        handleUpdate({ textShadow: { ...textEl.textShadow, offsetX: v } })
-                      }
-                      min={-20}
-                      max={20}
-                      step={1}
-                      suffix="px"
-                    />
-                    <SliderInput
-                      label="Y 오프셋"
-                      value={textEl.textShadow.offsetY}
-                      onChange={(v) =>
-                        handleUpdate({ textShadow: { ...textEl.textShadow, offsetY: v } })
-                      }
-                      min={-20}
-                      max={20}
-                      step={1}
-                      suffix="px"
-                    />
-                    <SliderInput
-                      label="흐림"
-                      value={textEl.textShadow.blur}
-                      onChange={(v) =>
-                        handleUpdate({ textShadow: { ...textEl.textShadow, blur: v } })
-                      }
-                      min={0}
-                      max={30}
-                      step={1}
-                      suffix="px"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* --- 외곽선(스트로크) --- */}
-            {canEdit('textStroke') && (
-              <div className="mb-4">
-                <ToggleSwitch
-                  label="외곽선"
-                  checked={textEl.textStroke?.enabled ?? false}
-                  onChange={(v) =>
-                    handleUpdate({
-                      textStroke: { ...(textEl.textStroke ?? { color: '#000000', width: 1 }), enabled: v },
-                    })
-                  }
-                />
-                {textEl.textStroke?.enabled && (
-                  <div className="mt-2.5 ml-1 pl-3 border-l-2 border-purple-200 space-y-2.5">
-                    <ColorPicker
-                      label="외곽선 색상"
-                      color={textEl.textStroke.color}
-                      onChange={(c) =>
-                        handleUpdate({ textStroke: { ...textEl.textStroke, color: c } })
-                      }
-                    />
-                    <SliderInput
-                      label="외곽선 두께"
-                      value={textEl.textStroke.width}
-                      onChange={(v) =>
-                        handleUpdate({ textStroke: { ...textEl.textStroke, width: v } })
-                      }
-                      min={0}
-                      max={10}
-                      step={0.5}
-                      suffix="px"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* --- 텍스트 배경 --- */}
-            {canEdit('textBackground') && (
-              <div className="mb-3">
-                <ColorPicker
-                  label="텍스트 배경색"
-                  color={textEl.textBackground || '#ffffff'}
-                  onChange={(c) => handleUpdate({ textBackground: c })}
-                />
-                {textEl.textBackground && (
-                  <button
-                    type="button"
-                    className="mt-1.5 text-xs text-gray-400 hover:text-red-400 transition-colors"
-                    onClick={() => handleUpdate({ textBackground: '' })}
-                  >
-                    배경색 제거
-                  </button>
-                )}
-              </div>
-            )}
-          </SectionAccordion>
-        </>
-      )}
-
-      {/* ━━━━━━━━━━ SHAPE ELEMENT ━━━━━━━━━━ */}
-      {el.type === 'shape' && (
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold mb-3">도형</h3>
-
-          {canEdit('fill') && (
-            <div className="mb-3">
-              <GradientPicker
-                label="채우기"
-                value={(el as ShapeElement).fill}
-                onChange={(c) => handleUpdate({ fill: c })}
-              />
-            </div>
-          )}
-
-          {canEdit('stroke') && (
-            <div className="mb-3">
-              <ColorPicker
-                label="테두리 색상"
-                color={(el as ShapeElement).stroke}
-                onChange={(c) => handleUpdate({ stroke: c })}
-              />
-            </div>
-          )}
-
-          {canEdit('strokeWidth') && (
-            <div className="mb-3">
-              <NumberInput
-                label="테두리 두께"
-                value={(el as ShapeElement).strokeWidth}
-                onChange={(v) => handleUpdate({ strokeWidth: v })}
-                min={0}
-                max={50}
-              />
-            </div>
-          )}
-
-          {canEdit('borderRadius') && (el as ShapeElement).shape === 'rect' && (
-            <div className="mb-3">
-              <NumberInput
-                label="모서리 둥글기"
-                value={(el as ShapeElement).borderRadius}
-                onChange={(v) => handleUpdate({ borderRadius: v })}
-                min={0}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ━━━━━━━━━━ IMAGE ELEMENT ━━━━━━━━━━ */}
-      {el.type === 'image' && (() => {
-        const imgEl = el as ImageElement;
-        const filters = imgEl.filters ?? { brightness: 0, contrast: 0, saturation: 0, blur: 0, temperature: 0, tint: 0, highlights: 0, shadows: 0 };
-        return (
-          <>
-            <div className="p-4 border-b border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold">이미지</h3>
-                <button
-                  type="button"
-                  onClick={() => handleUpdate({ rotation: (el.rotation + 90) % 360 })}
-                  className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-                  title="90° 회전"
-                >
-                  <HiArrowPath className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Scale mode */}
-              <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">이미지 맞춤</label>
-                <select
-                  value={imgEl.scaleMode ?? 'fill'}
-                  onChange={(e) => handleUpdate({ scaleMode: e.target.value as ImageScaleMode })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 bg-white"
-                >
-                  <option value="fill">채우기 (Fill)</option>
-                  <option value="fit">맞추기 (Fit)</option>
-                  <option value="crop">자르기 (Crop)</option>
-                  <option value="tile">반복 (Tile)</option>
-                </select>
-              </div>
-
-              {/* Image preview */}
-              {imgEl.src && (
-                <div className="mb-3 flex justify-center">
-                  <div className="relative w-full max-w-[200px] aspect-square rounded-lg overflow-hidden border border-gray-200" style={{ backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgZmlsbD0iI0ZGRkZGRiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2Ii8+PHBhdGggZmlsbD0iI0YxRjFGMSIgZD0iTSAwIDggSCAxNiBWIDAgSCA4IFYgMTYgSCAwIi8+PC9zdmc+")' }}>
-                    <img src={imgEl.src} alt="" className="w-full h-full object-contain" />
-                  </div>
-                </div>
-              )}
-
-              {/* Upload / Replace button */}
-              <ImageUploadButton
-                onUpload={(dataUrl) => handleUpdate({ src: dataUrl })}
-              />
-            </div>
-
-            {/* Color Adjustments */}
-            <SectionAccordion title="색상 보정" defaultOpen>
-              <div className="space-y-3">
-                <SliderInput label="노출 (Exposure)" value={filters.brightness} onChange={(v) => handleUpdate({ filters: { ...filters, brightness: v } })} min={-1} max={1} step={0.01} />
-                <SliderInput label="대비 (Contrast)" value={filters.contrast} onChange={(v) => handleUpdate({ filters: { ...filters, contrast: v } })} min={-0.3} max={0.3} step={0.01} />
-                <SliderInput label="채도 (Saturation)" value={filters.saturation} onChange={(v) => handleUpdate({ filters: { ...filters, saturation: v } })} min={-1} max={1} step={0.01} />
-                <SliderInput label="색온도 (Temperature)" value={filters.temperature} onChange={(v) => handleUpdate({ filters: { ...filters, temperature: v } })} min={-1} max={1} step={0.01} />
-                <SliderInput label="색조 (Tint)" value={filters.tint} onChange={(v) => handleUpdate({ filters: { ...filters, tint: v } })} min={-1} max={1} step={0.01} />
-                <SliderInput label="하이라이트" value={filters.highlights} onChange={(v) => handleUpdate({ filters: { ...filters, highlights: v } })} min={-1} max={1} step={0.01} />
-                <SliderInput label="그림자 (Shadows)" value={filters.shadows} onChange={(v) => handleUpdate({ filters: { ...filters, shadows: v } })} min={-1} max={1} step={0.01} />
-              </div>
-            </SectionAccordion>
-            {/* Gradient Overlay */}
-            <SectionAccordion title="그라데이션 오버레이" defaultOpen={false}>
-              <div className="space-y-3">
-                <ToggleSwitch
-                  label="오버레이 사용"
-                  checked={imgEl.gradientOverlay?.enabled ?? false}
-                  onChange={(v) =>
-                    handleUpdate({
-                      gradientOverlay: {
-                        ...(imgEl.gradientOverlay ?? {
-                          gradient: {
-                            type: 'linear' as const,
-                            angle: 180,
-                            stops: [
-                              { color: 'rgba(0, 0, 0, 0)', offset: 0 },
-                              { color: 'rgba(0, 0, 0, 0.7)', offset: 1 },
-                            ],
-                          },
-                          opacity: 1,
-                        }),
-                        enabled: v,
-                      },
-                    })
-                  }
-                />
-                {imgEl.gradientOverlay?.enabled && (
-                  <div className="mt-2 space-y-3">
-                    <GradientPicker
-                      label="오버레이 색상"
-                      value={imgEl.gradientOverlay.gradient}
-                      onChange={(g: FillValue) =>
-                        handleUpdate({
-                          gradientOverlay: { ...imgEl.gradientOverlay!, gradient: g },
-                        })
-                      }
-                    />
-                    <SliderInput
-                      label="오버레이 불투명도"
-                      value={imgEl.gradientOverlay.opacity ?? 1}
-                      onChange={(v) =>
-                        handleUpdate({
-                          gradientOverlay: { ...imgEl.gradientOverlay!, opacity: v },
-                        })
-                      }
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      suffix={` (${Math.round((imgEl.gradientOverlay.opacity ?? 1) * 100)}%)`}
-                    />
-                  </div>
-                )}
-              </div>
-            </SectionAccordion>
-          </>
-        );
-      })()}
-
-      {/* ━━━━━━━━━━ EFFECTS (all element types) ━━━━━━━━━━ */}
-      <SectionAccordion title="효과" defaultOpen={false}>
-        <div className="space-y-4">
-          {/* Drop Shadow */}
-          <div>
-            <ToggleSwitch
-              label="그림자"
-              checked={el.dropShadow?.enabled ?? false}
-              onChange={(v) =>
-                handleUpdate({
-                  dropShadow: {
-                    ...(el.dropShadow ?? { color: 'rgba(0,0,0,0.25)', offsetX: 4, offsetY: 4, blur: 8, spread: 0 }),
-                    enabled: v,
-                  } as DropShadow,
-                })
-              }
-            />
-            {el.dropShadow?.enabled && (
-              <div className="mt-2.5 ml-1 pl-3 border-l-2 border-gray-200 space-y-2.5">
-                <ColorPicker
-                  label="그림자 색상"
-                  color={el.dropShadow.color}
-                  onChange={(c) =>
-                    handleUpdate({ dropShadow: { ...el.dropShadow!, color: c } })
-                  }
-                />
-                <SliderInput
-                  label="X 오프셋"
-                  value={el.dropShadow.offsetX}
-                  onChange={(v) =>
-                    handleUpdate({ dropShadow: { ...el.dropShadow!, offsetX: v } })
-                  }
-                  min={-30}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-                <SliderInput
-                  label="Y 오프셋"
-                  value={el.dropShadow.offsetY}
-                  onChange={(v) =>
-                    handleUpdate({ dropShadow: { ...el.dropShadow!, offsetY: v } })
-                  }
-                  min={-30}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-                <SliderInput
-                  label="흐림"
-                  value={el.dropShadow.blur}
-                  onChange={(v) =>
-                    handleUpdate({ dropShadow: { ...el.dropShadow!, blur: v } })
-                  }
-                  min={0}
-                  max={50}
-                  step={1}
-                  suffix="px"
-                />
-                <SliderInput
-                  label="확산"
-                  value={el.dropShadow.spread}
-                  onChange={(v) =>
-                    handleUpdate({ dropShadow: { ...el.dropShadow!, spread: v } })
-                  }
-                  min={0}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Inner Shadow */}
-          <div>
-            <ToggleSwitch
-              label="내부 그림자"
-              checked={el.innerShadow?.enabled ?? false}
-              onChange={(v) =>
-                handleUpdate({
-                  innerShadow: {
-                    ...(el.innerShadow ?? { color: 'rgba(0,0,0,0.25)', offsetX: 2, offsetY: 2, blur: 4, spread: 0 }),
-                    enabled: v,
-                  } as InnerShadow,
-                })
-              }
-            />
-            {el.innerShadow?.enabled && (
-              <div className="mt-2.5 ml-1 pl-3 border-l-2 border-indigo-200 space-y-2.5">
-                <ColorPicker
-                  label="내부 그림자 색상"
-                  color={el.innerShadow.color}
-                  onChange={(c) =>
-                    handleUpdate({ innerShadow: { ...el.innerShadow!, color: c } })
-                  }
-                />
-                <SliderInput
-                  label="X 오프셋"
-                  value={el.innerShadow.offsetX}
-                  onChange={(v) =>
-                    handleUpdate({ innerShadow: { ...el.innerShadow!, offsetX: v } })
-                  }
-                  min={-30}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-                <SliderInput
-                  label="Y 오프셋"
-                  value={el.innerShadow.offsetY}
-                  onChange={(v) =>
-                    handleUpdate({ innerShadow: { ...el.innerShadow!, offsetY: v } })
-                  }
-                  min={-30}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-                <SliderInput
-                  label="흐림"
-                  value={el.innerShadow.blur}
-                  onChange={(v) =>
-                    handleUpdate({ innerShadow: { ...el.innerShadow!, blur: v } })
-                  }
-                  min={0}
-                  max={50}
-                  step={1}
-                  suffix="px"
-                />
-                <SliderInput
-                  label="확산"
-                  value={el.innerShadow.spread}
-                  onChange={(v) =>
-                    handleUpdate({ innerShadow: { ...el.innerShadow!, spread: v } })
-                  }
-                  min={0}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Layer Blur */}
-          <SliderInput
-            label="블러"
-            value={el.layerBlur ?? 0}
-            onChange={(v) => handleUpdate({ layerBlur: v })}
-            min={0}
-            max={20}
-            step={0.5}
-            suffix="px"
-          />
-
-          {/* Background Blur (Frosted Glass) */}
-          <SliderInput
-            label="배경 흐림 (프로스트)"
-            value={el.backgroundBlur ?? 0}
-            onChange={(v) => handleUpdate({ backgroundBlur: v })}
-            min={0}
-            max={30}
-            step={0.5}
-            suffix="px"
-          />
-        </div>
-      </SectionAccordion>
-    </div>
-  );
+  return <ShapePropertiesPanel shape={el as ShapeElement} handleUpdate={handleUpdate} alignElements={alignElements} distributeElements={distributeElements} aspectLocked={aspectLocked} setAspectLocked={setAspectLocked} />;
 }
