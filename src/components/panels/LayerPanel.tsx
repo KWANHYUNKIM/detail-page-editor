@@ -50,15 +50,22 @@ function LayerThumbnail({
   allElements: CanvasElement[];
 }) {
   if (el.type === 'image') {
+    const imgSrc = (el as ImageElement).src;
     return (
       <div className={`${THUMB} bg-gray-100`}>
-        <img
-          src={(el as ImageElement).src}
-          alt=""
-          className="w-full h-full object-cover"
-          loading="lazy"
-          draggable={false}
-        />
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-gray-300">
+            <path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m0 16H5V5h14zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z" />
+          </svg>
+        )}
       </div>
     );
   }
