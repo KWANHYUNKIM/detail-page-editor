@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
-import type { CanvasElement, FrameElement } from '@/types/editor';
+import type { CanvasElement, FrameElement, ImageElement } from '@/types/editor';
+import { fillToCss, isGradient } from '@/types/editor';
 import ContextMenu from '@/components/editor/ContextMenu';
 import {
   HiEye,
@@ -15,120 +16,126 @@ import {
   HiXMark,
 } from 'react-icons/hi2';
 
-/* ── Type Icons (16x16, Figma style) ── */
+/* ── Layer Thumbnail (Figma-style) ── */
 
-function FrameIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M5.5 3a.5.5 0 0 1 .5.5V5h4V3.5a.5.5 0 0 1 1 0V5h1.5a.5.5 0 0 1 0 1H11v4h1.5a.5.5 0 0 1 0 1H11v1.5a.5.5 0 0 1-1 0V11H6v1.5a.5.5 0 0 1-1 0V11H3.5a.5.5 0 0 1 0-1H5V6H3.5a.5.5 0 0 1 0-1H5V3.5a.5.5 0 0 1 .5-.5ZM10 10V6H6v4h4Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function ImageIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-9Zm1.5-.5a.5.5 0 0 0-.5.5v6.06l2.22-2.22a.75.75 0 0 1 1.06 0L9 10.06l1.72-1.72a.75.75 0 0 1 1.06 0L13 9.56V3.5a.5.5 0 0 0-.5-.5h-9ZM13 11.44l-1.72-1.72L9.56 11.44l.72.72a.75.75 0 0 1 0 1.06l-.22.22.22.06h2.22a.5.5 0 0 0 .5-.5v-1.56ZM3 12.5a.5.5 0 0 0 .5.5h5.13L6.28 10.65 3 13.94v-1.44Zm3-6a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function TextIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M3 3.5A.5.5 0 0 1 3.5 3h9a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4H8.5v8H10a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1h1.5V4H4v1.5a.5.5 0 0 1-1 0v-2Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function RectIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2.5" y="2.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function CircleIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function LineIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="2.5" y1="13.5" x2="13.5" y2="2.5" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function AutoLayoutIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M4 4h2v8H4zM3 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zm7 2h2v4h-2zM9 6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1z"
-      />
-    </svg>
-  );
-}
-
-function InstanceIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M7.293 2.293a1 1 0 0 1 1.414 0l5 5a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-5-5a1 1 0 0 1 0-1.414zM3.707 8.707 3 8l.707-.707 3.586-3.586L8 3l.707.707 3.586 3.586L13 8l-.707.707-3.586 3.586L8 13l-.707-.707z"
-      />
-    </svg>
-  );
-}
-
-function getTypeIcon(type: string, shape?: string) {
-  const cls = 'w-4 h-4';
-  switch (type) {
-    case 'image':
-      return <ImageIcon className={cls} />;
-    case 'text':
-      return <TextIcon className={cls} />;
-    case 'frame':
-      return <FrameIcon className={cls} />;
-    case 'shape':
-      switch (shape) {
-        case 'circle':
-          return <CircleIcon className={cls} />;
-        case 'line':
-        case 'arrow':
-          return <LineIcon className={cls} />;
-        default:
-          return <RectIcon className={cls} />;
+function collectDescendantImages(
+  el: CanvasElement,
+  allElements: CanvasElement[],
+  limit: number,
+): ImageElement[] {
+  const results: ImageElement[] = [];
+  const stack: CanvasElement[] = [el];
+  while (stack.length > 0 && results.length < limit) {
+    const current = stack.pop()!;
+    if (current.type === 'image') {
+      results.push(current as ImageElement);
+    } else if (current.type === 'frame') {
+      const frame = current as FrameElement;
+      for (let i = frame.childOrder.length - 1; i >= 0; i--) {
+        const child = allElements.find((e) => e.id === frame.childOrder[i]);
+        if (child) stack.push(child);
       }
-    default:
-      return <FrameIcon className={cls} />;
+    }
   }
+  return results;
+}
+
+const THUMB = 'w-9 h-9 rounded-md shrink-0 overflow-hidden';
+
+function LayerThumbnail({
+  el,
+  allElements,
+}: {
+  el: CanvasElement;
+  allElements: CanvasElement[];
+}) {
+  if (el.type === 'image') {
+    return (
+      <div className={`${THUMB} bg-gray-100`}>
+        <img
+          src={(el as ImageElement).src}
+          alt=""
+          className="w-full h-full object-cover"
+          loading="lazy"
+          draggable={false}
+        />
+      </div>
+    );
+  }
+
+  if (el.type === 'frame') {
+    const frame = el as FrameElement;
+    const images = collectDescendantImages(frame, allElements, 4);
+    const fill = frame.fill || '#ffffff';
+    const bg = isGradient(fill) ? fillToCss(fill) : fill;
+
+    if (images.length === 0) {
+      return (
+        <div
+          className={`${THUMB} border border-gray-200`}
+          style={{ background: bg }}
+        />
+      );
+    }
+
+    if (images.length === 1) {
+      return (
+        <div className={`${THUMB} bg-gray-100`} style={{ background: bg }}>
+          <img
+            src={images[0].src}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`${THUMB} grid gap-px`}
+        style={{
+          background: bg,
+          gridTemplateColumns: images.length >= 2 ? '1fr 1fr' : '1fr',
+          gridTemplateRows: images.length >= 3 ? '1fr 1fr' : '1fr',
+        }}
+      >
+        {images.slice(0, 4).map((img) => (
+          <img
+            key={img.id}
+            src={img.src}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (el.type === 'text') {
+    return (
+      <div className={`${THUMB} bg-gray-50 border border-gray-200 flex items-center justify-center`}>
+        <span className="text-[8px] leading-tight text-gray-400 px-0.5 truncate">Aa</span>
+      </div>
+    );
+  }
+
+  if (el.type === 'shape') {
+    const shape = el as import('@/types/editor').ShapeElement;
+    const shapeFill = shape.fill || '#d1d5db';
+    const bg = isGradient(shapeFill) ? fillToCss(shapeFill) : shapeFill;
+    return (
+      <div
+        className={`${THUMB} border border-gray-200`}
+        style={{ background: bg }}
+      />
+    );
+  }
+
+  return null;
 }
 
 /* ── Label helpers ── */
@@ -167,6 +174,7 @@ function isContainerType(type: string): boolean {
 
 interface LayerRowProps {
   el: CanvasElement;
+  allElements: CanvasElement[];
   depth: number;
   isSelected: boolean;
   isExpanded: boolean;
@@ -174,8 +182,6 @@ interface LayerRowProps {
   onSelect: (e: React.MouseEvent) => void;
   onToggleVisible: () => void;
   onToggleLock: () => void;
-  showEditToggle: boolean;
-  onToggleEditable?: () => void;
   isEditing: boolean;
   onStartRename: () => void;
   onCommitRename: (newName: string) => void;
@@ -185,6 +191,7 @@ interface LayerRowProps {
 
 function LayerRow({
   el,
+  allElements,
   depth,
   isSelected,
   isExpanded,
@@ -192,8 +199,6 @@ function LayerRow({
   onSelect,
   onToggleVisible,
   onToggleLock,
-  showEditToggle,
-  onToggleEditable,
   isEditing,
   onStartRename,
   onCommitRename,
@@ -202,7 +207,6 @@ function LayerRow({
 }: LayerRowProps) {
   const label = elementLabel(el);
   const isContainer = isContainerType(el.type);
-  const shape = el.type === 'shape' ? (el as { shape?: string }).shape : undefined;
   const [editValue, setEditValue] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelledRef = useRef(false);
@@ -218,7 +222,7 @@ function LayerRow({
 
   return (
     <div
-      className={`group relative flex items-center h-7 cursor-pointer select-none transition-colors ${
+      className={`group relative flex items-center h-11 px-1 cursor-pointer select-none transition-colors ${
         isSelected
           ? 'bg-blue-500/15 text-gray-900'
           : 'hover:bg-gray-100 text-gray-700'
@@ -226,10 +230,8 @@ function LayerRow({
       onClick={onSelect}
       onContextMenu={onContextMenu}
     >
-      {/* Indent spacer */}
-      <span className="shrink-0" style={{ width: 8 + depth * 12 }} />
+      <span className="shrink-0" style={{ width: 4 + depth * 12 }} />
 
-      {/* Expand caret OR spacer */}
       {isContainer ? (
         <button
           className="flex items-center justify-center w-4 h-4 shrink-0 text-gray-400 hover:text-gray-900 transition-colors"
@@ -248,16 +250,13 @@ function LayerRow({
         <span className="w-4 shrink-0" />
       )}
 
-      {/* Type icon */}
-      <span className="flex items-center justify-center w-4 h-4 shrink-0 ml-0.5 text-gray-400">
-        {getTypeIcon(el.type, shape)}
+      <span className="ml-1 shrink-0">
+        <LayerThumbnail el={el} allElements={allElements} />
       </span>
-
-      {/* Element name */}
       {isEditing ? (
         <input
           ref={inputRef}
-          className="flex-1 ml-1.5 bg-white text-gray-900 text-[11px] px-1 py-0 rounded border border-blue-500 outline-none w-full"
+           className="flex-1 ml-2 bg-white text-gray-900 text-[11px] px-1 py-0 rounded border border-blue-500 outline-none w-full"
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={(e) => {
@@ -278,7 +277,7 @@ function LayerRow({
         />
       ) : (
         <span
-          className="flex-1 truncate ml-1.5 text-[11px] font-medium leading-none"
+          className="flex-1 truncate ml-2 text-[12px] font-medium leading-none"
           title={label}
           onDoubleClick={(e) => {
             e.stopPropagation();
@@ -290,21 +289,7 @@ function LayerRow({
       )}
 
       {/* Creator mode editable badge */}
-      {showEditToggle && (
-        <button
-          className={`shrink-0 mr-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
-            el.editable
-              ? 'bg-green-500/20 text-green-600'
-              : 'bg-gray-100 text-gray-400'
-          }`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleEditable?.();
-          }}
-        >
-          편집
-        </button>
-      )}
+
 
       {/* Row actions — hover only (Lock + Visibility) */}
       <div className="flex items-center gap-0.5 pr-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -362,10 +347,8 @@ function ElementTree({
   depth,
   selectedElementIds,
   expandedIds,
-  mode,
   selectElements,
   updateElement,
-  toggleElementEditable,
   toggleExpand,
   editingId,
   setEditingId,
@@ -376,10 +359,8 @@ function ElementTree({
   depth: number;
   selectedElementIds: string[];
   expandedIds: Set<string>;
-  mode: string;
   selectElements: (ids: string[]) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
-  toggleElementEditable: (id: string) => void;
   toggleExpand: (id: string) => void;
   editingId: string | null;
   setEditingId: (id: string | null) => void;
@@ -402,6 +383,7 @@ function ElementTree({
           <div key={el.id}>
             <LayerRow
               el={el}
+              allElements={allElements}
               depth={depth}
               isSelected={isSelected}
               isExpanded={isExpanded}
@@ -435,8 +417,6 @@ function ElementTree({
               }}
               onToggleVisible={() => updateElement(el.id, { visible: !el.visible })}
               onToggleLock={() => updateElement(el.id, { locked: !el.locked })}
-              showEditToggle={mode === 'design'}
-              onToggleEditable={() => toggleElementEditable(el.id)}
               isEditing={editingId === el.id}
               onStartRename={() => setEditingId(el.id)}
               onCommitRename={(newName: string) => { updateElement(el.id, { name: newName } as Partial<CanvasElement>); setEditingId(null); }}
@@ -459,10 +439,8 @@ function ElementTree({
                 depth={depth + 1}
                 selectedElementIds={selectedElementIds}
                 expandedIds={expandedIds}
-                mode={mode}
                 selectElements={selectElements}
                 updateElement={updateElement}
-                toggleElementEditable={toggleElementEditable}
                 toggleExpand={toggleExpand}
                 editingId={editingId}
                 setEditingId={setEditingId}
@@ -480,11 +458,9 @@ function ElementTree({
 
 export default function LayerPanel() {
   const project = useEditorStore((s) => s.project);
-  const mode = useEditorStore((s) => s.mode);
   const selectedElementIds = useEditorStore((s) => s.selectedElementIds);
   const selectElements = useEditorStore((s) => s.selectElements);
   const updateElement = useEditorStore((s) => s.updateElement);
-  const toggleElementEditable = useEditorStore((s) => s.toggleElementEditable);
   const getCurrentPage = useEditorStore((s) => s.getCurrentPage);
   const scrollToElement = useEditorStore((s) => s.scrollToElement);
 
@@ -601,10 +577,8 @@ export default function LayerPanel() {
                 depth={0}
                 selectedElementIds={selectedElementIds}
                 expandedIds={expandedIds}
-                mode={mode}
                 selectElements={selectAndScroll}
                 updateElement={updateElement}
-                toggleElementEditable={toggleElementEditable}
                 toggleExpand={toggleExpand}
                 editingId={editingId}
                 setEditingId={setEditingId}
