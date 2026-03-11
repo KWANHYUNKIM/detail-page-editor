@@ -121,6 +121,256 @@ function makeInstagramPostElements(): {
   };
 }
 
+function makeCherryBlossomElements(): {
+  elements: CanvasElement[];
+  backgroundColor: string;
+} {
+  const W = 860;
+  const SH = 480;
+  const PAD = 60;
+  const CW = W - PAD * 2;
+
+  const noShadow = { enabled: false as const, color: '#000', offsetX: 0, offsetY: 0, blur: 0 };
+  const noStroke = { enabled: false as const, color: '#000', width: 0 };
+  const divider = (y: number, fill = '#ad1457'): ShapeElement => ({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: PAD, y, width: CW, height: 1,
+    rotation: 0, opacity: 0.15, locked: true, visible: true, editable: false,
+    fill, stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  });
+
+  const els: CanvasElement[] = [];
+
+  // ── Section 1: Cover (0–479) ──
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: 0, width: W, height: SH, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: { type: 'linear', angle: 160, stops: [
+      { color: '#fce4ec', offset: 0 },
+      { color: '#f8bbd0', offset: 0.5 },
+      { color: '#f48fb1', offset: 1 },
+    ]},
+    stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'image',
+    x: 0, y: 0, width: W, height: SH, rotation: 0, opacity: 0.5,
+    locked: false, visible: true, editable: true,
+    editableProps: ['src'],
+    placeholder: '벚꽃 사진을 넣어주세요',
+    src: '', scaleMode: 'fill', crop: null,
+    filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0, temperature: 0, tint: 0, highlights: 0, shadows: 0 },
+    filterPreset: null,
+    gradientOverlay: {
+      enabled: true,
+      gradient: { type: 'linear', angle: 180, stops: [
+        { color: 'rgba(252,228,236,0)', offset: 0.3 },
+        { color: 'rgba(248,187,208,0.9)', offset: 1 },
+      ]},
+      opacity: 1,
+    },
+  } as ImageElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 0, y: 40, width: W, height: 160, rotation: 0, opacity: 0.1,
+    locked: true, visible: true, editable: false,
+    content: '2026', fontFamily: 'Pretendard', fontSize: 180, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#880e4f', textAlign: 'center', lineHeight: 1, letterSpacing: 15, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: 200, width: CW, height: 70, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content', 'fontFamily'],
+    content: '벚꽃 개화 시기', fontFamily: 'Pretendard', fontSize: 52, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#4a0e2e', textAlign: 'center', lineHeight: 1.2, letterSpacing: -1, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: 285, width: CW, height: 40, rotation: 0, opacity: 0.7,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content'],
+    content: '전국 지역별 개화 · 만개 예상일', fontFamily: 'Pretendard', fontSize: 20, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#6d2150', textAlign: 'center', lineHeight: 1.4, letterSpacing: 2, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: (W - 60) / 2, y: 350, width: 60, height: 2, rotation: 0, opacity: 0.4,
+    locked: true, visible: true, editable: false,
+    fill: '#880e4f', stroke: 'transparent', strokeWidth: 0, borderRadius: 1,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 0, y: 380, width: W, height: 50, rotation: 0, opacity: 0.5,
+    locked: true, visible: true, editable: false,
+    content: '🌸  🌸  🌸', fontFamily: 'Pretendard', fontSize: 28, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#000', textAlign: 'center', lineHeight: 1, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  // ── Section 2: South (480–959) ──
+  const s2 = SH;
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: s2, width: W, height: SH, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: '#FFF5F7', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s2 + 45, width: CW, height: 45, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '🌸  남부 지역', fontFamily: 'Pretendard', fontSize: 28, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ad1457', textAlign: 'left', lineHeight: 1.2, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push(divider(s2 + 100));
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s2 + 125, width: CW, height: 320, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '제주\n개화 3월 20일  ·  만개 3월 27일\n\n부산\n개화 3월 23일  ·  만개 3월 30일\n\n대구\n개화 3월 25일  ·  만개 4월 1일',
+    fontFamily: 'Pretendard', fontSize: 20, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#333333', textAlign: 'left', lineHeight: 1.9, letterSpacing: 0.5, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  // ── Section 3: Central (960–1439) ──
+  const s3 = SH * 2;
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: s3, width: W, height: SH, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: '#FFFFFF', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s3 + 45, width: CW, height: 45, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '🌸  중부 지역', fontFamily: 'Pretendard', fontSize: 28, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ad1457', textAlign: 'left', lineHeight: 1.2, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push(divider(s3 + 100));
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s3 + 125, width: CW, height: 320, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '광주\n개화 3월 25일  ·  만개 4월 1일\n\n대전\n개화 3월 28일  ·  만개 4월 4일\n\n서울\n개화 3월 30일  ·  만개 4월 6일',
+    fontFamily: 'Pretendard', fontSize: 20, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#333333', textAlign: 'left', lineHeight: 1.9, letterSpacing: 0.5, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  // ── Section 4: Capital / Northern (1440–1919) ──
+  const s4 = SH * 3;
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: s4, width: W, height: SH, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: '#FFF5F7', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s4 + 45, width: CW, height: 45, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '🌸  수도권 · 강원', fontFamily: 'Pretendard', fontSize: 28, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ad1457', textAlign: 'left', lineHeight: 1.2, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push(divider(s4 + 100));
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s4 + 125, width: CW, height: 200, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '인천\n개화 4월 2일  ·  만개 4월 9일\n\n춘천\n개화 4월 5일  ·  만개 4월 12일',
+    fontFamily: 'Pretendard', fontSize: 20, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#333333', textAlign: 'left', lineHeight: 1.9, letterSpacing: 0.5, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s4 + 350, width: CW, height: 80, rotation: 0, opacity: 0.6,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '📍 벚꽃 명소\n여의도 윤중로 · 석촌호수 · 경포호 · 진해 여좌천',
+    fontFamily: 'Pretendard', fontSize: 16, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#555', textAlign: 'left', lineHeight: 1.7, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  // ── Section 5: Tips & Closing (1920–2399) ──
+  const s5 = SH * 4;
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: s5, width: W, height: SH, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: { type: 'linear', angle: 180, stops: [
+      { color: '#f8bbd0', offset: 0 },
+      { color: '#fce4ec', offset: 0.5 },
+      { color: '#fff5f7', offset: 1 },
+    ]},
+    stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s5 + 50, width: CW, height: 45, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '🌸  벚꽃 나들이 TIP', fontFamily: 'Pretendard', fontSize: 28, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#880e4f', textAlign: 'center', lineHeight: 1.2, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push(divider(s5 + 105, '#880e4f'));
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s5 + 135, width: CW, height: 240, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '개화 후 5~7일이 만개 절정\n\n비 오기 전날이 가장 아름다워요\n\n주말 인파를 피하려면 평일 오전 추천\n\n얇은 겉옷 · 돗자리 · 보온병 필수',
+    fontFamily: 'Pretendard', fontSize: 18, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#4a0e2e', textAlign: 'center', lineHeight: 2.2, letterSpacing: 0.5, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: PAD, y: s5 + 420, width: CW, height: 30, rotation: 0, opacity: 0.4,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '@your_instagram  ·  2026 벚꽃 가이드',
+    fontFamily: 'Pretendard', fontSize: 14, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#880e4f', textAlign: 'center', lineHeight: 1, letterSpacing: 1, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  return { elements: els, backgroundColor: '#FFF5F7' };
+}
+
 export default function HomePage() {
   const router = useRouter();
   const templateRef = useRef<HTMLDivElement>(null);
@@ -192,6 +442,19 @@ export default function HomePage() {
   const handleCreateInstagramPost = () => {
     const { elements, backgroundColor } = makeInstagramPostElements();
     initProject('인스타 포스트', 'instagram-feed', 'design', {
+      elements,
+      backgroundColor,
+    });
+    const project = useEditorStore.getState().project;
+    if (project) {
+      saveProject(project);
+      router.push(`/editor/${project.id}`);
+    }
+  };
+
+  const handleCreateCherryBlossom = () => {
+    const { elements, backgroundColor } = makeCherryBlossomElements();
+    initProject('2026 벚꽃 개화 시기', 'detail-page', 'design', {
       elements,
       backgroundColor,
     });
@@ -453,7 +716,41 @@ export default function HomePage() {
               <p className="text-xs text-gray-400 mt-0.5 truncate">사진 + 텍스트 마케팅 포스트 템플릿</p>
             </div>
 
-            {/* Template cards */}
+            <div className="group/card">
+              <button
+                onClick={handleCreateCherryBlossom}
+                className="aspect-[3/4] w-full rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-pink-400/20"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#fce4ec] via-[#f8bbd0] to-[#f48fb1]" />
+                <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/40 backdrop-blur-sm">
+                      <span className="text-sm">🌸</span>
+                      <span className="text-[11px] font-semibold text-[#880e4f]">2026 벚꽃</span>
+                    </div>
+                    <div className="mt-2 text-[11px] text-[#ad1457]/60">860×2400 · 5섹션</div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-[#4a0e2e] leading-tight">벚꽃 개화 시기<br />가이드</div>
+                      <div className="mt-1.5 text-xs text-[#880e4f]/60">전국 지역별 개화·만개일</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#e91e63]" />
+                    <span className="text-[10px] text-[#880e4f]/70">인스타 감성 상세페이지</span>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 opacity-0 group-hover/card:opacity-100 translate-y-2 group-hover/card:translate-y-0 transition-all duration-300">
+                    벚꽃 가이드 만들기
+                  </span>
+                </div>
+              </button>
+              <p className="mt-3 text-sm font-medium text-gray-700 truncate">2026 벚꽃 개화 시기</p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">전국 지역별 개화·만개 예상일 5섹션 가이드</p>
+            </div>
+
             {filteredTemplates.map((template) => (
               <div key={template.id} className="group/card">
                 <div
