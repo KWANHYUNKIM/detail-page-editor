@@ -371,6 +371,195 @@ function makeCherryBlossomElements(): {
   return { elements: els, backgroundColor: '#FFF5F7' };
 }
 
+function makeFontShowcaseElements(): {
+  elements: CanvasElement[];
+  backgroundColor: string;
+} {
+  const W = 1080;
+  const H = 1080;
+  const noShadow = { enabled: false as const, color: '#000', offsetX: 0, offsetY: 0, blur: 0 };
+  const noStroke = { enabled: false as const, color: '#000', width: 0 };
+
+  const els: CanvasElement[] = [];
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: 0, width: W, height: H, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: { type: 'linear', angle: 135, stops: [
+      { color: '#1a1a2e', offset: 0 },
+      { color: '#16213e', offset: 0.5 },
+      { color: '#0f3460', offset: 1 },
+    ]},
+    stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 120, width: W - 120, height: 60, rotation: 0, opacity: 0.3,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: 'FONT SHOWCASE',
+    fontFamily: 'Pretendard', fontSize: 18, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#e2e8f0', textAlign: 'left', lineHeight: 1, letterSpacing: 8, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 60, y: 190, width: 40, height: 3, rotation: 0, opacity: 0.4,
+    locked: true, visible: true, editable: false,
+    fill: '#e2e8f0', stroke: 'transparent', strokeWidth: 0, borderRadius: 2,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 280, width: W - 120, height: 400, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content', 'fontFamily', 'fontSize', 'color'],
+    content: '오늘의\n감성 폰트',
+    fontFamily: 'Pretendard', fontSize: 120, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ffffff', textAlign: 'left', lineHeight: 1.15, letterSpacing: -3, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 720, width: W - 120, height: 50, rotation: 0, opacity: 0.5,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: 'Pretendard · Bold · 120px',
+    fontFamily: 'Pretendard', fontSize: 20, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#94a3b8', textAlign: 'left', lineHeight: 1, letterSpacing: 2, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 60, y: 790, width: W - 120, height: 1, rotation: 0, opacity: 0.1,
+    locked: true, visible: true, editable: false,
+    fill: '#e2e8f0', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 830, width: W - 120, height: 120, rotation: 0, opacity: 0.4,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '다람쥐 헌 쳇바퀴에 타고파\nThe quick brown fox jumps\n0123456789 !@#$%',
+    fontFamily: 'Pretendard', fontSize: 22, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#cbd5e1', textAlign: 'left', lineHeight: 1.8, letterSpacing: 1, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: W - 260, y: H - 60, width: 200, height: 30, rotation: 0, opacity: 0.3,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '@your_instagram',
+    fontFamily: 'Pretendard', fontSize: 14, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#94a3b8', textAlign: 'right', lineHeight: 1, letterSpacing: 1, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  return { elements: els, backgroundColor: '#1a1a2e' };
+}
+
+function makePhotoContentElements(): {
+  elements: CanvasElement[];
+  backgroundColor: string;
+} {
+  const W = 1080;
+  const H = 1350;
+  const noShadow = { enabled: false as const, color: '#000', offsetX: 0, offsetY: 0, blur: 0 };
+  const noStroke = { enabled: false as const, color: '#000', width: 0 };
+
+  const els: CanvasElement[] = [];
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 0, y: 0, width: W, height: H, rotation: 0, opacity: 1,
+    locked: true, visible: true, editable: false,
+    fill: '#0a0a0a', stroke: 'transparent', strokeWidth: 0, borderRadius: 0,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'image',
+    x: 0, y: 0, width: W, height: 900, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    editableProps: ['src'],
+    placeholder: '사진을 넣어주세요',
+    src: '', scaleMode: 'fill', crop: null,
+    filters: { brightness: 0, contrast: 0, saturation: 0, blur: 0, temperature: 0, tint: 0, highlights: 0, shadows: 0 },
+    filterPreset: null,
+    gradientOverlay: {
+      enabled: true,
+      gradient: { type: 'linear', angle: 180, stops: [
+        { color: 'rgba(0,0,0,0)', offset: 0.4 },
+        { color: 'rgba(10,10,10,1)', offset: 1 },
+      ]},
+      opacity: 1,
+    },
+  } as ImageElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 920, width: W - 120, height: 50, rotation: 0, opacity: 0.6,
+    locked: false, visible: true, editable: true, editableProps: ['content', 'color'],
+    content: 'PROMOTION',
+    fontFamily: 'Pretendard', fontSize: 16, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#a78bfa', textAlign: 'left', lineHeight: 1, letterSpacing: 6, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 970, width: W - 120, height: 180, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    editableProps: ['content', 'fontFamily', 'fontSize', 'color'],
+    content: '지금 시작하는\n봄 시즌 특가',
+    fontFamily: 'Pretendard', fontSize: 56, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ffffff', textAlign: 'left', lineHeight: 1.25, letterSpacing: -1, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 1160, width: W - 120, height: 60, rotation: 0, opacity: 0.5,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '3.15 ~ 3.31  ·  전 상품 최대 40% OFF',
+    fontFamily: 'Pretendard', fontSize: 18, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#d1d5db', textAlign: 'left', lineHeight: 1.4, letterSpacing: 0.5, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'shape', shape: 'rect',
+    x: 60, y: 1240, width: 200, height: 48, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true,
+    fill: '#a78bfa', stroke: 'transparent', strokeWidth: 0, borderRadius: 24,
+  } as ShapeElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: 60, y: 1250, width: 200, height: 30, rotation: 0, opacity: 1,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '자세히 보기 →',
+    fontFamily: 'Pretendard', fontSize: 16, fontWeight: 'bold', fontStyle: 'normal',
+    color: '#ffffff', textAlign: 'center', lineHeight: 1, letterSpacing: 0, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  els.push({
+    id: uid(), type: 'text',
+    x: W - 260, y: H - 50, width: 200, height: 30, rotation: 0, opacity: 0.3,
+    locked: false, visible: true, editable: true, editableProps: ['content'],
+    content: '@your_instagram',
+    fontFamily: 'Pretendard', fontSize: 14, fontWeight: 'normal', fontStyle: 'normal',
+    color: '#9ca3af', textAlign: 'right', lineHeight: 1, letterSpacing: 1, textDecoration: 'none',
+    textShadow: noShadow, textStroke: noStroke, textBackground: '',
+  } as TextElement);
+
+  return { elements: els, backgroundColor: '#0a0a0a' };
+}
+
 export default function HomePage() {
   const router = useRouter();
   const templateRef = useRef<HTMLDivElement>(null);
@@ -452,6 +641,34 @@ export default function HomePage() {
     }
   };
 
+  const handleCreateFontShowcase = () => {
+    const { elements, backgroundColor } = makeFontShowcaseElements();
+    initProject('폰트 쇼케이스', 'instagram-feed', 'design', {
+      elements,
+      backgroundColor,
+    });
+    const project = useEditorStore.getState().project;
+    if (project) {
+      saveProject(project);
+      router.push(`/editor/${project.id}`);
+    }
+  };
+
+  const handleCreatePhotoContent = () => {
+    const { elements, backgroundColor } = makePhotoContentElements();
+    initProject('사진 콘텐츠', 'custom', 'design', {
+      elements,
+      backgroundColor,
+    });
+    const project = useEditorStore.getState().project;
+    if (project) {
+      project.canvas.width = 1080;
+      project.canvas.height = 1350;
+      saveProject(project);
+      router.push(`/editor/${project.id}`);
+    }
+  };
+
   const handleCreateCherryBlossom = () => {
     const { elements, backgroundColor } = makeCherryBlossomElements();
     initProject('2026 벚꽃 개화 시기', 'detail-page', 'design', {
@@ -482,7 +699,7 @@ export default function HomePage() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1e1e2e] to-[#7c3aed] flex items-center justify-center">
               <HiSparkles className="w-4 h-4 text-white" />
             </div>
-            상세페이지 에디터
+            크리에이티브 스튜디오
           </button>
           <div className="flex items-center gap-3">
             <button
@@ -526,23 +743,57 @@ export default function HomePage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-8">
             <HiSparkles className="w-4 h-4 text-purple-300" />
             <span className="text-sm font-medium text-purple-200">
-              전문 디자이너가 만든 템플릿
+              상세페이지 · 폰트 · 사진 콘텐츠
             </span>
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            상세 페이지
+            크리에이티브
             <br />
             <span className="bg-gradient-to-r from-purple-300 via-pink-300 to-orange-300 bg-clip-text text-transparent">
-              무료 템플릿
+              스튜디오
             </span>
           </h1>
 
           <p className="mt-5 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            전문 디자이너가 제작한 템플릿으로 상세 페이지를 손쉽게 만들어 보세요.
+            상세페이지, 폰트 디자인, 사진 콘텐츠를 한곳에서.
             <br className="hidden md:block" />
-            누구나 손쉽게 쓸 수 있는 편집툴로 빠르게 완성.
+            인스타그램 · 마케팅 · 홍보물을 누구나 쉽게 만들 수 있어요.
           </p>
+
+          {/* 3 Creation Categories */}
+          <div className="mt-10 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <button
+              onClick={handleCreateBlank}
+              className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl bg-white/[0.07] border border-white/10 hover:bg-white/[0.14] hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-cyan-400/30 flex items-center justify-center group-hover:from-blue-500/50 group-hover:to-cyan-400/50 transition-all">
+                <span className="text-2xl">📄</span>
+              </div>
+              <span className="text-sm font-semibold text-white">상세페이지</span>
+              <span className="text-[11px] text-gray-400 leading-tight">쇼핑몰 · 브랜드</span>
+            </button>
+            <button
+              onClick={() => scrollToTemplates('all')}
+              className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl bg-white/[0.07] border border-white/10 hover:bg-white/[0.14] hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-400/30 flex items-center justify-center group-hover:from-purple-500/50 group-hover:to-pink-400/50 transition-all">
+                <span className="text-2xl">🔤</span>
+              </div>
+              <span className="text-sm font-semibold text-white">폰트 디자인</span>
+              <span className="text-[11px] text-gray-400 leading-tight">타이포그래피 · 감성</span>
+            </button>
+            <button
+              onClick={() => scrollToTemplates('all')}
+              className="group flex flex-col items-center gap-2.5 p-5 rounded-2xl bg-white/[0.07] border border-white/10 hover:bg-white/[0.14] hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500/30 to-rose-400/30 flex items-center justify-center group-hover:from-orange-500/50 group-hover:to-rose-400/50 transition-all">
+                <span className="text-2xl">📸</span>
+              </div>
+              <span className="text-sm font-semibold text-white">사진 콘텐츠</span>
+              <span className="text-[11px] text-gray-400 leading-tight">인스타 · 마케팅</span>
+            </button>
+          </div>
 
           {/* Search bar */}
           <div className="mt-10 relative max-w-xl mx-auto">
@@ -554,40 +805,22 @@ export default function HomePage() {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="상세페이지 템플릿 검색..."
+                  placeholder="템플릿 검색..."
                   className="w-full pl-13 pr-5 py-4 rounded-2xl bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 shadow-xl shadow-black/20 transition-all"
                 />
               </div>
             </div>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
-            <button
-              onClick={handleCreateBlank}
-              className="flex items-center gap-2 px-7 py-3.5 bg-white text-[#1e1e2e] rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-0.5"
-            >
-              <HiPlusCircle className="w-5 h-5" />
-              새로 만들기
-            </button>
-            <button
-              onClick={() => scrollToTemplates('all')}
-              className="flex items-center gap-2 px-7 py-3.5 bg-white/10 text-white rounded-xl text-sm font-semibold backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all hover:-translate-y-0.5"
-            >
-              템플릿 둘러보기
-              <HiArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
           {/* Quick stats */}
-          <div className="mt-12 flex items-center justify-center gap-8 text-sm text-gray-400">
+          <div className="mt-10 flex items-center justify-center gap-8 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-400" />
               <span>{BUILT_IN_TEMPLATES.length}개 무료 템플릿</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-purple-400" />
-              <span>{TEMPLATE_CATEGORIES.length - 1}개 카테고리</span>
+              <span>3가지 콘텐츠 타입</span>
             </div>
           </div>
         </div>
@@ -639,7 +872,7 @@ export default function HomePage() {
                   <HiPlus className="w-7 h-7 text-gray-500 group-hover:text-white transition-colors duration-300" />
                 </div>
                 <span className="text-sm font-medium text-gray-500 group-hover:text-gray-800 transition-colors">
-                  빈 상세페이지 만들기
+                  빈 프로젝트 만들기
                 </span>
               </button>
             </div>
@@ -738,7 +971,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#e91e63]" />
-                    <span className="text-[10px] text-[#880e4f]/70">인스타 감성 상세페이지</span>
+                    <span className="text-[10px] text-[#880e4f]/70">인스타 감성 콘텐츠</span>
                   </div>
                 </div>
                 <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/30 transition-all duration-300 flex items-center justify-center">
@@ -749,6 +982,76 @@ export default function HomePage() {
               </button>
               <p className="mt-3 text-sm font-medium text-gray-700 truncate">2026 벚꽃 개화 시기</p>
               <p className="text-xs text-gray-400 mt-0.5 truncate">전국 지역별 개화·만개 예상일 5섹션 가이드</p>
+            </div>
+
+            <div className="group/card">
+              <button
+                onClick={handleCreateFontShowcase}
+                className="aspect-[3/4] w-full rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-indigo-900/20"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />
+                <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm">
+                      <span className="text-sm">🔤</span>
+                      <span className="text-[11px] font-semibold text-blue-300">FONT</span>
+                    </div>
+                    <div className="mt-2 text-[11px] text-blue-400/60">1080×1080 · 타이포그래피</div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white leading-tight">폰트 쇼케이스<br />만들기</div>
+                      <div className="mt-1.5 text-xs text-blue-300/60">감성 타이포그래피 포스트</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    <span className="text-[10px] text-blue-300/70">폰트 소개 · 감성 글귀</span>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 opacity-0 group-hover/card:opacity-100 translate-y-2 group-hover/card:translate-y-0 transition-all duration-300">
+                    폰트 포스트 만들기
+                  </span>
+                </div>
+              </button>
+              <p className="mt-3 text-sm font-medium text-gray-700 truncate">폰트 쇼케이스</p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">감성 타이포그래피 인스타 포스트</p>
+            </div>
+
+            <div className="group/card">
+              <button
+                onClick={handleCreatePhotoContent}
+                className="aspect-[3/4] w-full rounded-2xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-purple-900/20"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#1a1a2a] to-[#2d1b4e]" />
+                <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm">
+                      <span className="text-sm">📸</span>
+                      <span className="text-[11px] font-semibold text-purple-300">PHOTO</span>
+                    </div>
+                    <div className="mt-2 text-[11px] text-purple-400/60">1080×1350 · 4:5 세로형</div>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-white leading-tight">사진 콘텐츠<br />만들기</div>
+                      <div className="mt-1.5 text-xs text-purple-300/60">홍보 · 마케팅 포스트</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                    <span className="text-[10px] text-purple-300/70">사진 + 텍스트 오버레이</span>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 opacity-0 group-hover/card:opacity-100 translate-y-2 group-hover/card:translate-y-0 transition-all duration-300">
+                    사진 콘텐츠 만들기
+                  </span>
+                </div>
+              </button>
+              <p className="mt-3 text-sm font-medium text-gray-700 truncate">사진 홍보 콘텐츠</p>
+              <p className="text-xs text-gray-400 mt-0.5 truncate">사진 + 텍스트 마케팅 · 프로모션 포스트</p>
             </div>
 
             {filteredTemplates.map((template) => (
@@ -895,10 +1198,10 @@ export default function HomePage() {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   <HiSparkles className="w-3.5 h-3.5 text-white" />
                 </div>
-                상세페이지 에디터
+                크리에이티브 스튜디오
               </div>
               <p className="mt-2 text-sm text-gray-500">
-                전문적인 상세 페이지를 손쉽게 만들어 보세요
+                상세페이지 · 폰트 · 사진 콘텐츠를 한곳에서
               </p>
             </div>
             <div className="flex items-center gap-6 text-sm">
@@ -908,7 +1211,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800 text-sm text-gray-600">
-            © 2025 상세페이지 에디터. All rights reserved.
+            © 2025 크리에이티브 스튜디오. All rights reserved.
           </div>
         </div>
       </footer>
