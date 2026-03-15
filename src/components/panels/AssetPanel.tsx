@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useEditorStore } from '@/stores/editorStore';
 
 /* ── Mock Data ── */
 
@@ -290,6 +291,33 @@ const MOCK_LIBRARIES: Library[] = [
   },
 ];
 
+
+function getComponentBlueprint(comp: FolderComponent) {
+  const n = comp.name.toLowerCase();
+  if (n.includes('button') || n.includes('chip') || n.includes('tag') || n.includes('badge')) {
+    return { width: 160, height: 44, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('card') || n.includes('modal') || n.includes('dialog') || n.includes('alert') || n.includes('sheet')) {
+    return { width: 280, height: 180, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+  if (n.includes('navigation') || n.includes('header') || n.includes('footer') || n.includes('keyboard') || n.includes('bar')) {
+    return { width: 360, height: 56, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('list') || n.includes('table') || n.includes('accordion') || n.includes('menu')) {
+    return { width: 300, height: 200, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('icon') || n.includes('avatar') || n.includes('spinner')) {
+    return { width: 64, height: 64, fill: comp.thumbnailColor, borderRadius: 32 };
+  }
+  if (n.includes('page') || n.includes('screen') || n.includes('dashboard') || n.includes('landing')) {
+    return { width: 360, height: 480, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('picker') || n.includes('select') || n.includes('dropdown')) {
+    return { width: 240, height: 160, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  return { width: 200, height: 120, fill: comp.thumbnailColor, borderRadius: 8 };
+}
+
 /* ── Inline SVGs ── */
 
 function SearchIcon() {
@@ -356,6 +384,43 @@ export default function AssetPanel() {
   const filteredComponents = selectedFolder?.components.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const addFrameElement = useEditorStore((s) => s.addFrameElement);
+  const addTextElement = useEditorStore((s) => s.addTextElement);
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const moveToFrame = useEditorStore((s) => s.moveToFrame);
+
+  const handleAddComponent = useCallback((comp: FolderComponent, x = 100, y = 100) => {
+    const bp = getComponentBlueprint(comp);
+    const frameId = addFrameElement(x, y);
+    updateElement(frameId, {
+      width: bp.width,
+      height: bp.height,
+      fill: bp.fill,
+      borderRadius: bp.borderRadius,
+      stroke: 'transparent',
+      strokeWidth: 0,
+      name: comp.name,
+    });
+    const textId = addTextElement(comp.name);
+    updateElement(textId, {
+      x: x + 10,
+      y: y + Math.round(bp.height / 2) - 10,
+      width: bp.width - 20,
+      height: 20,
+      textAlign: 'center' as const,
+      fontSize: 13,
+      color: '#333333',
+    });
+    moveToFrame([textId], frameId);
+  }, [addFrameElement, addTextElement, updateElement, moveToFrame]);
+
+  const handleDragStart = useCallback((e: React.DragEvent, comp: FolderComponent) => {
+    const bp = getComponentBlueprint(comp);
+    const payload = JSON.stringify({ ...comp, blueprint: bp });
+    e.dataTransfer.setData('application/asset-component', payload);
+    e.dataTransfer.effectAllowed = 'copy';
+  }, []);
 
   const currentSlide = selectedFolder ? 2 : selectedLibrary ? 1 : 0;
 
@@ -529,7 +594,10 @@ export default function AssetPanel() {
                   <button
                     key={comp.id}
                     type="button"
-                    className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-gray-50 transition-colors text-center group"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, comp)}
+                    onClick={() => handleAddComponent(comp)}
+                    className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors text-center group cursor-grab active:cursor-grabbing"
                   >
                     <div
                       className="w-[96px] h-[96px] rounded-md border border-gray-200 flex items-center justify-center shrink-0"

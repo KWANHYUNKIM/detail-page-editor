@@ -116,7 +116,10 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
   const projectId = useEditorStore((s) => s.project?.id);
   const pushState = useHistoryStore((s) => s.pushState);
   const addImageElement = useEditorStore((s) => s.addImageElement);
+  const addFrameElement = useEditorStore((s) => s.addFrameElement);
+  const addTextElement = useEditorStore((s) => s.addTextElement);
   const updateElement = useEditorStore((s) => s.updateElement);
+  const moveToFrame = useEditorStore((s) => s.moveToFrame);
   const setActiveTool = useEditorStore((s) => s.setActiveTool);
 
   // ── Export clip-path helpers ──
@@ -326,6 +329,58 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
     grayAreaHandlerRef.current?.(e);
   }, []);
 
+  // ── Asset component drop handler ──
+  const handleAssetDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('application/asset-component')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  const handleAssetDrop = useCallback((e: React.DragEvent) => {
+    const data = e.dataTransfer.getData('application/asset-component');
+    if (!data) return;
+    e.preventDefault();
+
+    const comp = JSON.parse(data);
+    const bp = comp.blueprint;
+    if (!bp) return;
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const canvas = fabricRef.current;
+    const vpt = canvas?.viewportTransform ?? [1, 0, 0, 1, 0, 0];
+    const canvasX = Math.round((e.clientX - rect.left - vpt[4]) / vpt[0]);
+    const canvasY = Math.round((e.clientY - rect.top - vpt[5]) / vpt[3]);
+
+    const currentPage = useEditorStore.getState().getCurrentPage();
+    if (currentPage) pushState(currentPage);
+
+    const frameId = addFrameElement(canvasX, canvasY);
+    updateElement(frameId, {
+      width: bp.width,
+      height: bp.height,
+      fill: bp.fill,
+      borderRadius: bp.borderRadius,
+      stroke: 'transparent',
+      strokeWidth: 0,
+      name: comp.name,
+    });
+    const textId = addTextElement(comp.name);
+    updateElement(textId, {
+      x: canvasX + 10,
+      y: canvasY + Math.round(bp.height / 2) - 10,
+      width: bp.width - 20,
+      height: 20,
+      textAlign: 'center' as const,
+      fontSize: 13,
+      color: '#333333',
+    });
+    moveToFrame([textId], frameId);
+    setActiveTool('move');
+  }, [pushState, addFrameElement, addTextElement, updateElement, moveToFrame, setActiveTool]);
+
   // ── Context value (all refs + isReady) ──
   const contextValue: CanvasContextValue = {
     fabricRef,
@@ -359,6 +414,8 @@ const EditorCanvas = forwardRef<CanvasHandle>(function EditorCanvas(_, ref) {
         ref={scrollContainerRef}
         className="absolute inset-0 overflow-auto bg-[#f0f0f0]"
         onMouseDown={handleGrayAreaMouseDown}
+        onDragOver={handleAssetDragOver}
+        onDrop={handleAssetDrop}
         onContextMenu={(e) => e.preventDefault()}
       >
         {/* Hidden file input for the image placement tool */}
