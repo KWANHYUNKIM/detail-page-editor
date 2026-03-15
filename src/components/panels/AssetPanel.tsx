@@ -28,263 +28,267 @@ interface Library {
 
 const MOCK_LIBRARIES: Library[] = [
   {
-    id: 'ios-26',
-    name: 'iOS and iPadOS 26',
-    gradient: 'from-blue-400 to-indigo-600',
-    componentCount: 175,
+    id: 'detail-page',
+    name: '상세페이지 에셋',
+    gradient: 'from-orange-400 to-rose-500',
+    componentCount: 52,
     folders: [
       {
-        id: 'examples',
-        name: 'Examples',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-header',
+        name: '헤더 / 배너',
+        thumbnailColor: '#fff3e0',
         components: [
-          { id: 'ex-welcome', name: 'Welcome Screen', thumbnailColor: '#e3f2fd' },
-          { id: 'ex-onboarding', name: 'Onboarding Flow', thumbnailColor: '#e3f2fd' },
-          { id: 'ex-settings', name: 'Settings Page', thumbnailColor: '#e3f2fd' },
-          { id: 'ex-profile', name: 'Profile View', thumbnailColor: '#e3f2fd' },
+          { id: 'dp-hero', name: '히어로 배너', thumbnailColor: '#ffe0b2' },
+          { id: 'dp-product-header', name: '상품 메인 헤더', thumbnailColor: '#ffccbc' },
+          { id: 'dp-brand-header', name: '브랜드 소개 헤더', thumbnailColor: '#ffe0b2' },
+          { id: 'dp-sale-banner', name: '세일 배너', thumbnailColor: '#ffcdd2' },
+          { id: 'dp-event-banner', name: '이벤트 배너', thumbnailColor: '#f8bbd0' },
+          { id: 'dp-seasonal', name: '시즌 배너', thumbnailColor: '#ffe0b2' },
         ],
       },
       {
-        id: 'action-sheets',
-        name: 'Action Sheets',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-product',
+        name: '상품 소개',
+        thumbnailColor: '#e3f2fd',
         components: [
-          { id: 'as-standard', name: 'Standard Action Sheet', thumbnailColor: '#e8eaf6' },
-          { id: 'as-destructive', name: 'Destructive Action', thumbnailColor: '#ffebee' },
-          { id: 'as-share', name: 'Share Sheet', thumbnailColor: '#e8eaf6' },
+          { id: 'dp-product-card', name: '상품 카드', thumbnailColor: '#bbdefb' },
+          { id: 'dp-feature-list', name: '특장점 리스트', thumbnailColor: '#c8e6c9' },
+          { id: 'dp-spec-table', name: '스펙 테이블', thumbnailColor: '#e3f2fd' },
+          { id: 'dp-desc-block', name: '상세 설명 블록', thumbnailColor: '#e8eaf6' },
+          { id: 'dp-ingredient', name: '성분/원재료 표기', thumbnailColor: '#e0f7fa' },
+          { id: 'dp-size-guide', name: '사이즈 가이드', thumbnailColor: '#e3f2fd' },
+          { id: 'dp-color-option', name: '컬러 옵션', thumbnailColor: '#f3e5f5' },
         ],
       },
       {
-        id: 'activity-views',
-        name: 'Activity Views',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-price',
+        name: '가격 / 혜택',
+        thumbnailColor: '#fce4ec',
         components: [
-          { id: 'av-share', name: 'Share Activity', thumbnailColor: '#e3f2fd' },
-          { id: 'av-copy', name: 'Copy Activity', thumbnailColor: '#e3f2fd' },
-          { id: 'av-airdrop', name: 'AirDrop', thumbnailColor: '#e3f2fd' },
-          { id: 'av-message', name: 'Message Activity', thumbnailColor: '#e3f2fd' },
-          { id: 'av-mail', name: 'Mail Activity', thumbnailColor: '#e3f2fd' },
+          { id: 'dp-price-tag', name: '가격 태그', thumbnailColor: '#ffcdd2' },
+          { id: 'dp-discount', name: '할인 배지', thumbnailColor: '#ef9a9a' },
+          { id: 'dp-free-ship', name: '무료배송 배너', thumbnailColor: '#c8e6c9' },
+          { id: 'dp-benefits', name: '혜택 리스트', thumbnailColor: '#fff9c4' },
+          { id: 'dp-coupon', name: '쿠폰 다운로드', thumbnailColor: '#ffecb3' },
+          { id: 'dp-bundle', name: '묶음 할인', thumbnailColor: '#ffe0b2' },
         ],
       },
       {
-        id: 'alerts',
-        name: 'Alerts',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-cta',
+        name: 'CTA / 버튼',
+        thumbnailColor: '#e8eaf6',
         components: [
-          { id: 'al-simple', name: 'Simple Alert', thumbnailColor: '#fff3e0' },
-          { id: 'al-confirm', name: 'Confirmation Alert', thumbnailColor: '#fff3e0' },
-          { id: 'al-text-input', name: 'Text Input Alert', thumbnailColor: '#fff3e0' },
+          { id: 'dp-buy-btn', name: '구매하기 버튼', thumbnailColor: '#c5cae9' },
+          { id: 'dp-cart-btn', name: '장바구니 버튼', thumbnailColor: '#bbdefb' },
+          { id: 'dp-inquiry-btn', name: '문의하기 버튼', thumbnailColor: '#b2dfdb' },
+          { id: 'dp-share-btn', name: '공유하기 버튼', thumbnailColor: '#c8e6c9' },
+          { id: 'dp-wishlist-btn', name: '찜하기 버튼', thumbnailColor: '#f8bbd0' },
         ],
       },
       {
-        id: 'app-icons',
-        name: 'App Icons',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-review',
+        name: '후기 / 리뷰',
+        thumbnailColor: '#fff9c4',
         components: [
-          { id: 'ai-small', name: 'Small Icon (29pt)', thumbnailColor: '#f3e5f5' },
-          { id: 'ai-medium', name: 'Medium Icon (40pt)', thumbnailColor: '#f3e5f5' },
-          { id: 'ai-large', name: 'Large Icon (60pt)', thumbnailColor: '#f3e5f5' },
-          { id: 'ai-appstore', name: 'App Store (1024pt)', thumbnailColor: '#f3e5f5' },
+          { id: 'dp-review-card', name: '리뷰 카드', thumbnailColor: '#fff9c4' },
+          { id: 'dp-star-rating', name: '별점 평가', thumbnailColor: '#ffecb3' },
+          { id: 'dp-testimonial', name: '고객 후기', thumbnailColor: '#fff9c4' },
+          { id: 'dp-before-after', name: '비포/애프터', thumbnailColor: '#e1bee7' },
+          { id: 'dp-photo-review', name: '포토 리뷰', thumbnailColor: '#ffe0b2' },
         ],
       },
       {
-        id: 'buttons',
-        name: 'Buttons',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-image',
+        name: '이미지 섹션',
+        thumbnailColor: '#e0f2f1',
         components: [
-          { id: 'btn-filled', name: 'Filled Button', thumbnailColor: '#e3f2fd' },
-          { id: 'btn-tinted', name: 'Tinted Button', thumbnailColor: '#e3f2fd' },
-          { id: 'btn-gray', name: 'Gray Button', thumbnailColor: '#e3f2fd' },
-          { id: 'btn-plain', name: 'Plain Button', thumbnailColor: '#e3f2fd' },
-          { id: 'btn-close', name: 'Close Button', thumbnailColor: '#e3f2fd' },
-          { id: 'btn-toggle', name: 'Toggle Button', thumbnailColor: '#e3f2fd' },
+          { id: 'dp-full-img', name: '풀폭 이미지', thumbnailColor: '#b2dfdb' },
+          { id: 'dp-img-grid', name: '이미지 그리드', thumbnailColor: '#c8e6c9' },
+          { id: 'dp-comparison', name: '비교 이미지', thumbnailColor: '#e0f2f1' },
+          { id: 'dp-gallery', name: '갤러리', thumbnailColor: '#b2ebf2' },
+          { id: 'dp-lifestyle', name: '라이프스타일 컷', thumbnailColor: '#e0f7fa' },
         ],
       },
       {
-        id: 'color-pickers',
-        name: 'Color Pickers',
+        id: 'dp-text',
+        name: '텍스트 섹션',
         thumbnailColor: '#f5f5f5',
         components: [
-          { id: 'cp-grid', name: 'Grid Picker', thumbnailColor: '#fce4ec' },
-          { id: 'cp-spectrum', name: 'Spectrum Picker', thumbnailColor: '#fce4ec' },
-          { id: 'cp-sliders', name: 'Slider Picker', thumbnailColor: '#fce4ec' },
+          { id: 'dp-title', name: '타이틀 블록', thumbnailColor: '#e0e0e0' },
+          { id: 'dp-body', name: '본문 텍스트', thumbnailColor: '#f5f5f5' },
+          { id: 'dp-qna', name: 'Q&A 블록', thumbnailColor: '#e8eaf6' },
+          { id: 'dp-notice', name: '안내 문구', thumbnailColor: '#fff9c4' },
+          { id: 'dp-callout', name: '강조 문구', thumbnailColor: '#ffecb3' },
         ],
       },
       {
-        id: 'contextual-menus',
-        name: 'Contextual Menus',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-footer',
+        name: '푸터 / 안내',
+        thumbnailColor: '#eceff1',
         components: [
-          { id: 'cm-standard', name: 'Standard Menu', thumbnailColor: '#e8eaf6' },
-          { id: 'cm-nested', name: 'Nested Menu', thumbnailColor: '#e8eaf6' },
-          { id: 'cm-preview', name: 'Preview Menu', thumbnailColor: '#e8eaf6' },
-          { id: 'cm-destructive', name: 'Destructive Item', thumbnailColor: '#ffebee' },
+          { id: 'dp-delivery', name: '배송 안내', thumbnailColor: '#cfd8dc' },
+          { id: 'dp-return', name: '반품/교환 안내', thumbnailColor: '#eceff1' },
+          { id: 'dp-contact', name: '고객센터 안내', thumbnailColor: '#cfd8dc' },
+          { id: 'dp-company', name: '회사 정보', thumbnailColor: '#eceff1' },
+          { id: 'dp-legal', name: '법적 고지', thumbnailColor: '#e0e0e0' },
         ],
       },
       {
-        id: 'keyboards',
-        name: 'Keyboards',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-badge',
+        name: '배지 / 아이콘',
+        thumbnailColor: '#f3e5f5',
         components: [
-          { id: 'kb-default', name: 'Default Keyboard', thumbnailColor: '#eceff1' },
-          { id: 'kb-numeric', name: 'Numeric Pad', thumbnailColor: '#eceff1' },
-          { id: 'kb-emoji', name: 'Emoji Keyboard', thumbnailColor: '#eceff1' },
+          { id: 'dp-best', name: '베스트셀러 배지', thumbnailColor: '#ffcdd2' },
+          { id: 'dp-new', name: 'NEW 배지', thumbnailColor: '#c8e6c9' },
+          { id: 'dp-cert', name: '인증 마크', thumbnailColor: '#bbdefb' },
+          { id: 'dp-award', name: '수상 배지', thumbnailColor: '#fff9c4' },
+          { id: 'dp-md-pick', name: 'MD 추천', thumbnailColor: '#e1bee7' },
+          { id: 'dp-limited', name: '한정판 배지', thumbnailColor: '#ffccbc' },
         ],
       },
       {
-        id: 'lists',
-        name: 'Lists',
-        thumbnailColor: '#f5f5f5',
+        id: 'dp-divider',
+        name: '구분선 / 장식',
+        thumbnailColor: '#e0e0e0',
         components: [
-          { id: 'ls-plain', name: 'Plain List', thumbnailColor: '#e8eaf6' },
-          { id: 'ls-inset', name: 'Inset Grouped', thumbnailColor: '#e8eaf6' },
-          { id: 'ls-sidebar', name: 'Sidebar List', thumbnailColor: '#e8eaf6' },
-          { id: 'ls-swipe', name: 'Swipe Actions', thumbnailColor: '#e8eaf6' },
-        ],
-      },
-      {
-        id: 'notifications',
-        name: 'Notifications',
-        thumbnailColor: '#f5f5f5',
-        components: [
-          { id: 'nt-banner', name: 'Banner', thumbnailColor: '#e3f2fd' },
-          { id: 'nt-lockscreen', name: 'Lock Screen', thumbnailColor: '#e3f2fd' },
-          { id: 'nt-grouped', name: 'Grouped Stack', thumbnailColor: '#e3f2fd' },
+          { id: 'dp-line', name: '구분선', thumbnailColor: '#bdbdbd' },
+          { id: 'dp-deco-line', name: '장식 라인', thumbnailColor: '#e0e0e0' },
+          { id: 'dp-section-break', name: '섹션 구분', thumbnailColor: '#f5f5f5' },
+          { id: 'dp-spacer', name: '여백', thumbnailColor: '#fafafa' },
         ],
       },
     ],
   },
   {
-    id: 'material-3',
-    name: 'Material 3 Design Kit',
-    gradient: 'from-purple-400 to-pink-500',
-    componentCount: 357,
+    id: 'instagram',
+    name: '인스타그램 에셋',
+    gradient: 'from-purple-500 via-pink-500 to-orange-400',
+    componentCount: 38,
     folders: [
       {
-        id: 'buttons',
-        name: 'Buttons',
-        thumbnailColor: '#e8eaf6',
+        id: 'ig-feed',
+        name: '피드 포스트',
+        thumbnailColor: '#f3e5f5',
         components: [
-          { id: 'm3-btn-filled', name: 'Filled Button', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-outlined', name: 'Outlined Button', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-text', name: 'Text Button', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-elevated', name: 'Elevated Button', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-tonal', name: 'Tonal Button', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-fab', name: 'FAB', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-efab', name: 'Extended FAB', thumbnailColor: '#e8eaf6' },
-          { id: 'm3-btn-icon', name: 'Icon Button', thumbnailColor: '#e8eaf6' },
+          { id: 'ig-product-post', name: '상품 소개 포스트', thumbnailColor: '#e1bee7' },
+          { id: 'ig-lifestyle', name: '라이프스타일 포스트', thumbnailColor: '#f3e5f5' },
+          { id: 'ig-carousel', name: '캐러셀 슬라이드', thumbnailColor: '#e8eaf6' },
+          { id: 'ig-quote', name: '명언/인용 포스트', thumbnailColor: '#ede7f6' },
+          { id: 'ig-tip', name: '꿀팁 포스트', thumbnailColor: '#fff9c4' },
+          { id: 'ig-comparison', name: '비교 포스트', thumbnailColor: '#e3f2fd' },
         ],
       },
       {
-        id: 'cards',
-        name: 'Cards',
-        thumbnailColor: '#e8eaf6',
+        id: 'ig-story',
+        name: '스토리',
+        thumbnailColor: '#fce4ec',
         components: [
-          { id: 'm3-card-filled', name: 'Filled Card', thumbnailColor: '#ede7f6' },
-          { id: 'm3-card-elevated', name: 'Elevated Card', thumbnailColor: '#ede7f6' },
-          { id: 'm3-card-outlined', name: 'Outlined Card', thumbnailColor: '#ede7f6' },
+          { id: 'ig-poll', name: '투표 스토리', thumbnailColor: '#f8bbd0' },
+          { id: 'ig-question', name: '질문 스토리', thumbnailColor: '#e1bee7' },
+          { id: 'ig-product-tag', name: '상품 태그 스토리', thumbnailColor: '#ffccbc' },
+          { id: 'ig-countdown', name: '카운트다운 스토리', thumbnailColor: '#ffcdd2' },
+          { id: 'ig-link', name: '링크 스토리', thumbnailColor: '#c5cae9' },
+          { id: 'ig-swipeup', name: '스와이프업 스토리', thumbnailColor: '#b2dfdb' },
         ],
       },
       {
-        id: 'chips',
-        name: 'Chips',
+        id: 'ig-reel',
+        name: '릴스 커버',
         thumbnailColor: '#e8eaf6',
         components: [
-          { id: 'm3-chip-assist', name: 'Assist Chip', thumbnailColor: '#f3e5f5' },
-          { id: 'm3-chip-filter', name: 'Filter Chip', thumbnailColor: '#f3e5f5' },
-          { id: 'm3-chip-input', name: 'Input Chip', thumbnailColor: '#f3e5f5' },
-          { id: 'm3-chip-suggest', name: 'Suggestion Chip', thumbnailColor: '#f3e5f5' },
+          { id: 'ig-reel-thumb', name: '릴스 썸네일', thumbnailColor: '#c5cae9' },
+          { id: 'ig-reel-title', name: '릴스 타이틀 카드', thumbnailColor: '#e8eaf6' },
+          { id: 'ig-reel-end', name: '릴스 엔딩 카드', thumbnailColor: '#d1c4e9' },
         ],
       },
       {
-        id: 'dialogs',
-        name: 'Dialogs',
-        thumbnailColor: '#e8eaf6',
+        id: 'ig-promo',
+        name: '프로모션',
+        thumbnailColor: '#ffecb3',
         components: [
-          { id: 'm3-dlg-basic', name: 'Basic Dialog', thumbnailColor: '#fce4ec' },
-          { id: 'm3-dlg-fullscreen', name: 'Full-screen Dialog', thumbnailColor: '#fce4ec' },
-          { id: 'm3-dlg-datepicker', name: 'Date Picker Dialog', thumbnailColor: '#fce4ec' },
-          { id: 'm3-dlg-timepicker', name: 'Time Picker Dialog', thumbnailColor: '#fce4ec' },
+          { id: 'ig-sale', name: '세일 공지', thumbnailColor: '#ffcdd2' },
+          { id: 'ig-giveaway', name: '이벤트/경품', thumbnailColor: '#fff9c4' },
+          { id: 'ig-new-arrival', name: '신상품 공지', thumbnailColor: '#c8e6c9' },
+          { id: 'ig-flash', name: '타임세일', thumbnailColor: '#ef9a9a' },
+          { id: 'ig-collab', name: '콜라보 공지', thumbnailColor: '#e1bee7' },
         ],
       },
       {
-        id: 'navigation',
-        name: 'Navigation',
-        thumbnailColor: '#e8eaf6',
+        id: 'ig-brand',
+        name: '브랜드',
+        thumbnailColor: '#e0f2f1',
         components: [
-          { id: 'm3-nav-bar', name: 'Navigation Bar', thumbnailColor: '#e3f2fd' },
-          { id: 'm3-nav-rail', name: 'Navigation Rail', thumbnailColor: '#e3f2fd' },
-          { id: 'm3-nav-drawer', name: 'Navigation Drawer', thumbnailColor: '#e3f2fd' },
-          { id: 'm3-nav-tabs', name: 'Tabs', thumbnailColor: '#e3f2fd' },
-          { id: 'm3-nav-bottom', name: 'Bottom Sheet', thumbnailColor: '#e3f2fd' },
+          { id: 'ig-logo', name: '로고 배치', thumbnailColor: '#b2dfdb' },
+          { id: 'ig-color-block', name: '브랜드 컬러 블록', thumbnailColor: '#e0f2f1' },
+          { id: 'ig-watermark', name: '워터마크', thumbnailColor: '#e0e0e0' },
+          { id: 'ig-profile-card', name: '프로필 카드', thumbnailColor: '#e3f2fd' },
         ],
       },
       {
-        id: 'text-fields',
-        name: 'Text Fields',
-        thumbnailColor: '#e8eaf6',
+        id: 'ig-text',
+        name: '텍스트/타이포',
+        thumbnailColor: '#f5f5f5',
         components: [
-          { id: 'm3-tf-filled', name: 'Filled Text Field', thumbnailColor: '#ede7f6' },
-          { id: 'm3-tf-outlined', name: 'Outlined Text Field', thumbnailColor: '#ede7f6' },
-          { id: 'm3-tf-search', name: 'Search Bar', thumbnailColor: '#ede7f6' },
+          { id: 'ig-headline', name: '헤드라인', thumbnailColor: '#e0e0e0' },
+          { id: 'ig-subtitle', name: '서브타이틀', thumbnailColor: '#f5f5f5' },
+          { id: 'ig-caption', name: '캡션 텍스트', thumbnailColor: '#eeeeee' },
+          { id: 'ig-hashtag', name: '해시태그 블록', thumbnailColor: '#e3f2fd' },
+          { id: 'ig-cta-text', name: 'CTA 텍스트', thumbnailColor: '#ffecb3' },
         ],
       },
     ],
   },
   {
-    id: 'simple-ds',
-    name: 'Simple Design System',
-    gradient: 'from-emerald-400 to-teal-600',
-    componentCount: 1844,
+    id: 'basic-ds',
+    name: '기본 디자인 요소',
+    gradient: 'from-gray-400 to-slate-600',
+    componentCount: 24,
     folders: [
       {
-        id: 'atoms',
-        name: 'Atoms',
-        thumbnailColor: '#f3e5f5',
+        id: 'basic-shape',
+        name: '도형',
+        thumbnailColor: '#e8eaf6',
         components: [
-          { id: 'sds-badge', name: 'Badge', thumbnailColor: '#e8f5e9' },
-          { id: 'sds-avatar', name: 'Avatar', thumbnailColor: '#e8f5e9' },
-          { id: 'sds-icon', name: 'Icon', thumbnailColor: '#e8f5e9' },
-          { id: 'sds-divider', name: 'Divider', thumbnailColor: '#e8f5e9' },
-          { id: 'sds-tag', name: 'Tag', thumbnailColor: '#e8f5e9' },
-          { id: 'sds-spinner', name: 'Spinner', thumbnailColor: '#e8f5e9' },
+          { id: 'bs-rect', name: '사각형', thumbnailColor: '#c5cae9' },
+          { id: 'bs-rounded', name: '둥근 사각형', thumbnailColor: '#c5cae9' },
+          { id: 'bs-circle', name: '원형', thumbnailColor: '#bbdefb' },
+          { id: 'bs-line-h', name: '가로선', thumbnailColor: '#cfd8dc' },
+          { id: 'bs-line-v', name: '세로선', thumbnailColor: '#cfd8dc' },
         ],
       },
       {
-        id: 'molecules',
-        name: 'Molecules',
-        thumbnailColor: '#f3e5f5',
+        id: 'basic-container',
+        name: '컨테이너',
+        thumbnailColor: '#e0f2f1',
         components: [
-          { id: 'sds-input', name: 'Input Group', thumbnailColor: '#e0f2f1' },
-          { id: 'sds-select', name: 'Select', thumbnailColor: '#e0f2f1' },
-          { id: 'sds-tooltip', name: 'Tooltip', thumbnailColor: '#e0f2f1' },
-          { id: 'sds-dropdown', name: 'Dropdown', thumbnailColor: '#e0f2f1' },
-          { id: 'sds-breadcrumb', name: 'Breadcrumb', thumbnailColor: '#e0f2f1' },
+          { id: 'bs-frame', name: '프레임', thumbnailColor: '#b2dfdb' },
+          { id: 'bs-card', name: '카드 컨테이너', thumbnailColor: '#e0f2f1' },
+          { id: 'bs-section', name: '섹션 블록', thumbnailColor: '#c8e6c9' },
+          { id: 'bs-sidebar-block', name: '사이드 블록', thumbnailColor: '#b2dfdb' },
         ],
       },
       {
-        id: 'organisms',
-        name: 'Organisms',
-        thumbnailColor: '#f3e5f5',
+        id: 'basic-text',
+        name: '텍스트',
+        thumbnailColor: '#f5f5f5',
         components: [
-          { id: 'sds-header', name: 'Header', thumbnailColor: '#e0f7fa' },
-          { id: 'sds-footer', name: 'Footer', thumbnailColor: '#e0f7fa' },
-          { id: 'sds-sidebar', name: 'Sidebar', thumbnailColor: '#e0f7fa' },
-          { id: 'sds-table', name: 'Data Table', thumbnailColor: '#e0f7fa' },
-          { id: 'sds-modal', name: 'Modal', thumbnailColor: '#e0f7fa' },
-          { id: 'sds-accordion', name: 'Accordion', thumbnailColor: '#e0f7fa' },
-          { id: 'sds-carousel', name: 'Carousel', thumbnailColor: '#e0f7fa' },
+          { id: 'bs-h1', name: '대제목 (H1)', thumbnailColor: '#e0e0e0' },
+          { id: 'bs-h2', name: '소제목 (H2)', thumbnailColor: '#eeeeee' },
+          { id: 'bs-body', name: '본문', thumbnailColor: '#f5f5f5' },
+          { id: 'bs-caption', name: '캡션', thumbnailColor: '#fafafa' },
+          { id: 'bs-label', name: '라벨', thumbnailColor: '#e0e0e0' },
         ],
       },
       {
-        id: 'templates',
-        name: 'Templates',
-        thumbnailColor: '#f3e5f5',
+        id: 'basic-button',
+        name: '버튼',
+        thumbnailColor: '#e3f2fd',
         components: [
-          { id: 'sds-landing', name: 'Landing Page', thumbnailColor: '#f1f8e9' },
-          { id: 'sds-dashboard', name: 'Dashboard', thumbnailColor: '#f1f8e9' },
-          { id: 'sds-auth', name: 'Auth Page', thumbnailColor: '#f1f8e9' },
-          { id: 'sds-pricing', name: 'Pricing Page', thumbnailColor: '#f1f8e9' },
+          { id: 'bs-primary', name: '기본 버튼', thumbnailColor: '#bbdefb' },
+          { id: 'bs-outlined', name: '아웃라인 버튼', thumbnailColor: '#e3f2fd' },
+          { id: 'bs-pill', name: '알약형 버튼', thumbnailColor: '#c8e6c9' },
+          { id: 'bs-icon-btn', name: '아이콘 버튼', thumbnailColor: '#e8eaf6' },
+          { id: 'bs-link-btn', name: '링크 버튼', thumbnailColor: '#e3f2fd' },
         ],
       },
     ],
@@ -293,29 +297,127 @@ const MOCK_LIBRARIES: Library[] = [
 
 
 function getComponentBlueprint(comp: FolderComponent) {
-  const n = comp.name.toLowerCase();
-  if (n.includes('button') || n.includes('chip') || n.includes('tag') || n.includes('badge')) {
-    return { width: 160, height: 44, fill: comp.thumbnailColor, borderRadius: 8 };
+  const n = comp.name;
+
+  // Detail page - wide components (860px canvas)
+  if (n.includes('배너') || n.includes('히어로')) {
+    return { width: 760, height: 300, fill: comp.thumbnailColor, borderRadius: 0 };
   }
-  if (n.includes('card') || n.includes('modal') || n.includes('dialog') || n.includes('alert') || n.includes('sheet')) {
-    return { width: 280, height: 180, fill: comp.thumbnailColor, borderRadius: 12 };
+  if (n.includes('헤더')) {
+    return { width: 760, height: 200, fill: comp.thumbnailColor, borderRadius: 0 };
   }
-  if (n.includes('navigation') || n.includes('header') || n.includes('footer') || n.includes('keyboard') || n.includes('bar')) {
-    return { width: 360, height: 56, fill: comp.thumbnailColor, borderRadius: 0 };
+  if (n.includes('풀폭') || n.includes('라이프스타일 컷')) {
+    return { width: 760, height: 400, fill: comp.thumbnailColor, borderRadius: 0 };
   }
-  if (n.includes('list') || n.includes('table') || n.includes('accordion') || n.includes('menu')) {
-    return { width: 300, height: 200, fill: comp.thumbnailColor, borderRadius: 8 };
+  if (n.includes('섹션 구분') || n.includes('구분선') || n.includes('장식 라인')) {
+    return { width: 760, height: 2, fill: '#e0e0e0', borderRadius: 0 };
   }
-  if (n.includes('icon') || n.includes('avatar') || n.includes('spinner')) {
-    return { width: 64, height: 64, fill: comp.thumbnailColor, borderRadius: 32 };
+  if (n.includes('여백')) {
+    return { width: 760, height: 60, fill: 'transparent', borderRadius: 0 };
   }
-  if (n.includes('page') || n.includes('screen') || n.includes('dashboard') || n.includes('landing')) {
-    return { width: 360, height: 480, fill: comp.thumbnailColor, borderRadius: 0 };
+  if (n.includes('테이블') || n.includes('스펙') || n.includes('가이드')) {
+    return { width: 700, height: 280, fill: comp.thumbnailColor, borderRadius: 8 };
   }
-  if (n.includes('picker') || n.includes('select') || n.includes('dropdown')) {
-    return { width: 240, height: 160, fill: comp.thumbnailColor, borderRadius: 8 };
+  if (n.includes('리스트') || n.includes('특장점') || n.includes('혜택')) {
+    return { width: 700, height: 240, fill: comp.thumbnailColor, borderRadius: 8 };
   }
-  return { width: 200, height: 120, fill: comp.thumbnailColor, borderRadius: 8 };
+  if (n.includes('카드') && n.includes('상품')) {
+    return { width: 340, height: 420, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+  if (n.includes('블록') && (n.includes('설명') || n.includes('본문') || n.includes('Q&A'))) {
+    return { width: 700, height: 200, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('타이틀') || n.includes('대제목') || n.includes('헤드라인')) {
+    return { width: 700, height: 60, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('소제목') || n.includes('서브타이틀')) {
+    return { width: 500, height: 40, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('본문') || n.includes('텍스트') && !n.includes('CTA')) {
+    return { width: 700, height: 100, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('안내') || n.includes('고지') || n.includes('정보')) {
+    return { width: 700, height: 160, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('그리드') || n.includes('갤러리')) {
+    return { width: 700, height: 350, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('비교')) {
+    return { width: 700, height: 300, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('후기') || n.includes('리뷰') || n.includes('포토 리뷰')) {
+    return { width: 340, height: 240, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+  if (n.includes('카드') || n.includes('컨테이너')) {
+    return { width: 340, height: 200, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+
+  // Badges / icons
+  if (n.includes('배지') || n.includes('마크') || n.includes('NEW') || n.includes('MD') || n.includes('한정판')) {
+    return { width: 80, height: 80, fill: comp.thumbnailColor, borderRadius: 40 };
+  }
+  if (n.includes('가격') || n.includes('할인') || n.includes('쿠폰') || n.includes('묶음')) {
+    return { width: 240, height: 80, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+
+  // Buttons
+  if (n.includes('버튼') || n.includes('구매') || n.includes('장바구니') || n.includes('문의') || n.includes('공유') || n.includes('찜')) {
+    return { width: 280, height: 52, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('알약형')) {
+    return { width: 200, height: 44, fill: comp.thumbnailColor, borderRadius: 22 };
+  }
+  if (n.includes('아이콘 버튼')) {
+    return { width: 48, height: 48, fill: comp.thumbnailColor, borderRadius: 24 };
+  }
+
+  // Instagram feed (1:1)
+  if (n.includes('포스트') || n.includes('피드') || n.includes('공지') && !n.includes('스토리')) {
+    return { width: 400, height: 400, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  // Instagram story (9:16)
+  if (n.includes('스토리')) {
+    return { width: 270, height: 480, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+  // Instagram reel cover (9:16)
+  if (n.includes('릴스')) {
+    return { width: 270, height: 480, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+  // Instagram carousel
+  if (n.includes('캐러셀') || n.includes('슬라이드')) {
+    return { width: 400, height: 500, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+
+  // Basic shapes
+  if (n.includes('사각형')) {
+    return { width: 200, height: 150, fill: comp.thumbnailColor, borderRadius: n.includes('둥근') ? 16 : 0 };
+  }
+  if (n.includes('원형')) {
+    return { width: 150, height: 150, fill: comp.thumbnailColor, borderRadius: 75 };
+  }
+  if (n.includes('가로선')) {
+    return { width: 400, height: 2, fill: '#94a3b8', borderRadius: 0 };
+  }
+  if (n.includes('세로선')) {
+    return { width: 2, height: 300, fill: '#94a3b8', borderRadius: 0 };
+  }
+  if (n.includes('프레임') || n.includes('섹션 블록')) {
+    return { width: 400, height: 300, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('캡션') || n.includes('라벨') || n.includes('해시태그')) {
+    return { width: 300, height: 30, fill: comp.thumbnailColor, borderRadius: 0 };
+  }
+  if (n.includes('워터마크') || n.includes('로고')) {
+    return { width: 120, height: 120, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+  if (n.includes('프로필')) {
+    return { width: 300, height: 100, fill: comp.thumbnailColor, borderRadius: 12 };
+  }
+  if (n.includes('CTA') || n.includes('강조')) {
+    return { width: 400, height: 60, fill: comp.thumbnailColor, borderRadius: 8 };
+  }
+
+  return { width: 300, height: 200, fill: comp.thumbnailColor, borderRadius: 8 };
 }
 
 /* ── Inline SVGs ── */
