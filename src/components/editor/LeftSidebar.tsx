@@ -6,6 +6,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import PagePanel from '@/components/panels/PagePanel';
 import LayerPanel from '@/components/panels/LayerPanel';
 import SectionPanel from '@/components/panels/SectionPanel';
+import AssetPanel from '@/components/panels/AssetPanel';
 import { uploadImage } from '@/lib/supabase/storage';
 import {
   HiPhoto,
@@ -16,7 +17,7 @@ import {
 } from 'react-icons/hi2';
 import { HiCube, HiMinus } from 'react-icons/hi2';
 
-type TabKey = 'file' | 'elements' | 'templates';
+type TabKey = 'file' | 'elements' | 'assets' | 'templates';
 
 export default function LeftSidebar() {
   const [activeTab, setActiveTab] = useState<TabKey>('file');
@@ -74,6 +75,7 @@ export default function LeftSidebar() {
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'file', label: '파일', icon: <HiDocument className="w-4 h-4" /> },
     { key: 'elements', label: '요소', icon: <HiPlusCircle className="w-4 h-4" /> },
+    { key: 'assets', label: '에셋', icon: <HiCube className="w-4 h-4" /> },
     { key: 'templates', label: '템플릿', icon: <HiRectangleStack className="w-4 h-4" /> },
   ];
 
@@ -195,6 +197,8 @@ export default function LeftSidebar() {
             </div>
           </div>
         )}
+
+        {activeTab === 'assets' && <AssetPanel />}
 
         {/* ━━━ Templates tab ━━━ */}
         {activeTab === 'templates' && (
